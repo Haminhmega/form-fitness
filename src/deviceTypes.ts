@@ -1,0 +1,10 @@
+export type DeviceProviderId = 'fitbit'|'whoop'|'garmin'|'apple'|'healthconnect';
+export type DeviceScope = 'activity'|'sleep'|'vitals';
+export type DeviceMetric = 'steps'|'sleepMinutes'|'restingHeartRate'|'hrv';
+export type DeviceConnectionStatus = 'disconnected'|'connected'|'stale'|'error'|'expired';
+export type ImportedWorkout = { id:string; name:string; durationMinutes:number; startedAt:string };
+export type DeviceDay = { id:string; provider:DeviceProviderId; date:string; steps?:number; sleepMinutes?:number; restingHeartRate?:number; hrv?:number; workouts:ImportedWorkout[]; sample:true };
+export type DeviceConnection = { provider:DeviceProviderId; status:DeviceConnectionStatus; scopes:DeviceScope[]; lastSyncAt:number|null; days:DeviceDay[] };
+export type DeviceState = { connections:Record<DeviceProviderId,DeviceConnection>; preferred:Record<DeviceScope,DeviceProviderId|'auto'> };
+export type DeviceProvider = {id:DeviceProviderId;name:string;shortName:string;description:string;route:string;capabilities:DeviceScope[];metrics:DeviceMetric[];color:string;initials:string;docs:string};
+export type SelectedMetric = { value:number; provider:DeviceProviderId; date:string; stale:boolean; sample:true };

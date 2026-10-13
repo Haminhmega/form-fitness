@@ -1,0 +1,26 @@
+{
+  "package": "@mediapipe/tasks-vision",
+  "version": "0.10.35",
+  "model": "MediaPipe Pose Landmarker Lite, float16, version 1",
+  "license": "Apache-2.0",
+  "artifacts": [
+    {
+      "file": "wasm/vision_wasm_module_internal.js",
+      "bytes": 322082,
+      "sha256": "1f1d6215324a1fe62f6742d49a3db911170987ca18ad8c1b75f1a1c82acf2b44",
+      "source": "npm:@mediapipe/tasks-vision@0.10.35/wasm/vision_wasm_module_internal.js"
+    },
+    {
+      "file": "wasm/vision_wasm_module_internal.wasm",
+      "bytes": 11153641,
+      "sha256": "617b8e0248dbd27e9d7ece4218004eae4cefb499196d1bb4fa0e3fef21708756",
+      "source": "npm:@mediapipe/tasks-vision@0.10.35/wasm/vision_wasm_module_internal.wasm"
+    },
+    {
+      "file": "pose_landmarker_lite.task",
+      "bytes": 5777746,
+      "sha256": "59929e1d1ee95287735ddd833b19cf4ac46d29bc7afddbbf6753c459690d574a",
+      "source": "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task"
+    }
+  ]
+}
