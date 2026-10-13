@@ -6,6 +6,10 @@ Date: October 13, 2026. Local preview: http://127.0.0.1:5173/. Browsers: isolate
 
 The prototype now includes a working experimental, local video-analysis path for user-declared side-view bodyweight squats. TypeScript and the final production build pass. The rebuilt portable Form.html opens directly without a server and supports local logging, sample device imports and illustrated feedback; it clearly disables real AI and links to the served preview. No actual wearable connection, OAuth flow, accounts or backend integration is present. This is not validated production coaching.
 
+## iPhone Home Screen update
+
+Seven production-build PWA checks pass under a nested hosting path: manifest/icons/safe-area metadata, service-worker readiness, cold offline reopening with a completed set preserved, no eager AI download or clip caching, real squat inference online and then offline, deferred updates with the active-workout guard, and 390px Profile layout. No page errors occurred. These tests use Chromium phone emulation, not a physical iPhone. Basic mobile navigation/layout also passed in Windows WebKit; its missing OffscreenCanvas prevents validating iPhone AI through that environment. See IPHONE.md.
+
 ## Local AI update — final verification
 
 The following checks were completed for this update. Suite counts describe separate scopes and can overlap; they are not a count of independent accuracy examples.

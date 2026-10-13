@@ -8,6 +8,7 @@ html = html.replace(/<script[^>]+src="([^"]+)"[^>]*><\/script>/g, (_match, src) 
   return `<script type="module">${code}</script>`;
 });
 html = html.replace(/<link[^>]+href="([^"]+\.css)"[^>]*>/g, (_match, href) => `<style>${fs.readFileSync(path.join(root, 'dist', href), 'utf8')}</style>`);
+html = html.replace(/<link[^>]+rel="(?:manifest|apple-touch-icon)"[^>]*>/g, '');
 const destination = process.argv[2] || path.join(root, '..', 'Form.html');
 fs.writeFileSync(destination, html);
 console.log(`Standalone prototype saved: ${destination}`);

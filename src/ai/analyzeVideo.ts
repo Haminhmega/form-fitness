@@ -47,7 +47,7 @@ function seekDecodedFrame(video: HTMLVideoElement, target: number, signal: Abort
 export async function analyzeVideo(url: string, options: AnalyzeVideoOptions): Promise<SquatAnalysis> {
   if (!['http:', 'https:'].includes(location.protocol)) throw new Error('Real analysis needs the served app. Open Form with npm run dev on localhost; the portable file keeps the sample experience.');
   if (!url.startsWith('blob:')) throw new Error('Choose a local video to analyze. Remote videos are not sent to this analyzer.');
-  if (typeof Worker === 'undefined' || typeof OffscreenCanvas === 'undefined' || typeof createImageBitmap === 'undefined') throw new Error('This browser cannot run local pose analysis. Try an up-to-date Chrome or Edge browser.');
+  if (typeof Worker === 'undefined' || typeof OffscreenCanvas === 'undefined' || typeof createImageBitmap === 'undefined') throw new Error('This browser cannot run local pose analysis. Update your browser or iOS and try again. Workout logging remains available.');
   assertActive(options.signal);
   const controller = new AbortController();
   const externalAbort = () => controller.abort(abortReason(options.signal));

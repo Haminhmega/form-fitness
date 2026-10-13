@@ -2,6 +2,10 @@
 
 A React + TypeScript training prototype with a working, experimental local AI test for bodyweight squat videos. Charcoal, warm white, restrained lime. No backend, accounts, video uploads, or model training.
 
+## Install on iPhone
+
+Open [Form](https://form-fitness-minh.breezy-rhea-1400.chatgpt.site) in Safari, sign in to the owning ChatGPT account if asked, then choose Share → Add to Home Screen → Add. The source repository and hosted app are private. See [IPHONE.md](IPHONE.md) for offline setup, updates and device limitations.
+
 ## Open it
 
 The live development preview is available at **http://127.0.0.1:5173/** while its local server is running.
@@ -59,7 +63,7 @@ Illustrated recording screens expose **Preview a state** for denied permission, 
 - Recording comparisons use explicitly labeled illustrations. Tempo remains unassessed. Limited data does not produce improvement claims.
 - Notification, cloud, retention, contribution, and deletion controls demonstrate future preferences. They save locally but have no service behind them. Contribution is separate and off by default.
 - Feedback flags are local to the current preview and are not sent. Sample feedback links identify the demonstrated exercise. Only one sample feedback reference per locally logged session is retained.
-- No accounts, security service, payment service, validated production coaching, model training, or backend exists. Local logging works after the app loads; this is not an installable offline PWA.
+- No accounts, security service, payment service, validated production coaching, model training, or backend exists. The production build supports Home Screen installation and offline reopening after setup. Storage remains device-local, with no cloud backup.
 
 ## Next milestones
 
