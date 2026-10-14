@@ -6,3 +6,5 @@
 @media(prefers-reduced-motion:reduce){.profile-page .profile-setting .setting-switch>span{transition:none}}
 .progress-page .rep-select{grid-template-columns:repeat(4,minmax(44px,1fr))}
 @media(max-width:760px){.progress-page .record-panel{display:flex}.progress-page .record-panel .record-number{align-self:flex-start;text-align:left;margin:18px 0 10px}.progress-page .record-panel .record-icon{margin-bottom:18px}}
+
+.profile-page .profile-disclosure>summary{cursor:pointer;list-style:none}.profile-page .profile-disclosure>summary::-webkit-details-marker{display:none}.profile-page .profile-disclosure .disclosure-chevron{transition:transform .18s ease}.profile-page .profile-disclosure[open] .disclosure-chevron{transform:rotate(90deg)}.profile-page .profile-disclosure:not([open])>summary{padding-bottom:0;border-bottom:0}.profile-page .profile-disclosure[open]>summary{margin-bottom:2px}

@@ -17,15 +17,22 @@ const env={
   ASSETS:{fetch:()=>new Response('static app')}
 };
 const doc={profile:{name:'Test Person',age:null,heightCm:175,weightKg:72,targetWeightKg:null,activity:'Lightly active'},training:{preferences:initialPreferences,routines:initialRoutines,exercises:initialExercises,history:[]}};
-const localHistory=[{id:'local-workout',name:'Preserved workout',date:'2026-10-14',duration:35,sets:1,volume:500,feedback:false,exercises:[{name:'Squat',sets:[{id:'set-1',weight:50,reps:10,done:true}]}]}];
+const localHistory=[{id:'local-workout',name:'Preserved workout',date:'2026-10-14',duration:35,sets:1,volume:500,feedback:false,exercises:[{name:'Squat',sets:[{id:'set-1',weight:50,reps:10,done:true}]}]},{id:'sample-workout',name:'Sample workout',date:'2026-10-13',duration:20,sets:1,volume:100,feedback:false,exercises:[],sample:true}];
+const localPreferences={...initialPreferences,notifications:true,goal:'Build consistency'};
 const localValues=new Map([
   ['form-user:a:form-routines-v1',JSON.stringify(initialRoutines)],
   ['form-user:a:form-exercises-v1',JSON.stringify(initialExercises)],
+  ['form-user:a:form-preferences-v1',JSON.stringify(localPreferences)],
   ['form-user:a:form-history-v1',JSON.stringify(localHistory)],
 ]);
-const migrated=buildAccountDocumentFromLocal('a',doc.profile,initialPreferences,key=>localValues.get(key)||null);
+const migrated=buildAccountDocumentFromLocal('a',doc.profile,{...initialPreferences,goal:'Build muscle'},key=>localValues.get(key)||null);
 assert.equal(migrated.training.history[0].id,'local-workout');
+assert.equal(migrated.training.history.length,1);
 assert.equal(migrated.training.history[0].exercises[0].sets[0].reps,10);
+assert.equal(migrated.training.preferences.notifications,true);
+assert.equal(migrated.training.preferences.goal,'Build muscle');
+assert.equal(migrated.training.preferences.firstTime,true);
+assert.equal(migrated.training.preferences.onboarded,true);
 const malformed=buildAccountDocumentFromLocal('a',doc.profile,initialPreferences,key=>key.endsWith('form-history-v1')?'not-json':null);
 assert.deepEqual(malformed.training.history,[]);
 async function call(id,method='GET',body,extra={}){const response=await worker.fetch(new Request('https://form.test/api/account',{method,headers:{...(id?{'oai-authenticated-user-id':id,'oai-authenticated-user-email':id+'@example.test'}:{}),Origin:'https://form.test','Content-Type':'application/json','X-Form-Client':'1','X-Form-Account':id||'',...extra},body:body?JSON.stringify(body):undefined}),env);return {status:response.status,body:await response.json(),headers:response.headers}}

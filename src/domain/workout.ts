@@ -10,9 +10,10 @@ export function createWorkoutSession(
   const logs:Session['logs']={};
   routine.exercises.forEach(item=>{
     const exercise=exercises.find(candidate=>candidate.id===item.exerciseId);
+    const matches=(completed:HistoryEntry['exercises'][number])=>completed.exerciseId===item.exerciseId||(!completed.exerciseId&&completed.name===exercise?.name);
     const previous=history
-      .find(entry=>entry.exercises.some(completed=>completed.name===exercise?.name))
-      ?.exercises.find(completed=>completed.name===exercise?.name)?.sets;
+      .find(entry=>entry.exercises.some(matches))
+      ?.exercises.find(matches)?.sets;
     const routineReps=parseInt(item.reps)||8;
     logs[item.exerciseId]=Array.from({length:item.sets},(_,index)=>({
       id:idFactory(),
@@ -54,6 +55,7 @@ export function createHistoryEntry(
     feedbackExerciseId:session.feedbackExerciseId,
     exercises:session.exercises
       .map(item=>({
+        exerciseId:item.exerciseId,
         name:exercises.find(exercise=>exercise.id===item.exerciseId)?.name||'Exercise',
         sets:(session.logs[item.exerciseId]||[]).filter(set=>set.done),
       }))

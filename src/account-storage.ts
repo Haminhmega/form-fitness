@@ -12,13 +12,24 @@ export function buildAccountDocumentFromLocal(
 ):AccountDocument{
   try{
     const read=(name:string,fallback:unknown)=>JSON.parse(getItem(`form-user:${userId}:${name}`)||JSON.stringify(fallback));
+    const localPreferences=read('form-preferences-v1',preferences) as Preferences;
+    const localHistory=read('form-history-v1',[]) as Array<{sample?:boolean}>;
     const candidate={
       profile,
       training:{
-        preferences,
+        preferences:{
+          ...localPreferences,
+          units:preferences.units,
+          goal:preferences.goal,
+          experience:preferences.experience,
+          equipment:preferences.equipment,
+          days:preferences.days,
+          firstTime:true,
+          onboarded:true,
+        },
         routines:read('form-routines-v1',initialRoutines),
         exercises:read('form-exercises-v1',initialExercises),
-        history:read('form-history-v1',[]),
+        history:localHistory.filter(item=>!item?.sample),
       },
     };
     const parsed=documentSchema.safeParse(candidate);
