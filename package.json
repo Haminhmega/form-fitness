@@ -9,6 +9,7 @@
     "preview": "vite preview --host 127.0.0.1",
     "prepare:ai": "node scripts/prepare-ai.mjs",
     "test:ai": "node scripts/test-squat.mjs",
+    "test:workout": "node scripts/test-workout.mjs",
     "db:generate": "drizzle-kit generate",
     "preview:server": "wrangler dev --config dist/server/wrangler.json --local --persist-to .wrangler/state --ip 127.0.0.1 --port 8787",
     "test:accounts": "node scripts/test-accounts.mjs"

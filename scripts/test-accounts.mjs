@@ -2,8 +2,8 @@ import assert from 'node:assert/strict';
 import {DatabaseSync} from 'node:sqlite';
 import {readFile,readdir} from 'node:fs/promises';
 import {build} from 'esbuild';
-const result=await build({stdin:{contents:"export {default as worker} from './server/index.ts'; export {googleAuth} from './server/google-auth.ts'; export {rateLimit} from './server/rate-limit.ts'; export {initialExercises,initialRoutines,initialPreferences} from './src/data.ts';",resolveDir:process.cwd()},bundle:true,format:'esm',platform:'node',write:false});
-const {worker,googleAuth,rateLimit,initialExercises,initialRoutines,initialPreferences}=await import('data:text/javascript;base64,'+Buffer.from(result.outputFiles[0].text).toString('base64'));
+const result=await build({stdin:{contents:"export {default as worker} from './server/index.ts'; export {googleAuth} from './server/google-auth.ts'; export {rateLimit} from './server/rate-limit.ts'; export {initialExercises,initialRoutines,initialPreferences} from './src/data.ts'; export {buildAccountDocumentFromLocal} from './src/account-storage.ts';",resolveDir:process.cwd()},bundle:true,format:'esm',platform:'node',write:false});
+const {worker,googleAuth,rateLimit,initialExercises,initialRoutines,initialPreferences,buildAccountDocumentFromLocal}=await import('data:text/javascript;base64,'+Buffer.from(result.outputFiles[0].text).toString('base64'));
 const db=new DatabaseSync(':memory:');for(const file of (await readdir(new URL('../drizzle/',import.meta.url))).filter(f=>f.endsWith('.sql')).sort())db.exec(await readFile(new URL('../drizzle/'+file,import.meta.url),'utf8'));
 const env={
   DB:{prepare(sql){
@@ -17,6 +17,17 @@ const env={
   ASSETS:{fetch:()=>new Response('static app')}
 };
 const doc={profile:{name:'Test Person',age:null,heightCm:175,weightKg:72,targetWeightKg:null,activity:'Lightly active'},training:{preferences:initialPreferences,routines:initialRoutines,exercises:initialExercises,history:[]}};
+const localHistory=[{id:'local-workout',name:'Preserved workout',date:'2026-10-14',duration:35,sets:1,volume:500,feedback:false,exercises:[{name:'Squat',sets:[{id:'set-1',weight:50,reps:10,done:true}]}]}];
+const localValues=new Map([
+  ['form-user:a:form-routines-v1',JSON.stringify(initialRoutines)],
+  ['form-user:a:form-exercises-v1',JSON.stringify(initialExercises)],
+  ['form-user:a:form-history-v1',JSON.stringify(localHistory)],
+]);
+const migrated=buildAccountDocumentFromLocal('a',doc.profile,initialPreferences,key=>localValues.get(key)||null);
+assert.equal(migrated.training.history[0].id,'local-workout');
+assert.equal(migrated.training.history[0].exercises[0].sets[0].reps,10);
+const malformed=buildAccountDocumentFromLocal('a',doc.profile,initialPreferences,key=>key.endsWith('form-history-v1')?'not-json':null);
+assert.deepEqual(malformed.training.history,[]);
 async function call(id,method='GET',body,extra={}){const response=await worker.fetch(new Request('https://form.test/api/account',{method,headers:{...(id?{'oai-authenticated-user-id':id,'oai-authenticated-user-email':id+'@example.test'}:{}),Origin:'https://form.test','Content-Type':'application/json','X-Form-Client':'1','X-Form-Account':id||'',...extra},body:body?JSON.stringify(body):undefined}),env);return {status:response.status,body:await response.json(),headers:response.headers}}
 assert.equal((await call(null)).status,401);
 assert.equal((await call('a','PUT',{revision:0,document:doc},{'X-Form-Account':'b'})).body.code,'ACCOUNT_CHANGED');
@@ -68,6 +79,16 @@ const link=await startGoogle('/auth/google?mode=link',platformHeaders);
 const linked=await auth(new Request(`https://form.test/auth/google/callback?state=${link.state}&code=test-code`,{headers:{...platformHeaders,Cookie:link.stateCookie}}),authEnv);
 assert.equal(linked.headers.get('Location'),'/?auth_success=google');assert.equal(db.prepare('SELECT user_id FROM form_google_identities WHERE google_sub=?').get(verifiedSub).user_id,'a');
 assert.equal(db.prepare('SELECT COUNT(*) AS count FROM form_sessions WHERE user_id=?').get('google:'+verifiedSub).count,0);
+
+// A linked account can subsequently use the ordinary Continue with Google path.
+const linkedDirect=await startGoogle();
+const linkedDirectCallback=await auth(new Request(`https://form.test/auth/google/callback?state=${linkedDirect.state}&code=test-code`,{headers:{Cookie:linkedDirect.stateCookie}}),authEnv);
+assert.equal(linkedDirectCallback.headers.get('Location'),'/?auth_success=google');
+assert.ok(db.prepare('SELECT COUNT(*) AS count FROM form_sessions WHERE user_id=?').get('a').count>0);
+
+const linkedSessionCookie=linkedDirectCallback.headers.getSetCookie().find(value=>value.startsWith('__Host-form-session=')).split(';')[0];
+const dualSignout=await auth(new Request('https://form.test/api/auth/signout',{method:'POST',headers:{...platformHeaders,Origin:'https://form.test','X-Form-Client':'1',Cookie:linkedSessionCookie}}),authEnv);
+assert.equal(dualSignout.status,200);assert.equal((await dualSignout.json()).hasPlatformSession,true);
 
 verifiedSub='google-sub-b';
 const secondLink=await startGoogle('/auth/google?mode=link',platformHeaders);

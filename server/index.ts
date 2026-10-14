@@ -1,6 +1,6 @@
 import {saveSchema} from '../shared/account';
 import {json,sameOrigin,type Env} from './contracts';
-import {identityResult,googleAuth,clearSessionCookie,authErrorRedirect,hasSessionCookie} from './google-auth';
+import {identityResult,googleAuth,clearSessionCookie,authErrorRedirect,hasSessionCookie,hasPlatformSession} from './google-auth';
 import {rateLimit} from './rate-limit';
 const handleAuth=googleAuth();
 async function readJson(request:Request){
@@ -49,7 +49,7 @@ export default {async fetch(request:Request,env:Env):Promise<Response>{
       await env.DB.prepare('DELETE FROM form_sessions WHERE user_id=?').bind(user.id).run();
       await env.DB.prepare('DELETE FROM form_oauth_states WHERE link_user_id=?').bind(user.id).run();
       await env.DB.prepare('DELETE FROM form_google_identities WHERE user_id=?').bind(user.id).run();
-      return json({deleted:true},200,{'Set-Cookie':clearSessionCookie()});
+      return json({deleted:true,hasPlatformSession:hasPlatformSession(request)},200,{'Set-Cookie':clearSessionCookie()});
     }
     const parsed=saveSchema.safeParse(body);
     if(!parsed.success)return json({error:'Check your details and try again.',fields:parsed.error.issues.map(i=>({path:i.path.join('.'),message:i.message})).slice(0,12)},400);

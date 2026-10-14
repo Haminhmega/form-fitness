@@ -23,6 +23,7 @@ function platformIdentity(request:Request):Omit<AccountUser,'googleLinked'>|null
   let name='';if(request.headers.get('oai-authenticated-user-full-name-encoding')==='percent-encoded-utf-8')try{name=decodeURIComponent(request.headers.get('oai-authenticated-user-full-name')||'')}catch{}
   return {id,email,name:name.slice(0,100),provider:'chatgpt'};
 }
+export const hasPlatformSession=(request:Request)=>platformIdentity(request)!==null;
 export type IdentityResult={user:AccountUser|null;clearSession:boolean};
 export async function identityResult(request:Request,env:Env):Promise<IdentityResult>{
   const raw=cookie(request,SESSION);
@@ -60,7 +61,7 @@ export function googleAuth(dependencies:Dependencies={}){
       if(!sameOrigin(request))return json({error:'This request must come from Form.'},403);
       const raw=cookie(request,SESSION);
       if(raw&&tokenPattern.test(raw))await env.DB.prepare('DELETE FROM form_sessions WHERE token_hash=?').bind(await hash(raw)).run();
-      return json({signedOut:true},200,{'Set-Cookie':clearSessionCookie()});
+      return json({signedOut:true,hasPlatformSession:hasPlatformSession(request)},200,{'Set-Cookie':clearSessionCookie()});
     }
     if(url.pathname!=='/auth/google'&&url.pathname!=='/auth/google/callback')return null;
     if(request.method!=='GET')return json({error:'Method not allowed'},405);
@@ -95,8 +96,11 @@ export function googleAuth(dependencies:Dependencies={}){
       const data=await response.json() as {id_token?:string};
       if(!data.id_token||data.id_token.length>20000)return fail('invalid_response');
       const google=await verify(data.id_token,env.GOOGLE_CLIENT_ID!,attempt.nonce_hash);
-      const generated='google:'+google.sub,wanted=attempt.link_user_id||generated;
+      const generated='google:'+google.sub;
       let linked=await env.DB.prepare('SELECT user_id FROM form_google_identities WHERE google_sub=?').bind(google.sub).first();
+      // A direct Google sign-in must reuse the Form user that already owns this
+      // Google identity. The generated id is only for first-time Google users.
+      const wanted=attempt.link_user_id||linked?.user_id||generated;
       if(attempt.link_user_id){
         const current=await env.DB.prepare('SELECT google_sub FROM form_google_identities WHERE user_id=?').bind(wanted).first();
         if(current&&current.google_sub!==google.sub)return fail('account_has_google');
