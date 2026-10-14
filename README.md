@@ -1,6 +1,10 @@
 # Form
 
-A React + TypeScript training prototype with a working, experimental local AI test for bodyweight squat videos. Charcoal, warm white, restrained lime. No backend, accounts, video uploads, or model training.
+A React + TypeScript training prototype with a working, experimental local AI test for bodyweight squat videos. Charcoal, warm white, restrained lime. Includes real ChatGPT sign-in, a user-owned D1 profile, and cross-device sync. No video uploads or model training.
+
+## Accounts and body stats
+
+Continue with ChatGPT, then set your name, optional age/height/current and target weight, activity level, goal, training days and equipment. Metric and imperial input are supported. Profile → Edit stats & goals updates them. See [ACCOUNTS.md](ACCOUNTS.md) for sync, deletion, backend operation and verification limits. The live app remains owner-private.
 
 ## Install on iPhone
 
@@ -31,6 +35,8 @@ npm run preview
 
 **Try real AI:** Today → **Check my form**, or open **http://127.0.0.1:5173/#form-test**. Choose a 2–60 second video (up to 100 MB), confirm it shows one person doing standard bodyweight squats from the side, and select **Analyze squat video**. Use an up-to-date Chrome or Edge for this test. Results include usable-frame coverage, detected complete repetitions, lowering/rising timing, projected knee-angle measurements, and timestamped replay with actual tracked joints. Unclear or unsuitable movement yields partial/unable output. A model download occurs during preparation; inference reads assets from this app only. Videos and results stay in memory and are cleared when leaving the screen. Results do not modify logged sets, sample history, or device readings. See AI-TEST.md for implementation and validation limits.
 
+Choose **Explore the local demo** when using a preview without hosted sign-in.
+
 To explore the **illustrated example**:
 
 1. On Today, choose **Start workout**.
@@ -50,7 +56,7 @@ Illustrated recording screens expose **Preview a state** for denied permission, 
 ## Major UX decisions
 
 - Starting and continuing a session is the primary task. Active sessions remain one tap away. On a phone, a persistent workout dock keeps rest controls and finishing within reach.
-- Completed sets, notes, routines, and preferences are kept locally. Reloading or changing screens preserves an active workout. A confirmation prevents accidentally finishing or replacing it.
+- Signed-in profile stats, routines, exercise library, training preferences and completed workouts sync across devices. Active workouts and notes remain local until completion. Reloading or changing screens preserves an active workout. A confirmation prevents accidentally finishing or replacing it.
 - Manual logging is a complete path. Video is optional. Real experimental analysis supports selected bodyweight squat clips; the three original named movements retain illustrated feedback examples.
 - Feedback explains what, where, and a possible next action. Visibility is explicit. There are no overall scores, safety guarantees, diagnoses, or invented research citations.
 - Desktop uses a side rail and contextual panels; phones use bottom navigation and a single task column. Native dialogs, labels, focus rings, reduced motion, and large controls support keyboard and touch use.
@@ -61,16 +67,16 @@ Illustrated recording screens expose **Preview a state** for denied permission, 
 - On **View illustrated example**, camera permission, framing checks, countdown capture, analysis waits, observations, confidence, and rep markers are simulated. The real squat test is a separate screen with actual pose inference and experimental measurement logic.
 - User-selected videos use temporary object URLs. They are not uploaded or stored, and are released when the recording screen closes. Illustrated example findings never describe the selected video.
 - Recording comparisons use explicitly labeled illustrations. Tempo remains unassessed. Limited data does not produce improvement claims.
-- Notification, cloud, retention, contribution, and deletion controls demonstrate future preferences. They save locally but have no service behind them. Contribution is separate and off by default.
+- Reminder, video-upload, video-retention, model-contribution and video-deletion controls remain illustrative. Account syncing and account deletion are real and separate from these video preferences.
 - Feedback flags are local to the current preview and are not sent. Sample feedback links identify the demonstrated exercise. Only one sample feedback reference per locally logged session is retained.
-- No accounts, security service, payment service, validated production coaching, model training, or backend exists. The production build supports Home Screen installation and offline reopening after setup. Storage remains device-local, with no cloud backup.
+- No payment service, validated production coaching, or model training exists. The production build supports Home Screen installation and offline reopening after setup. Profile and completed-session sync require a signed-in hosted account.
 
 ## Next milestones
 
 1. Usability testing with beginner/intermediate lifters; screen-reader testing and real-device camera ergonomics.
 2. A validated movement/variation support contract with observable evidence, uncertainty thresholds, and evaluation fixtures.
 3. Real camera capture and upload lifecycle with explicit consent, clear retention/deletion behavior, and robust error recovery.
-4. Account/storage architecture and offline synchronization, followed by secure backend integration.
+4. Physical-iPhone sign-in, installation, offline-sync and multi-device usability testing.
 5. Carefully evaluated, exercise-specific analysis and longitudinal coaching quality testing.
 
 See DESIGN.md for the product/screen contract, AI-TEST.md for the experimental analyzer, and QA.md for checks and limitations. This deliverable is a test version, not a validated coaching product.

@@ -1,8 +1,9 @@
 import React from 'react';
 import {createRoot} from 'react-dom/client';
 import App from './App';
+import {AccountProvider} from './Account';
 import './styles.css';
 import './pwa.css';
 import {startOfflineApp} from './pwa';
-createRoot(document.getElementById('root')!).render(<React.StrictMode><App/></React.StrictMode>);
+createRoot(document.getElementById('root')!).render(<React.StrictMode><AccountProvider><App/></AccountProvider></React.StrictMode>);
 void startOfflineApp();

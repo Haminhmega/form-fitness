@@ -1,5 +1,16 @@
 # Form — prototype verification
 
+## Account update — October 13, 2026
+
+- Eleven browser checks passed against the actual local Worker/D1 backend with fictional dispatch identities: sign-up, unit conversion, optional stats, profile edit, independent-device restoration, user isolation, offline reopening/edit/reconnection, CAS conflicts and resolution, a completed workout on a second device, server input rejection, and account deletion.
+- The phone Profile screen had no detected axe WCAG A/AA violations or horizontal overflow. Fixed narrow-screen form overflow, explicit select labels, and a workout toast covering the Finish control.
+- Automated account API tests use real in-memory SQLite and the shipped Worker code to verify identity/origin checks, parameterized ownership, schema bounds, no-store responses, simultaneous revisions, sample filtering, deletion and stale writes after recreation. These run in GitHub CI.
+- All seven PWA regression groups passed again, including app-root/subpath caching, cold offline logging, explicit update behavior, and real model inference on the same clip online and offline. All 16 deterministic AI engine groups passed. TypeScript and production build passed; production dependency audit reports zero known vulnerabilities. Four moderate development-only advisories remain in the drizzle-kit/esbuild-kit dependency chain; no vulnerable development server is exposed by the deployment.
+- Local browser checks emulate iPhone 13 dimensions in Chromium. They do not claim a physical-iPhone test or end-to-end hosted OAuth verification. Local test identities are never enabled in production. The live audience remains owner-private. Videos and real wearable integrations remain outside account sync.
+
+Evidence: work/qa-accounts-report.json and work/qa-pwa-report.json. Account architecture, operation and data limits: ACCOUNTS.md.
+
+
 Date: October 13, 2026. Local preview: http://127.0.0.1:5173/. Browsers: isolated Chrome and Edge automated contexts, plus ECC Chrome DevTools rendered inspection.
 
 ## Result

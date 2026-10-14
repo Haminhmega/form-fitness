@@ -5,16 +5,21 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host 127.0.0.1",
-    "build": "tsc -b && vite build && node scripts/build-pwa.mjs",
+    "build": "node scripts/clean-build.mjs && tsc -b && vite build && node scripts/build-pwa.mjs && node scripts/build-server.mjs",
     "preview": "vite preview --host 127.0.0.1",
     "prepare:ai": "node scripts/prepare-ai.mjs",
-    "test:ai": "node scripts/test-squat.mjs"
+    "test:ai": "node scripts/test-squat.mjs",
+    "db:generate": "drizzle-kit generate",
+    "preview:server": "wrangler dev --config dist/server/wrangler.json --local --persist-to .wrangler/state --ip 127.0.0.1 --port 8787",
+    "test:accounts": "node scripts/test-accounts.mjs"
   },
   "dependencies": {
     "@mediapipe/tasks-vision": "0.10.35",
+    "drizzle-orm": "^0.45.2",
     "lucide-react": "^0.468.0",
     "react": "^19.1.0",
-    "react-dom": "^19.1.0"
+    "react-dom": "^19.1.0",
+    "zod": "^3.25.76"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.10.2",
@@ -22,7 +27,10 @@
     "@types/react": "^19.1.0",
     "@types/react-dom": "^19.1.0",
     "@vitejs/plugin-react": "^4.5.0",
+    "drizzle-kit": "^0.31.10",
+    "esbuild": "^0.25.12",
     "typescript": "~5.8.3",
-    "vite": "^6.3.5"
+    "vite": "^6.3.5",
+    "wrangler": "^4.92.0"
   }
 }

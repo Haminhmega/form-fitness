@@ -3,7 +3,7 @@ import {readdir,readFile,writeFile} from 'node:fs/promises';
 import {resolve,dirname,join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 const root=resolve(dirname(fileURLToPath(import.meta.url)),'..');
-const dist=join(root,'dist');
+const dist=join(root,'dist/client');
 async function files(dir,prefix='') {
   const result=[];
   for(const entry of await readdir(dir,{withFileTypes:true})) {
@@ -30,7 +30,14 @@ const urls=new Set(FILES.map(path=>new URL(path,BASE).href));
 const index=new URL('index.html',BASE).href;
 self.addEventListener('install',event=>event.waitUntil((async()=>{
   const cache=await caches.open(CACHE);
-  try { await cache.addAll(CORE.map(path=>new Request(new URL(path,BASE),{cache:'reload'}))); }
+  try {
+    await cache.addAll(CORE.filter(path=>path!=='index.html').map(path=>new Request(new URL(path,BASE),{cache:'reload'})));
+    // Asset hosts may redirect /index.html to /. Cache the canonical shell
+    // under our navigation key, never a redirected authentication page.
+    const shell=await fetch(new Request(BASE,{cache:'reload'}));
+    if(!shell.ok||shell.redirected)throw Error('App shell is unavailable');
+    await cache.put(index,shell);
+  }
   catch(error) { await caches.delete(CACHE); throw error; }
 })()));
 self.addEventListener('activate',event=>event.waitUntil((async()=>{
