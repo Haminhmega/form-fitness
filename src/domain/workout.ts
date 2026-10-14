@@ -15,12 +15,15 @@ export function createWorkoutSession(
       .find(entry=>entry.exercises.some(matches))
       ?.exercises.find(matches)?.sets;
     const routineReps=parseInt(item.reps)||8;
-    logs[item.exerciseId]=Array.from({length:item.sets},(_,index)=>({
-      id:idFactory(),
-      weight:previous?.[index]?.weight||0,
-      reps:previous?.[index]?.reps||routineReps,
-      done:false,
-    }));
+    logs[item.exerciseId]=Array.from({length:item.sets},(_,index)=>{
+      const exact=previous?.[index];
+      return {
+        id:idFactory(),
+        weight:exact?.weight??previous?.at(-1)?.weight??0,
+        reps:exact?.reps??routineReps,
+        done:false,
+      };
+    });
   });
 
   return {

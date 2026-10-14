@@ -3,6 +3,15 @@ import {initialExercises,initialRoutines} from './data';
 import type {Preferences} from './types';
 
 export type LocalReader=(key:string)=>string|null;
+export type LocalRemover=(key:string)=>void;
+export const migratedTrainingKeys=['form-routines-v1','form-exercises-v1','form-preferences-v1','form-history-v1'] as const;
+
+export function clearMigratedTraining(
+  userId:string,
+  removeItem:LocalRemover=(name)=>localStorage.removeItem(name),
+){
+  migratedTrainingKeys.forEach(name=>removeItem(`form-user:${userId}:${name}`));
+}
 
 export function buildAccountDocumentFromLocal(
   userId:string,

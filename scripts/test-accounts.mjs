@@ -2,8 +2,8 @@ import assert from 'node:assert/strict';
 import {DatabaseSync} from 'node:sqlite';
 import {readFile,readdir} from 'node:fs/promises';
 import {build} from 'esbuild';
-const result=await build({stdin:{contents:"export {default as worker} from './server/index.ts'; export {googleAuth} from './server/google-auth.ts'; export {rateLimit} from './server/rate-limit.ts'; export {initialExercises,initialRoutines,initialPreferences} from './src/data.ts'; export {buildAccountDocumentFromLocal} from './src/account-storage.ts';",resolveDir:process.cwd()},bundle:true,format:'esm',platform:'node',write:false});
-const {worker,googleAuth,rateLimit,initialExercises,initialRoutines,initialPreferences,buildAccountDocumentFromLocal}=await import('data:text/javascript;base64,'+Buffer.from(result.outputFiles[0].text).toString('base64'));
+const result=await build({stdin:{contents:"export {default as worker} from './server/index.ts'; export {googleAuth} from './server/google-auth.ts'; export {rateLimit} from './server/rate-limit.ts'; export {initialExercises,initialRoutines,initialPreferences} from './src/data.ts'; export {buildAccountDocumentFromLocal,clearMigratedTraining} from './src/account-storage.ts';",resolveDir:process.cwd()},bundle:true,format:'esm',platform:'node',write:false});
+const {worker,googleAuth,rateLimit,initialExercises,initialRoutines,initialPreferences,buildAccountDocumentFromLocal,clearMigratedTraining}=await import('data:text/javascript;base64,'+Buffer.from(result.outputFiles[0].text).toString('base64'));
 const db=new DatabaseSync(':memory:');for(const file of (await readdir(new URL('../drizzle/',import.meta.url))).filter(f=>f.endsWith('.sql')).sort())db.exec(await readFile(new URL('../drizzle/'+file,import.meta.url),'utf8'));
 const env={
   DB:{prepare(sql){
@@ -33,6 +33,9 @@ assert.equal(migrated.training.preferences.notifications,true);
 assert.equal(migrated.training.preferences.goal,'Build muscle');
 assert.equal(migrated.training.preferences.firstTime,true);
 assert.equal(migrated.training.preferences.onboarded,true);
+const removed=[];clearMigratedTraining('a',key=>removed.push(key));
+assert.deepEqual(removed.sort(),['form-user:a:form-exercises-v1','form-user:a:form-history-v1','form-user:a:form-preferences-v1','form-user:a:form-routines-v1']);
+assert.ok(!removed.some(key=>key.endsWith('form-session-v1')||key.endsWith('form-devices-v1')));
 const malformed=buildAccountDocumentFromLocal('a',doc.profile,initialPreferences,key=>key.endsWith('form-history-v1')?'not-json':null);
 assert.deepEqual(malformed.training.history,[]);
 async function call(id,method='GET',body,extra={}){const response=await worker.fetch(new Request('https://form.test/api/account',{method,headers:{...(id?{'oai-authenticated-user-id':id,'oai-authenticated-user-email':id+'@example.test'}:{}),Origin:'https://form.test','Content-Type':'application/json','X-Form-Client':'1','X-Form-Account':id||'',...extra},body:body?JSON.stringify(body):undefined}),env);return {status:response.status,body:await response.json(),headers:response.headers}}

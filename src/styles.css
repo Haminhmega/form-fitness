@@ -28,3 +28,5 @@
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}
 
 @media(max-width:760px){.toast.workout-toast{bottom:calc(224px + env(safe-area-inset-bottom))}}
+
+.previous-button{background:transparent;border:0;padding:0;text-align:left;text-decoration:underline;text-decoration-color:#667359;text-underline-offset:4px}.previous-button:hover{color:var(--accent)}.previous-button:disabled{text-decoration:none}
