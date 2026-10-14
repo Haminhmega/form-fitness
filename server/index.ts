@@ -1,18 +1,8 @@
 import {saveSchema} from '../shared/account';
-type Statement={bind:(...args:unknown[])=>Statement;first:()=>Promise<any>;run:()=>Promise<{meta:{changes:number}}>};
-type Env={DB:{prepare:(sql:string)=>Statement};ASSETS?:{fetch:(request:Request)=>Promise<Response>}};
-const headers={'Content-Type':'application/json','Cache-Control':'private, no-store','Vary':'Cookie','X-Content-Type-Options':'nosniff'};
-const json=(value:unknown,status=200)=>new Response(JSON.stringify(value),{status,headers});
-function identity(request:Request){
-  // Sites dispatch validates sign-in and injects these headers. Never accept an
-  // owner ID from the body, query, local storage, or a service bypass token.
-  const id=request.headers.get('oai-authenticated-user-id');
-  const email=request.headers.get('oai-authenticated-user-email');
-  if(!id||!email||id.length>512||email.length>320)return null;
-  let name='';
-  if(request.headers.get('oai-authenticated-user-full-name-encoding')==='percent-encoded-utf-8')try{name=decodeURIComponent(request.headers.get('oai-authenticated-user-full-name')||'')}catch{}
-  return {id,email,name:name.slice(0,100)};
-}
+import {json,sameOrigin,type Env} from './contracts';
+import {identityResult,googleAuth,clearSessionCookie,authErrorRedirect,hasSessionCookie} from './google-auth';
+import {rateLimit} from './rate-limit';
+const handleAuth=googleAuth();
 async function readJson(request:Request){
   if(!request.body)throw Error('body');
   const reader=request.body.getReader();const chunks:Uint8Array[]=[];let length=0;
@@ -22,17 +12,32 @@ async function readJson(request:Request){
 }
 export default {async fetch(request:Request,env:Env):Promise<Response>{
   const url=new URL(request.url);
-  if(!url.pathname.startsWith('/api/'))return env.ASSETS?env.ASSETS.fetch(request):new Response('Not found',{status:404});
-  if(url.pathname!=='/api/account')return json({error:'Not found'},404);
-  const user=identity(request);
-  if(!user)return json({error:'Sign in to access your Form account.'},401);
-  if(!['GET','PUT','DELETE'].includes(request.method))return json({error:'Method not allowed'},405);
-  if(request.method!=='GET'&&(request.headers.get('Origin')!==url.origin||request.headers.get('X-Form-Client')!=='1'||request.headers.get('Sec-Fetch-Site')==='cross-site'))return json({error:'This request must come from Form.'},403);
-  if(!env.DB)return json({error:'Account storage is temporarily unavailable. Please retry.'},503);
   try{
+  if(url.pathname.startsWith('/auth/')||url.pathname.startsWith('/api/auth/')){
+    const browserAuth=url.pathname==='/auth/google'||url.pathname==='/auth/google/callback';
+    if(!env.DB)return browserAuth?authErrorRedirect('unavailable'):json({error:'Sign-in is temporarily unavailable.'},503);
+    if(browserAuth||url.pathname==='/api/auth/signout'){
+      const limited=await rateLimit(env,'auth-ip:'+(request.headers.get('CF-Connecting-IP')||'local'),30);
+      if(limited)return browserAuth?authErrorRedirect('rate_limited'):limited;
+    }
+    return await handleAuth(request,env)||json({error:'Not found'},404);
+  }
+  if(!url.pathname.startsWith('/api/')){
+    const asset=env.ASSETS?await env.ASSETS.fetch(request):new Response('Not found',{status:404});
+    const response=new Response(asset.body,asset);response.headers.set('Referrer-Policy','no-referrer');response.headers.set('X-Content-Type-Options','nosniff');response.headers.set('Content-Security-Policy',"default-src 'self' blob: data:; script-src 'self' blob: 'wasm-unsafe-eval'; worker-src 'self' blob:; connect-src 'self' blob: data:; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; media-src 'self' blob: data:; object-src 'none'; base-uri 'self'; frame-ancestors 'none'");return response;
+  }
+  if(url.pathname!=='/api/account')return json({error:'Not found'},404);
+  if(!env.DB)return json({error:'Account storage is temporarily unavailable. Please retry.'},503);
+  const ipLimited=await rateLimit(env,'account-ip:'+(request.headers.get('CF-Connecting-IP')||'local'),180);if(ipLimited)return ipLimited;
+  const authenticated=await identityResult(request,env),user=authenticated.user;
+  if(!user)return json({error:'Sign in to access your Form account.'},401,hasSessionCookie(request)?{'Set-Cookie':clearSessionCookie()}:{ });
+  if(!['GET','PUT','DELETE'].includes(request.method))return json({error:'Method not allowed'},405);
+  if(request.method!=='GET'&&!sameOrigin(request))return json({error:'This request must come from Form.'},403);
+  if(request.method!=='GET'&&request.headers.get('X-Form-Account')!==user.id)return json({error:'The signed-in account changed. Sign in to the original account before syncing.',code:'ACCOUNT_CHANGED'},403);
+  const limited=await rateLimit(env,'account-user:'+user.id,120);if(limited)return limited;
     if(request.method==='GET'){
       const row=await env.DB.prepare('SELECT document,revision,updated_at FROM form_accounts WHERE user_id = ?').bind(user.id).first();
-      return json({user,record:row&&row.document!=='null'?{document:JSON.parse(row.document),revision:row.revision,updatedAt:row.updated_at}:null});
+      return json({user,record:row&&row.document!=='null'?{document:JSON.parse(row.document),revision:row.revision,updatedAt:row.updated_at}:null},200,authenticated.clearSession?{'Set-Cookie':clearSessionCookie()}:{ });
     }
     if(!request.headers.get('Content-Type')?.startsWith('application/json'))return json({error:'Expected JSON'},415);
     let body;try{body=await readJson(request)}catch{return json({error:'The request is invalid or too large.'},400)}
@@ -41,7 +46,10 @@ export default {async fetch(request:Request,env:Env):Promise<Response>{
       // Retain only the owner key/revision, with all profile data removed. A
       // stale offline device must not overwrite a subsequently recreated account.
       await env.DB.prepare("UPDATE form_accounts SET document = 'null', revision = revision + 1, updated_at = ? WHERE user_id = ?").bind(new Date().toISOString(),user.id).run();
-      return json({deleted:true});
+      await env.DB.prepare('DELETE FROM form_sessions WHERE user_id=?').bind(user.id).run();
+      await env.DB.prepare('DELETE FROM form_oauth_states WHERE link_user_id=?').bind(user.id).run();
+      await env.DB.prepare('DELETE FROM form_google_identities WHERE user_id=?').bind(user.id).run();
+      return json({deleted:true},200,{'Set-Cookie':clearSessionCookie()});
     }
     const parsed=saveSchema.safeParse(body);
     if(!parsed.success)return json({error:'Check your details and try again.',fields:parsed.error.issues.map(i=>({path:i.path.join('.'),message:i.message})).slice(0,12)},400);

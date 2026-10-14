@@ -34,7 +34,7 @@ workerScope.onmessage = async (event: MessageEvent<PoseRequest>) => {
       restrictNetwork(assetBase);
       // The ES module runtime is required for module workers. No CDN fallback.
       const fileset = await FilesetResolver.forVisionTasks(new URL('wasm', assetBase).href, true);
-      if (fileset.wasmBinaryPath.includes('_nosimd')) throw new Error('This browser does not support the WebAssembly SIMD runtime. Try an up-to-date Chrome or Edge browser.');
+      if (fileset.wasmBinaryPath.includes('_nosimd')) throw new Error('This browser does not support the required WebAssembly runtime. Update your browser, or update iOS if you are using an iPhone or iPad.');
       landmarker = await PoseLandmarker.createFromOptions(fileset, {
         baseOptions: { modelAssetPath: new URL('pose_landmarker_lite.task', assetBase).href, delegate: 'CPU' },
         runningMode: 'VIDEO', numPoses: 2,

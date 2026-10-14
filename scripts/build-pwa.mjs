@@ -44,6 +44,8 @@ self.addEventListener('activate',event=>event.waitUntil((async()=>{
   // Keep the previous build for tabs that are still running it.
   const old=(await caches.keys()).filter(key=>key.startsWith(PREFIX)&&key!==CACHE);
   await Promise.all(old.slice(0,-1).map(key=>caches.delete(key)));
+  // Keep one previous shell for open tabs, but do not duplicate the large AI runtime.
+  if(old.length)for(const request of await (await caches.open(old.at(-1))).keys())if(new URL(request.url).pathname.includes('/ai/'))await (await caches.open(old.at(-1))).delete(request);
   await self.clients.claim();
 })()));
 self.addEventListener('message',event=>{

@@ -6,4 +6,4 @@ await build({entryPoints:[new URL('server/index.ts',root).pathname.replace(/^\/(
 await mkdir(new URL('dist/.openai/',root),{recursive:true});
 await cp(new URL('.openai/hosting.json',root),new URL('dist/.openai/hosting.json',root));
 await cp(new URL('drizzle/',root),new URL('dist/.openai/drizzle/',root),{recursive:true});
-await writeFile(new URL('dist/server/wrangler.json',root),JSON.stringify({name:'form-fitness',main:'index.js',compatibility_date:'2026-05-15',assets:{directory:'../client',binding:'ASSETS',run_worker_first:['/api/*']},d1_databases:[{binding:'DB',database_name:'form-local',migrations_dir:'../../drizzle',database_id:'00000000-0000-4000-8000-000000000000'}]},null,2));
+await writeFile(new URL('dist/server/wrangler.json',root),JSON.stringify({name:'form-fitness',main:'index.js',compatibility_date:'2026-05-15',assets:{directory:'../client',binding:'ASSETS',run_worker_first:['/*']},d1_databases:[{binding:'DB',database_name:'form-local',migrations_dir:'../../drizzle',database_id:'00000000-0000-4000-8000-000000000000'}]},null,2));
