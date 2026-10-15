@@ -5,6 +5,7 @@ import { uid } from './types';
 import {getAnalyzer,getExerciseSupportLevel,supportLabel} from './ai/registry';
 import {exerciseDescription,exerciseSteps} from './exercise-guide';
 import {MuscleMap} from './MuscleMap';
+import {muscleEmphasis} from './muscle-emphasis';
 import {recommendedPrescription,restReason} from './training-recommendations';
 import './train.css';
 
@@ -20,12 +21,12 @@ function Support({exercise}:{exercise:Exercise}) {
 function ExerciseDetail({exercise,onClose}:{exercise:Exercise;onClose:()=>void}) {
   const support=getExerciseSupportLevel(exercise);
   const analyzer=getAnalyzer(exercise.id);
-  const steps=exerciseSteps(exercise);
+  const steps=exerciseSteps(exercise); const emphasis=muscleEmphasis(exercise);
   return <section className="train-detail panel" aria-label={`${exercise.name} details`}>
     <div className="train-detail-heading"><div><span className="eyebrow">MOVEMENT GUIDE</span><h2>{exercise.name}</h2></div><button className="icon-button" aria-label="Close exercise details" onClick={onClose}><X size={20}/></button></div>
     <Support exercise={exercise}/>
     <div className="train-facts"><div><span className="muted">Target muscle</span><strong>{exercise.muscle}</strong></div><div><span className="muted">Equipment</span><strong>{exercise.equipment}</strong></div><div><span className="muted">Type · level</span><strong>{exercise.category||exercise.variation}{exercise.level?` · ${exercise.level}`:''}</strong></div></div>
-    <div className="train-movement-guide"><MuscleMap muscle={exercise.muscle}/><div className="train-guide-copy"><h3>About this movement</h3><p>{exerciseDescription(exercise)}</p><h3>Step by step</h3><ol>{steps.map((step,index)=><li key={step}><span>{index+1}</span><p>{step}</p></li>)}</ol></div></div>
+    <div className="train-movement-guide"><MuscleMap exercise={exercise}/><div className="train-guide-copy"><h3>About this movement</h3><p>{exerciseDescription(exercise)}</p><section className="muscle-emphasis"><h3>What this movement emphasizes</h3><p>{emphasis.detail}</p><h3>Grip, angle &amp; movement path</h3><p>{emphasis.variation}</p><small>{emphasis.basis}</small>{emphasis.source&&<a href={emphasis.source} target="_blank" rel="noopener noreferrer">Read the supporting study ↗</a>}</section><h3>Step by step</h3><ol>{steps.map((step,index)=><li key={step}><span>{index+1}</span><p>{step}</p></li>)}</ol></div></div>
     <div className="train-filming"><Film size={20}/><div><h3>{support==='real_ai'||support==='experimental_ai'?'Set up your camera':support==='illustrative_only'?'Illustrated example':'Video feedback unavailable'}</h3><p>{analyzer?.spec.camera.setupInstructions||exercise.filming}</p>{(support==='real_ai'||support==='experimental_ai') && <p className="muted">Local pose tracking measures visible joint motion. It does not identify the exercise or provide a clinical, safety, or technique score.</p>}</div></div>
   </section>;
 }

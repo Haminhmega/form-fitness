@@ -1,0 +1,18 @@
+import assert from 'node:assert/strict';
+import {build} from 'esbuild';
+const result=await build({stdin:{contents:"export * from './src/muscle-emphasis';",resolveDir:process.cwd()},bundle:true,format:'esm',platform:'node',write:false});
+const {muscleEmphasis}=await import('data:text/javascript;base64,'+Buffer.from(result.outputFiles[0].text).toString('base64'));
+const check=(name,muscle)=>muscleEmphasis({name,muscle,category:'Strength'});
+assert.deepEqual(check('Neutral-grip shoulder press','Shoulders').primary,['frontDelt','sideDelt']);
+assert.match(check('Neutral-grip shoulder press','Shoulders').variation,/inference/);
+assert.deepEqual(check('Seated leg curl','Hamstrings').primary,['hamstrings']);
+assert.deepEqual(check('Leg extension','Quadriceps').primary,['quads']);
+assert.deepEqual(check('Calf raise','Calves').primary,['calves']);
+assert.deepEqual(check('Incline bench press','Chest').primary,['upperChest']);
+assert.deepEqual(check('Reverse fly','Shoulders').primary,['rearDelt']);
+assert.deepEqual(check('Lateral raise','Shoulders').primary,['sideDelt']);
+assert.deepEqual(check('Overhead triceps extension','Triceps').primary,['triceps']);
+assert.deepEqual(check('Hammer curl','Biceps').primary,['forearms','biceps']);
+assert.match(check('Unrecognized variation','Shoulders').basis,/not reviewed/);
+assert.match(muscleEmphasis({name:'Shoulder press',muscle:'Shoulders',custom:true}).basis,/not reviewed/);
+console.log('Anatomy checks passed: movement precedence, regional targets, grip uncertainty, and honest fallbacks.');
