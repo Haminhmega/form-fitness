@@ -25,15 +25,30 @@ assert.equal(completed.sets,1);
 assert.equal(completed.volume,500);
 assert.equal(completed.exercises[0].exerciseId,'squat');
 assert.equal(completed.routineId,'strength');
+assert.equal(completed.completedAt,'1970-01-01T00:01:01.000Z');
 assert.equal(completed.exercises[0].notes,'Keep knees tracking over toes.');
 assert.deepEqual(completed.exercises[0].sets.map(set=>set.id),['id-1']);
 
+const routineNoteSession=createWorkoutSession({...routine,exercises:[{...routine.exercises[0],notes:'Pinned setup note'}]},[exercise],[],2_000,()=>`note-${++id}`);
+routineNoteSession.logs.squat[0].done=true;
+const routineNoteHistory=createHistoryEntry(routineNoteSession,[exercise],62_000,'2026-10-14');
+assert.equal(routineNoteHistory.exercises[0].notes,undefined);
+
+const sampleNewest={...history[0],id:'sample-new',date:'2026-10-14',sample:true,exercises:[{...history[0].exercises[0],sets:[{id:'sample-set',weight:100,reps:10,done:true}]}]};
+const localOlder={...history[0],id:'local-old',date:'2026-10-13',exercises:[{...history[0].exercises[0],sets:[{id:'local-set',weight:40,reps:9,done:true}]}]};
+const seededFromLocal=createWorkoutSession(routine,[exercise],[sampleNewest,localOlder],3_000,()=>`seed-${++id}`);
+assert.deepEqual([seededFromLocal.logs.squat[0].weight,seededFromLocal.logs.squat[0].reps],[40,9]);
+
 assert.deepEqual(parseRepRange('8–12'),{min:8,max:12});
 assert.deepEqual(parseRepRange('8-10'),{min:8,max:10});
-assert.match(getProgressionCue('8-10',[{id:'a',weight:50,reps:10,done:true}], 'kg','Barbell'),/\+2\.5 kg/);
-assert.match(getProgressionCue('8-10',[{id:'a',weight:50,reps:8,done:true}], 'kg','Barbell'),/9 reps/);
+assert.match(getProgressionCue('8-10',1,[{id:'a',weight:50,reps:10,done:true}], 'kg','Barbell'),/\+2\.5 kg/);
+assert.match(getProgressionCue('8-10',1,[{id:'a',weight:50,reps:8,done:true}], 'kg','Barbell'),/9 reps/);
+assert.match(getProgressionCue('8-10',3,[{id:'a',weight:50,reps:10,done:true}], 'kg','Barbell'),/partial/);
 const routines=[routine,{...routine,id:'accessory',name:'Accessory day'}];
 assert.equal(selectNextRoutine(routines,[completed]).id,'accessory');
 assert.equal(selectNextRoutine(routines,[{...completed,sample:true}]).id,'strength');
+const longSession={...session,startedAt:0};
+const longCompleted=createHistoryEntry(longSession,[exercise],5*60*60*1000,'2026-10-14');
+assert.equal(longCompleted.duration,15);
 
 console.log('Workout domain checks passed: previous performance, notes, progression cues, routine rotation and history totals.');

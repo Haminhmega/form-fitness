@@ -6,9 +6,10 @@ export function parseRepRange(value:string){
   return {min,max:Math.max(min,numbers[1]||min)};
 }
 
-export function getProgressionCue(repsSpec:string,previous:HistoryEntry['exercises'][number]['sets']|undefined,units:'kg'|'lb',equipment:string){
+export function getProgressionCue(repsSpec:string,targetSets:number,previous:HistoryEntry['exercises'][number]['sets']|undefined,units:'kg'|'lb',equipment:string){
   const completed=previous?.filter(set=>set.done);
   if(!completed?.length)return '';
+  if(completed.length<targetSets)return `Previous session was partial · Keep the load steady and build toward ${targetSets} sets.`;
   const {max}=parseRepRange(repsSpec);
   const allAtTop=completed.every(set=>set.reps>=max);
   if(allAtTop){
@@ -23,7 +24,7 @@ export function selectNextRoutine(routines:Routine[],history:HistoryEntry[]){
   if(!routines.length)return undefined;
   const latest=[...history]
     .filter(entry=>!entry.sample)
-    .sort((a,b)=>b.date.localeCompare(a.date))
+    .sort((a,b)=>(b.completedAt||b.date).localeCompare(a.completedAt||a.date))
     .find(entry=>routines.some(routine=>routine.id===entry.routineId||(!entry.routineId&&routine.name===entry.name)));
   if(!latest)return routines[0];
   const index=routines.findIndex(routine=>routine.id===latest.routineId||(!latest.routineId&&routine.name===latest.name));
@@ -41,8 +42,8 @@ export function createWorkoutSession(
   routine.exercises.forEach(item=>{
     const exercise=exercises.find(candidate=>candidate.id===item.exerciseId);
     const matches=(completed:HistoryEntry['exercises'][number])=>completed.exerciseId===item.exerciseId||(!completed.exerciseId&&completed.name===exercise?.name);
-    const previous=history
-      .find(entry=>entry.exercises.some(matches))
+    const ordered=[...history].sort((a,b)=>(b.completedAt||b.date).localeCompare(a.completedAt||a.date));
+    const previous=(ordered.find(entry=>!entry.sample&&entry.exercises.some(matches))||ordered.find(entry=>entry.exercises.some(matches)))
       ?.exercises.find(matches)?.sets;
     const routineReps=parseInt(item.reps)||8;
     logs[item.exerciseId]=Array.from({length:item.sets},(_,index)=>{
@@ -82,7 +83,8 @@ export function createHistoryEntry(
     routineId:session.routineId,
     name:session.name,
     date,
-    duration:Math.max(1,Math.round((now-session.startedAt)/60000)),
+    completedAt:new Date(now).toISOString(),
+    duration:(()=>{const raw=Math.max(1,Math.round((now-session.startedAt)/60000));return raw>180?Math.min(raw,Math.max(15,completed.length*4)):raw})(),
     sets:completed.length,
     volume:completed.reduce((total,set)=>total+set.weight*set.reps,0),
     feedback:session.feedback,
@@ -91,7 +93,7 @@ export function createHistoryEntry(
       .map(item=>({
         exerciseId:item.exerciseId,
         name:exercises.find(exercise=>exercise.id===item.exerciseId)?.name||'Exercise',
-        notes:(session.notes[item.exerciseId]??item.notes).trim()||undefined,
+        notes:session.notes[item.exerciseId]?.trim()||undefined,
         sets:(session.logs[item.exerciseId]||[]).filter(set=>set.done),
       }))
       .filter(exercise=>exercise.sets.length),
