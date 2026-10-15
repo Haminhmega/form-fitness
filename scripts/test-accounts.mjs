@@ -2,8 +2,8 @@ import assert from 'node:assert/strict';
 import {DatabaseSync} from 'node:sqlite';
 import {readFile,readdir} from 'node:fs/promises';
 import {build} from 'esbuild';
-const result=await build({stdin:{contents:"export {default as worker} from './server/index.ts'; export {googleAuth} from './server/google-auth.ts'; export {rateLimit} from './server/rate-limit.ts'; export {initialExercises,initialRoutines,initialPreferences} from './src/data.ts'; export {buildAccountDocumentFromLocal,clearMigratedTraining} from './src/account-storage.ts';",resolveDir:process.cwd()},bundle:true,format:'esm',platform:'node',write:false});
-const {worker,googleAuth,rateLimit,initialExercises,initialRoutines,initialPreferences,buildAccountDocumentFromLocal,clearMigratedTraining}=await import('data:text/javascript;base64,'+Buffer.from(result.outputFiles[0].text).toString('base64'));
+const result=await build({stdin:{contents:"export {default as worker} from './server/index.ts'; export {googleAuth} from './server/google-auth.ts'; export {rateLimit} from './server/rate-limit.ts'; export {initialExercises,initialRoutines,initialPreferences} from './src/data.ts'; export {buildAccountDocumentFromLocal,clearMigratedTraining,hasLocalDemo,readLocalPreferences} from './src/account-storage.ts';",resolveDir:process.cwd()},bundle:true,format:'esm',platform:'node',write:false});
+const {worker,googleAuth,rateLimit,initialExercises,initialRoutines,initialPreferences,buildAccountDocumentFromLocal,clearMigratedTraining,hasLocalDemo,readLocalPreferences}=await import('data:text/javascript;base64,'+Buffer.from(result.outputFiles[0].text).toString('base64'));
 const db=new DatabaseSync(':memory:');for(const file of (await readdir(new URL('../drizzle/',import.meta.url))).filter(f=>f.endsWith('.sql')).sort())db.exec(await readFile(new URL('../drizzle/'+file,import.meta.url),'utf8'));
 const env={
   DB:{prepare(sql){
@@ -38,6 +38,11 @@ assert.deepEqual(removed.sort(),['form-user:a:form-exercises-v1','form-user:a:fo
 assert.ok(!removed.some(key=>key.endsWith('form-session-v1')||key.endsWith('form-devices-v1')));
 const malformed=buildAccountDocumentFromLocal('a',doc.profile,initialPreferences,key=>key.endsWith('form-history-v1')?'not-json':null);
 assert.deepEqual(malformed.training.history,[]);
+assert.equal(readLocalPreferences('a',initialPreferences,key=>localValues.get(key)||null).notifications,true);
+assert.deepEqual(readLocalPreferences('missing',initialPreferences,()=>'{bad'),initialPreferences);
+assert.equal(hasLocalDemo(key=>key==='form-local-demo-v1'?'1':null),true);
+assert.equal(hasLocalDemo(key=>key==='form-session-v1'?'{}':null),true);
+assert.equal(hasLocalDemo(()=>null),false);
 async function call(id,method='GET',body,extra={}){const response=await worker.fetch(new Request('https://form.test/api/account',{method,headers:{...(id?{'oai-authenticated-user-id':id,'oai-authenticated-user-email':id+'@example.test'}:{}),Origin:'https://form.test','Content-Type':'application/json','X-Form-Client':'1','X-Form-Account':id||'',...extra},body:body?JSON.stringify(body):undefined}),env);return {status:response.status,body:await response.json(),headers:response.headers}}
 assert.equal((await call(null)).status,401);
 assert.equal((await call('a','PUT',{revision:0,document:doc},{'X-Form-Account':'b'})).body.code,'ACCOUNT_CHANGED');
