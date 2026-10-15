@@ -60,7 +60,7 @@ The browser tests used local Chrome/Edge contexts with MP4/WebM files, not physi
 
 - Main flow: start routine, edit and complete a set, undo, rest timer add/skip, notes, navigate/reload/resume, recording setup/countdown/stop/review, simulated pending/results, highlighted rep 8, overlay, flag, return, finish confirmation, saved history.
 - Manual-only workouts, active session preservation, mobile persistent rest/finish controls, and offline logging after load.
-- Routine creation, target editing, reorder, replacement, removal/undo, renaming, duplication, deletion/undo, exercise search/filter/empty results, movement details, custom logging-only exercise, local persistence.
+- Routine creation, target editing, reorder, replacement, removal/undo, renaming, duplication, deletion/undo, token-based exercise search/filter/empty results, paginated browsing of 2,906 on-demand CC0 catalog movements, catalog-to-routine persistence, movement details/source labeling, custom logging-only exercise, local persistence.
 - Recording: all nine preview failure/uncertainty states and recovery, unsupported variation disabled state, pending continuation, new-set reset, local generated WebM preview, object URL release, reduced-motion autoplay behavior, standalone exercise choice and return navigation.
 - History: sample/local filters, exact trend table, explicitly partial sample breakdown, defined PRs, independent comparison rep selection, limited-data and empty states.
 - Profile: units and conversion, independent default-off cloud/contribution preferences, illustrative reminders, retention/deletion explanations, first-time experience and all five onboarding steps.

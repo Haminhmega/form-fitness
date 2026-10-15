@@ -1,5 +1,5 @@
 export type SupportLevel = 'real_ai'|'illustrative_only'|'logging_only';
-export type Exercise = { id:string; name:string; muscle:string; equipment:string; supported:boolean; supportLevel?:SupportLevel; instructions:string; variation:string; filming:string; custom?:boolean };
+export type Exercise = { id:string; name:string; muscle:string; equipment:string; supported:boolean; supportLevel?:SupportLevel; instructions:string; variation:string; filming:string; custom?:boolean; catalog?:boolean; level?:string|null; category?:string|null; rating?:number|null; source?:string };
 export type RoutineExercise = { exerciseId:string; sets:number; reps:string; rest:number; notes:string };
 export type Routine = { id:string; name:string; description:string; exercises:RoutineExercise[] };
 export type SetLog = { id:string; weight:number; reps:number; done:boolean };

@@ -47,7 +47,7 @@ To explore the **illustrated example**:
 6. Select rep 7 or 8, toggle the illustrative overlay, or flag feedback.
 7. Return to the workout and finish. Confirm saving, then inspect **Your sessions** in Progress.
 
-Use Train to create/edit/duplicate/delete routines, rearrange exercises, search the library, and create custom exercises. Custom exercises support logging only. Profile controls units and illustrative privacy preferences. **Personalize training** opens the skippable five-step onboarding. **First-time experience** hides seeded history without hiding sessions you logged yourself.
+Use Train to create/edit/duplicate/delete routines, rearrange exercises, search the library, and create custom exercises. The library loads 2,906 CC0 catalog movements from the Kaggle Gym Exercise Dataset on demand; only catalog exercises added to a routine are saved to the user's account. Catalog and custom exercises support logging only. See [EXERCISE_DATA.md](./EXERCISE_DATA.md). Profile controls units and illustrative privacy preferences. **Personalize training** opens the skippable five-step onboarding. **First-time experience** hides seeded history without hiding sessions you logged yourself.
 
 **Connected devices:** open Profile → Connected devices, select Fitbit, WHOOP, Garmin, Apple Health, or Health Connect, choose permitted categories, then import the demo. Today and Progress show the selected readings with their source. Use source preferences to resolve overlap, and try refresh, permission changes, failure states and disconnect. This imports fictional examples only; no real wearable account is connected. See DEVICES.md for the behavior and researched future integration routes.
 
