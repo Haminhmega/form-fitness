@@ -2,13 +2,13 @@ import assert from 'node:assert/strict';
 import {build} from 'esbuild';
 
 const result=await build({
-  stdin:{contents:"export {createWorkoutSession,createHistoryEntry,parseRepRange,getProgressionCue,selectNextRoutine} from './src/domain/workout.ts';",resolveDir:process.cwd()},
+  stdin:{contents:"export {createWorkoutSession,createHistoryEntry,parseRepRange,getProgressionCue,selectNextRoutine} from './src/domain/workout.ts'; export {getExerciseSupportLevel,getAnalyzer,listAnalyzers} from './src/ai/registry.ts';",resolveDir:process.cwd()},
   bundle:true,
   format:'esm',
   platform:'node',
   write:false,
 });
-const {createWorkoutSession,createHistoryEntry,parseRepRange,getProgressionCue,selectNextRoutine}=await import('data:text/javascript;base64,'+Buffer.from(result.outputFiles[0].text).toString('base64'));
+const {createWorkoutSession,createHistoryEntry,parseRepRange,getProgressionCue,selectNextRoutine,getExerciseSupportLevel,getAnalyzer,listAnalyzers}=await import('data:text/javascript;base64,'+Buffer.from(result.outputFiles[0].text).toString('base64'));
 
 const exercise={id:'squat',name:'Back squat',muscle:'Legs',equipment:'Barbell',supported:true,instructions:'',variation:'',filming:''};
 const routine={id:'strength',name:'Strength day',description:'',exercises:[{exerciseId:'squat',sets:3,reps:'8-10',rest:90,notes:''}]};
@@ -19,6 +19,9 @@ assert.equal(session.startedAt,1_000);
 assert.deepEqual(session.logs.squat.map(set=>[set.weight,set.reps,set.done]),[[50,10,false],[55,10,false],[55,8,false]]);
 session.logs.squat[0].done=true;
 session.notes.squat='Keep knees tracking over toes.';
+session.feedback=true;
+session.feedbackExerciseId='squat';
+session.feedbackKind='analysis';
 const completed=createHistoryEntry(session,[exercise],61_000,'2026-10-14');
 assert.equal(completed.duration,1);
 assert.equal(completed.sets,1);
@@ -27,6 +30,8 @@ assert.equal(completed.exercises[0].exerciseId,'squat');
 assert.equal(completed.routineId,'strength');
 assert.equal(completed.completedAt,'1970-01-01T00:01:01.000Z');
 assert.equal(completed.exercises[0].notes,'Keep knees tracking over toes.');
+assert.equal(completed.feedbackExerciseId,'squat');
+assert.equal(completed.feedbackKind,'analysis');
 assert.deepEqual(completed.exercises[0].sets.map(set=>set.id),['id-1']);
 
 const routineNoteSession=createWorkoutSession({...routine,exercises:[{...routine.exercises[0],notes:'Pinned setup note'}]},[exercise],[],2_000,()=>`note-${++id}`);
@@ -50,5 +55,11 @@ assert.equal(selectNextRoutine(routines,[{...completed,sample:true}]).id,'streng
 const longSession={...session,startedAt:0};
 const longCompleted=createHistoryEntry(longSession,[exercise],5*60*60*1000,'2026-10-14');
 assert.equal(longCompleted.duration,15);
+assert.equal(listAnalyzers().length,1);
+assert.equal(getAnalyzer('squat').spec.canonicalName,'Bodyweight squat');
+assert.equal(getAnalyzer('pushup'),undefined);
+assert.equal(getExerciseSupportLevel({...exercise,supported:true,supportLevel:'real_ai'}),'real_ai');
+assert.equal(getExerciseSupportLevel({...exercise,id:'pushup',supported:false,supportLevel:'illustrative_only'}),'illustrative_only');
+assert.equal(getExerciseSupportLevel({...exercise,id:'custom',supported:true,supportLevel:'real_ai',custom:true}),'logging_only');
 
-console.log('Workout domain checks passed: previous performance, notes, progression cues, routine rotation and history totals.');
+console.log('Workout domain checks passed: previous performance, notes, progression cues, routine rotation, history totals and analyzer support gates.');

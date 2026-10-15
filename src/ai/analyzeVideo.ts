@@ -1,5 +1,5 @@
 import PoseWorker from './pose.worker?worker&inline';
-import { analyzeSquat } from './squat';
+import { getAnalyzer } from './registry';
 import type { AnalyzeVideoOptions, PoseFrame, PosePoint, SquatAnalysis } from './types';
 
 const SAMPLE_RATE = 10;
@@ -44,9 +44,11 @@ function seekDecodedFrame(video: HTMLVideoElement, target: number, signal: Abort
 }
 
 /** Analyze a local object URL without uploading, persisting, or sharing the video. */
-export async function analyzeVideo(url: string, options: AnalyzeVideoOptions): Promise<SquatAnalysis> {
+export async function analyzeVideo(url: string, exerciseId: string, options: AnalyzeVideoOptions): Promise<SquatAnalysis> {
   if (!['http:', 'https:'].includes(location.protocol)) throw new Error('Real analysis needs the served app. Open Form with npm run dev on localhost; the portable file keeps the sample experience.');
   if (!url.startsWith('blob:')) throw new Error('Choose a local video to analyze. Remote videos are not sent to this analyzer.');
+  const analyzer=getAnalyzer(exerciseId);
+  if(!analyzer)throw new Error('This exercise does not have a verified local analyzer yet. You can still log the workout or view an illustrated example.');
   if (typeof Worker === 'undefined' || typeof OffscreenCanvas === 'undefined' || typeof createImageBitmap === 'undefined') throw new Error('This browser cannot run local pose analysis. Update your browser or iOS and try again. Workout logging remains available.');
   assertActive(options.signal);
   const controller = new AbortController();
@@ -123,7 +125,7 @@ export async function analyzeVideo(url: string, options: AnalyzeVideoOptions): P
     }
     if (!frames.length) throw new Error('No video frames could be decoded. Try a different clip.');
     report({ phase: 'analysis', completed: 0, total: 1 });
-    const result = analyzeSquat({ frames, duration, width, height, sampleRate: SAMPLE_RATE });
+    const result = analyzer.analyze({ frames, duration, width, height, sampleRate: SAMPLE_RATE });
     assertActive(signal);
     report({ phase: 'analysis', completed: 1, total: 1 });
     return result;

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { ArrowLeft, ArrowRight, Camera, Check, CheckCircle2, ChevronDown, CircleAlert, Flag, Focus, Lightbulb, LoaderCircle, Maximize, Mic, Pause, Play, RotateCcw, ShieldCheck, Upload, Video, X } from 'lucide-react';
 import type { Exercise } from './types';
+import { getExerciseSupportLevel } from './ai/registry';
 import './recording.css';
 
 type Stage = 'setup' | 'countdown' | 'recording' | 'review' | 'pending' | 'results' | 'unable';
@@ -52,8 +53,9 @@ function Movement({ exercise, progress = 0, skeleton = false, framing = false, s
 
 export default function Recording({ exercise, onClose, onComplete, initialResult = false, standalone = false }: { exercise: Exercise; onClose: () => void; onComplete: () => void; initialResult?: boolean; standalone?: boolean }) {
   const saved = retained.get(exercise.id);
+  const illustrativeEnabled = getExerciseSupportLevel(exercise) !== 'logging_only';
   const [stage, setStage] = useState<Stage>(initialResult ? 'results' : saved ? (saved.stage === 'pending' && saved.readyAt < Date.now() ? 'results' : saved.stage) : 'setup');
-  const [preview, setPreview] = useState<PreviewState>(exercise.supported ? 'normal' : 'unsupported');
+  const [preview, setPreview] = useState<PreviewState>(illustrativeEnabled ? 'normal' : 'unsupported');
   const [variation, setVariation] = useState(exercise.variation || 'Standard');
   const [audio, setAudio] = useState(false);
   const [count, setCount] = useState(3);
@@ -72,7 +74,7 @@ export default function Recording({ exercise, onClose, onComplete, initialResult
   const name = exercise.name.toLowerCase();
   const isCurl = name.includes('curl');
   const isPush = name.includes('push');
-  const blocked = !exercise.supported || ['denied', 'frame', 'people', 'light', 'unsupported'].includes(preview);
+  const blocked = !illustrativeEnabled || ['denied', 'frame', 'people', 'light', 'unsupported'].includes(preview);
 
   useEffect(() => () => { if (localVideo) URL.revokeObjectURL(localVideo); }, [localVideo]);
   useEffect(() => {
@@ -139,7 +141,7 @@ export default function Recording({ exercise, onClose, onComplete, initialResult
 
     {(stage === 'countdown' || stage === 'recording') && <div className="rec-capture"><div className="rec-live-label"><span className={stage === 'recording' ? 'rec-live-dot' : ''} />{stage === 'countdown' ? 'GET READY' : 'SIMULATED RECORDING'}<span>{Math.floor(elapsed / 60).toString().padStart(2, '0')}:{(elapsed % 60).toString().padStart(2, '0')}</span></div><Movement exercise={exercise} framing={stage === 'countdown'} progress={(elapsed % 3) / 3} /><div className="rec-capture-caption">{exercise.name} · {variation}</div>{stage === 'countdown' ? <div className="rec-countdown" aria-live="assertive" aria-label={`Recording starts in ${count}`}>{count}</div> : <button className="rec-stop" onClick={useSample} aria-label="Stop recording and review sample"><span /></button>}<p>{stage === 'recording' ? 'Tap to stop and review the sample clip.' : 'Set your phone down. You have a moment.'}</p><button className="rec-text-button" onClick={retry}><X size={16} /> Cancel {stage === 'countdown' ? 'countdown' : 'recording'}</button></div>}
 
-    {stage === 'review' && <div className="rec-review-grid">{renderReplay()}<div className="rec-review-copy"><span className="eyebrow">READY WHEN YOU ARE</span><h2>A quick check before feedback.</h2><p>{localVideo ? 'Your video is ready to preview. The next step opens example feedback; no analysis is performed on your clip.' : 'This illustrated clip stands in for a recording. Play it, then explore what clear, useful feedback could look like.'}</p><div className="rec-review-detail"><Video size={20} /><div><strong>{exercise.name}</strong><span>{localVideo ? 'Local video · not uploaded' : '24-second illustrated sample · 8 sample reps'}</span></div></div><button className="btn primary rec-wide" disabled={!exercise.supported || variation === 'Different variation'} onClick={beginAnalysis}>See simulated feedback <ArrowRight size={18} /></button><button className="btn secondary rec-wide" onClick={retry}><RotateCcw size={17} /> Retake</button><button className="rec-text-button" onClick={() => fileInput.current?.click()}><Upload size={16} /> Choose another video</button>{localVideo && <button className="rec-text-button" onClick={useSample}>Use the illustrated sample instead</button>}<p className="rec-small-copy"><ShieldCheck size={14} /> Nothing is uploaded. Videos are not saved when this screen closes.</p></div></div>}
+    {stage === 'review' && <div className="rec-review-grid">{renderReplay()}<div className="rec-review-copy"><span className="eyebrow">READY WHEN YOU ARE</span><h2>A quick check before feedback.</h2><p>{localVideo ? 'Your video is ready to preview. The next step opens example feedback; no analysis is performed on your clip.' : 'This illustrated clip stands in for a recording. Play it, then explore what clear, useful feedback could look like.'}</p><div className="rec-review-detail"><Video size={20} /><div><strong>{exercise.name}</strong><span>{localVideo ? 'Local video · not uploaded' : '24-second illustrated sample · 8 sample reps'}</span></div></div><button className="btn primary rec-wide" disabled={!illustrativeEnabled || variation === 'Different variation'} onClick={beginAnalysis}>See simulated feedback <ArrowRight size={18} /></button><button className="btn secondary rec-wide" onClick={retry}><RotateCcw size={17} /> Retake</button><button className="rec-text-button" onClick={() => fileInput.current?.click()}><Upload size={16} /> Choose another video</button>{localVideo && <button className="rec-text-button" onClick={useSample}>Use the illustrated sample instead</button>}<p className="rec-small-copy"><ShieldCheck size={14} /> Nothing is uploaded. Videos are not saved when this screen closes.</p></div></div>}
 
     {stage === 'pending' && <div className="rec-pending"><div className="rec-loading-icon"><LoaderCircle size={32} /></div><span className="eyebrow">SIMULATED ANALYSIS</span><h2>Preparing your example feedback.</h2><p>This short wait previews the analysis flow. No AI model is running and no video is being uploaded.</p><div className="rec-pending-row"><CheckCircle2 size={17} /><span>Illustrative sample ready</span></div><div className="rec-pending-row"><LoaderCircle size={17} /><span>Opening example observations</span></div><button className="btn primary" onClick={onClose}>{standalone ? 'Back to Today' : 'Continue my workout'} <ArrowRight size={17} /></button><p className="rec-small-copy">Return to “{standalone ? 'Check my form' : 'Record this set'}” to see the sample results.</p></div>}
 

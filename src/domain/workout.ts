@@ -89,6 +89,7 @@ export function createHistoryEntry(
     volume:completed.reduce((total,set)=>total+set.weight*set.reps,0),
     feedback:session.feedback,
     feedbackExerciseId:session.feedbackExerciseId,
+    feedbackKind:session.feedbackKind,
     exercises:session.exercises
       .map(item=>({
         exerciseId:item.exerciseId,
