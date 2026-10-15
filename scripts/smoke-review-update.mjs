@@ -8,7 +8,7 @@ try {
  const errors=[];page.on('pageerror',error=>errors.push(error.message));
  await page.goto(base);
  await page.getByRole('button',{name:'Explore the local demo',exact:true}).click();
- await page.getByRole('button',{name:'Skip onboarding',exact:true}).click();
+ await page.getByRole('button',{name:'Close training preferences',exact:true}).click();
  await page.getByRole('button',{name:'Explore strength check',exact:true}).click();
  await page.getByRole('button',{name:'Start optional strength check',exact:true}).click();
  await page.getByRole('button',{name:'Skip warm-up',exact:true}).click();

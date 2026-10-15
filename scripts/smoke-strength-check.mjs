@@ -3,7 +3,7 @@ const browser=await chromium.launch({headless:true,channel:'msedge'});
 const page=await browser.newPage({viewport:{width:390,height:844}});
 await page.goto('http://127.0.0.1:5192/');
 await page.getByRole('button',{name:'Explore the local demo'}).click();
-await page.getByRole('button',{name:'Skip onboarding'}).click();
+await page.getByRole('button',{name:'Close training preferences'}).click();
 await page.getByRole('button',{name:'Explore strength check'}).click();
 await page.getByRole('button',{name:'Skip for now',exact:true}).click();
 await expect(page.getByRole('button',{name:'Start optional strength check'})).toHaveCount(0);

@@ -1,4 +1,5 @@
 import {z} from 'zod';
+import {focusAreas,trainingStyles,impactOptions,movementAvoidances,sportFocusOptions} from './coaching';
 const text=(max:number)=>z.string().max(max);
 const id=text(120).min(1);
 const number=z.number().finite().nonnegative().max(10000000);
@@ -11,7 +12,8 @@ export const profileSchema=z.object({
   targetWeightKg:z.number().finite().min(20).max(500).nullable(),
   activity:z.enum(['Mostly seated','Lightly active','Moderately active','Very active']),
 }).strict();
-export const preferencesSchema=z.object({units:z.enum(['kg','lb']),notifications:z.boolean(),cloud:z.boolean(),contribute:z.boolean(),retention:text(50),goal:text(60),experience:text(60),equipment:z.array(text(50)).max(20),days:z.array(z.string().refine(day=>['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].includes(day))).max(7),onboarded:z.boolean(),firstTime:z.boolean()}).strict();
+export const coachingSchema=z.object({version:z.literal(1),focusAreas:z.array(z.enum(focusAreas)).max(3),sessionMinutes:z.union([z.literal(20),z.literal(30),z.literal(45),z.literal(60),z.literal(75)]),trainingStyle:z.enum(trainingStyles),impact:z.enum(impactOptions),avoidMovements:z.array(z.enum(movementAvoidances)).max(4),sportFocus:z.enum(sportFocusOptions)}).strict();
+export const preferencesSchema=z.object({units:z.enum(['kg','lb']),notifications:z.boolean(),cloud:z.boolean(),contribute:z.boolean(),retention:text(50),goal:text(60),experience:text(60),equipment:z.array(text(50)).max(20),days:z.array(z.string().refine(day=>['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].includes(day))).max(7),onboarded:z.boolean(),firstTime:z.boolean(),coaching:coachingSchema.optional()}).strict();
 const exercise=z.object({id,name:text(100),muscle:text(100),equipment:text(100),supported:z.boolean(),supportLevel:z.enum(['real_ai','experimental_ai','illustrative_only','logging_only']).optional(),instructions:text(5000),variation:text(100),filming:text(5000),custom:z.boolean().optional(),catalog:z.boolean().optional(),level:text(50).nullable().optional(),category:text(80).nullable().optional(),rating:z.number().finite().nonnegative().nullable().optional(),source:text(200).optional()}).strict();
 const routine=z.object({id,name:text(100),description:text(1000),exercises:z.array(z.object({exerciseId:id,sets:z.number().int().min(1).max(100),reps:text(100),rest:number,notes:text(5000)}).strict()).max(100)}).strict();
 const history=z.object({id,routineId:id.optional(),name:text(100),date:text(30),completedAt:text(40).optional(),duration:number,sets:number,volume:number,feedback:z.boolean(),exercises:z.array(z.object({exerciseId:id.optional(),name:text(100),notes:text(5000).optional(),sets:z.array(set).max(100)}).strict()).max(100),sample:z.boolean().optional(),feedbackExerciseId:id.optional(),feedbackKind:z.enum(['analysis','sample']).optional()}).strict();

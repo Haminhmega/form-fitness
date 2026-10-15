@@ -1,0 +1,83 @@
+import type {Exercise} from './types';
+
+// A small, reviewed selection is available before the large library downloads.
+// IDs are shared with the library only when the exercise is the same variation.
+const movement=(id:string,name:string,muscle:string,equipment:string,instructions:string,variation:string):Exercise=>({
+  id,name,muscle,equipment,instructions,variation,supported:false,supportLevel:'logging_only',
+  filming:'Follow the written setup. Video analysis availability is shown separately for this exact movement.',
+});
+
+export const coachingExercises:Exercise[]=[
+  movement('coach-wall-pushup','Wall push-up','Chest','Bodyweight','Stand facing a solid wall and place your hands slightly wider than your shoulders. Step back until you can lean toward the wall with your body in one line. Bend your elbows to bring your chest toward the wall, then press away without shrugging. Move your feet closer if the effort is too high.','Wall-supported'),
+  movement('gym-961-incline-push-up','Incline push-up','Chest','Bodyweight','Place your hands on a stable, immovable bench or counter. Walk your feet back and keep your ribs and hips aligned. Lower your chest toward the support with elbows comfortably angled from your body. Press back up; use a higher support to make it easier.','Stable elevated support'),
+  movement('coach-standing-hip-abduction','Standing hip abduction','Glutes','Bodyweight','Stand tall beside a wall and use a hand for balance. Keep your pelvis level and toes facing forward. Move one leg a short distance sideways without leaning your trunk. Return slowly and complete both sides.','Standing, supported'),
+  movement('coach-standing-hip-hinge','Standing hip hinge','Glutes','Bodyweight','Stand with feet hip-width apart and soften your knees. Push your hips backward while keeping your spine comfortable and your weight across the whole foot. Stop when you feel a gentle stretch behind the thighs. Stand by bringing your hips forward, without leaning back.','Unloaded'),
+  movement('coach-supported-single-leg-hinge','Supported single-leg hinge','Glutes','Bodyweight','Stand beside a sturdy support with one hand resting on it. Keep a soft bend in the standing knee and hinge forward as the other leg reaches back. Keep your hips facing the floor and use a small, controlled range. Return to standing and repeat on the other side.','Hand-supported'),
+  movement('coach-standing-march','Standing alternating march','Core','Bodyweight','Stand tall beside a support if needed. Exhale gently and lift one knee only as high as you can without leaning back. Lower the foot quietly, then alternate sides. Keep the movement slow and controlled rather than bouncing.','Controlled alternating reps'),
+  movement('gym-909-standing-calf-raise','Standing calf raise','Legs','Bodyweight','Stand on a level floor with a hand on a sturdy support. Rise onto the balls of your feet while keeping your ankles aligned. Pause briefly, then lower your heels with control. Use both legs together and avoid bouncing.','Supported, both legs'),
+  movement('coach-bodyweight-stepup','Low step-up','Legs','Bodyweight','Choose a low, stable step and stand close to it. Place your whole working foot on the step and hold a support if needed. Push through that foot to stand up without springing off your trailing leg. Step down slowly and complete both sides.','Low stable step'),
+  movement('coach-dumbbell-goblet-squat','Dumbbell goblet squat','Legs','Dumbbells','Hold one dumbbell close to your chest with both hands. Stand with a comfortable stance and brace gently. Sit between your hips to a depth you can control with your feet planted. Stand smoothly without letting the weight pull you forward.','Dumbbell'),
+  movement('gym-1105-dumbbell-bench-press','Dumbbell bench press','Chest','Dumbbells','Sit on a stable flat bench with dumbbells on your thighs, then lie back while bringing them beside your chest. Plant your feet and keep your shoulders supported by the bench. Press up with wrists above elbows and elbows comfortably angled from your body. Lower with control and finish by returning the weights safely to your thighs.','Flat bench'),
+  movement('gym-1942-dumbbell-split-squat','Dumbbell split squat','Glutes','Dumbbells','Hold dumbbells at your sides and take a stable split stance. Bend both knees to lower straight down through a comfortable range. Keep your front foot planted and press through it to stand. Finish the set on one side, then switch; start without weights when learning.','Static split stance'),
+  movement('gym-2580-dumbbell-lateral-raise','Dumbbell lateral raise','Shoulders','Dumbbells','Stand tall with light dumbbells beside your thighs and elbows slightly bent. Lift your arms out and slightly forward to no higher than shoulder height. Keep your neck relaxed and avoid swinging your torso. Lower slowly through the same path.','Standing, below shoulder height'),
+  movement('gym-928-barbell-bench-press-medium-grip','Barbell bench press','Chest','Barbell','Set a flat bench inside a rack with safety bars adjusted to catch the bar; use a competent spotter. Plant your feet and take a grip that keeps your forearms roughly upright at the bottom. Unrack, lower the bar to a comfortable chest position and press back up. Practice with an empty bar first and re-rack before your technique deteriorates.','Flat bench, rack safeties'),
+  movement('gym-1810-barbell-squat','Barbell squat','Legs','Barbell','Set rack safeties just below your planned squat depth. Position the bar securely across your upper back, brace gently and step clear of the hooks. Bend your hips and knees together to a controlled, comfortable depth. Stand through your whole foot and re-rack carefully; learn the setup with an empty bar and qualified help.','Back squat, rack safeties'),
+  movement('gym-1215-barbell-hip-thrust','Barbell hip thrust','Glutes','Barbell','Secure a bench so it cannot slide and use a padded bar across your hips. Rest your upper back on the bench with feet planted and space to move safely. Raise your hips until your trunk is approximately level, keeping ribs down. Lower under control and stop before your lower back starts arching.','Bench-supported, padded bar'),
+  movement('coach-barbell-rdl','Barbell Romanian deadlift','Legs','Barbell','Start standing with the bar held close to your thighs and knees softly bent. Move your hips backward while keeping the bar close to your legs. Lower only as far as you can keep a comfortable spine and controlled balance. Stand by bringing your hips forward; do not lean back at the top.','Romanian deadlift'),
+  movement('gym-1640-bent-over-barbell-row','Bent-over barbell row','Back','Barbell','Start with a light bar held in front of your thighs and feet about hip-width apart. Soften your knees and hinge forward to a position you can hold with a comfortable spine. Draw the bar toward your lower ribs while keeping your torso still. Lower the bar slowly, and stand to reset before your back position changes.','Overhand grip, hip hinge'),
+  movement('gym-1054-machine-chest-press','Machine chest press','Chest','Machine','Adjust the seat so the handles start around mid-chest height. Keep your back supported and feet planted. Press forward with wrists aligned and elbows in a comfortable position. Return slowly without allowing the weight stack to slam.','Seated machine'),
+  movement('gym-1495-machine-seated-row','Machine seated row','Back','Machine','Adjust the seat and chest pad so you can reach the handles without rounding forward. Keep your chest supported and draw your elbows backward. Stop without shrugging or pulling your shoulders far behind your body. Return the handles slowly while keeping your torso steady.','Chest-supported machine'),
+  movement('gym-1473-lat-pull-down','Lat pull-down','Back','Cable','Set the thigh pad to hold you securely and take a comfortable grip on the bar. Sit tall with a small, steady backward lean. Pull the bar toward your upper chest by moving your elbows down. Return slowly; do not pull behind your neck or swing your body.','Seated cable machine'),
+  movement('gym-2067-leg-press','Leg press','Legs','Machine','Adjust the seat and place your feet fully on the platform. Keep your hips and lower back supported while releasing the safety handles. Bend your knees only as far as your pelvis stays steady and your heels remain planted. Press away without snapping your knees straight, then engage the safeties before exiting.','Seated machine'),
+  movement('gym-1351-seated-leg-curl','Seated leg curl','Legs','Machine','Adjust the seat so your knees align with the machine pivot and the ankle pad sits above your heels. Secure the thigh pad and keep your back supported. Bend your knees to draw the pad down and back without lifting your hips. Return slowly and avoid slamming the weight stack.','Seated machine'),
+  movement('coach-machine-hip-abduction','Seated hip abduction','Glutes','Machine','Adjust the machine so the pads rest against the outside of your thighs and your feet are supported. Sit tall with your pelvis steady. Open your knees through a comfortable range without bouncing or leaning. Return slowly, keeping light tension throughout.','Seated machine'),
+  movement('gym-888-seated-calf-raise','Seated calf raise','Legs','Machine','Adjust the thigh pad and place the balls of your feet on the platform. Release the safety catch while supporting the load. Raise your heels without bouncing, pause briefly, then lower through a comfortable range. Re-engage the catch before leaving the machine.','Seated machine'),
+  movement('coach-standing-band-row','Standing band row','Back','Resistance band','Attach a resistance band to a purpose-built, secure anchor at chest height. Step back until there is light tension and take a balanced stance. Draw your elbows back while keeping your ribs over your hips. Return slowly; inspect the band and anchor before each set.','Secure chest-height anchor'),
+  movement('coach-band-chest-press','Standing band chest press','Chest','Resistance band','Secure a band to a purpose-built anchor behind you at chest height. Face away in a balanced split stance and hold the handles beside your chest. Press forward without arching your back or shrugging. Return slowly; check that the band and anchor are undamaged and secure.','Secure chest-height anchor'),
+  movement('coach-band-hip-abduction','Standing band hip abduction','Glutes','Resistance band','Place a light loop band above your knees and hold a sturdy support. Keep your hips level and the standing knee soft. Move the free leg sideways through a small range without leaning. Return slowly and complete both sides.','Loop band above knees'),
+  movement('gym-2428-band-pull-apart','Band pull-apart','Back','Resistance band','Hold a light resistance band at chest height with a comfortable wide grip. Keep your elbows softly bent and shoulders relaxed. Separate your hands until the band approaches your chest without arching your back. Return slowly and reduce the resistance if you have to shrug.','Light band at chest height'),
+];
+
+export type MovementPattern='squat'|'hinge'|'glute'|'push'|'pull'|'shoulder'|'arms'|'core'|'calf';
+export type CoachingMovement={pattern:MovementPattern;areas:string[];compound?:boolean;unilateral?:boolean;floor?:boolean;overhead?:boolean;deepKnee?:boolean;experienced?:boolean;balance?:boolean};
+// Exclusion flags describe the whole setup, not just the working portion.
+export const coachingMovement:Record<string,CoachingMovement>={
+  squat:{pattern:'squat',areas:['Legs','Glutes'],compound:true,deepKnee:true},
+  pushup:{pattern:'push',areas:['Chest','Arms'],compound:true,floor:true},
+  curl:{pattern:'arms',areas:['Arms']},
+  rdl:{pattern:'hinge',areas:['Legs','Glutes'],compound:true},
+  row:{pattern:'pull',areas:['Back','Arms'],compound:true,unilateral:true},
+  plank:{pattern:'core',areas:['Core'],floor:true},
+  press:{pattern:'shoulder',areas:['Shoulders','Arms'],compound:true,overhead:true},
+  'glute-bridge':{pattern:'glute',areas:['Glutes'],floor:true},
+  'reverse-lunge':{pattern:'squat',areas:['Glutes','Legs'],compound:true,unilateral:true,deepKnee:true,balance:true},
+  'hip-abduction':{pattern:'glute',areas:['Glutes'],unilateral:true,floor:true},
+  'coach-wall-pushup':{pattern:'push',areas:['Chest','Arms'],compound:true},
+  'gym-961-incline-push-up':{pattern:'push',areas:['Chest','Arms'],compound:true},
+  'coach-standing-hip-abduction':{pattern:'glute',areas:['Glutes'],unilateral:true,balance:true},
+  'coach-standing-hip-hinge':{pattern:'hinge',areas:['Glutes','Legs'],compound:true},
+  'coach-supported-single-leg-hinge':{pattern:'hinge',areas:['Glutes','Legs'],compound:true,unilateral:true,balance:true},
+  'coach-standing-march':{pattern:'core',areas:['Core'],unilateral:true,balance:true},
+  'gym-909-standing-calf-raise':{pattern:'calf',areas:['Legs']},
+  'coach-bodyweight-stepup':{pattern:'squat',areas:['Legs','Glutes'],compound:true,unilateral:true,deepKnee:true,balance:true},
+  'coach-dumbbell-goblet-squat':{pattern:'squat',areas:['Legs','Glutes'],compound:true,deepKnee:true},
+  'gym-1105-dumbbell-bench-press':{pattern:'push',areas:['Chest','Arms'],compound:true},
+  'gym-1942-dumbbell-split-squat':{pattern:'squat',areas:['Glutes','Legs'],compound:true,unilateral:true,deepKnee:true,balance:true},
+  'gym-2580-dumbbell-lateral-raise':{pattern:'shoulder',areas:['Shoulders']},
+  'gym-928-barbell-bench-press-medium-grip':{pattern:'push',areas:['Chest','Arms'],compound:true,experienced:true},
+  'gym-1810-barbell-squat':{pattern:'squat',areas:['Legs','Glutes'],compound:true,deepKnee:true,experienced:true},
+  'gym-1215-barbell-hip-thrust':{pattern:'glute',areas:['Glutes'],compound:true,floor:true,experienced:true},
+  'coach-barbell-rdl':{pattern:'hinge',areas:['Legs','Glutes'],compound:true,experienced:true},
+  'gym-1640-bent-over-barbell-row':{pattern:'pull',areas:['Back','Arms'],compound:true,experienced:true},
+  'gym-1054-machine-chest-press':{pattern:'push',areas:['Chest','Arms'],compound:true},
+  'gym-1495-machine-seated-row':{pattern:'pull',areas:['Back','Arms'],compound:true},
+  'gym-1473-lat-pull-down':{pattern:'pull',areas:['Back','Arms'],compound:true,overhead:true},
+  'gym-2067-leg-press':{pattern:'squat',areas:['Legs','Glutes'],compound:true,deepKnee:true},
+  'gym-1351-seated-leg-curl':{pattern:'hinge',areas:['Legs']},
+  'coach-machine-hip-abduction':{pattern:'glute',areas:['Glutes']},
+  'gym-888-seated-calf-raise':{pattern:'calf',areas:['Legs']},
+  'coach-standing-band-row':{pattern:'pull',areas:['Back','Arms'],compound:true},
+  'coach-band-chest-press':{pattern:'push',areas:['Chest','Arms'],compound:true},
+  'coach-band-hip-abduction':{pattern:'glute',areas:['Glutes'],unilateral:true,balance:true},
+  'gym-2428-band-pull-apart':{pattern:'pull',areas:['Back','Shoulders']},
+};

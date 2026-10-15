@@ -2,6 +2,7 @@ import {documentSchema,preferencesSchema,type AccountDocument,type AccountUser,t
 import {initialExercises,initialRoutines} from './data';
 import type {Preferences} from './types';
 import {clearWorkoutTimers} from './workout-recovery';
+import {prepareCoachingPlan} from './coaching-plan';
 
 export type LocalReader=(key:string)=>string|null;
 export type LocalRemover=(key:string)=>void;
@@ -62,24 +63,30 @@ export function buildAccountDocumentFromLocal(
           experience:preferences.experience,
           equipment:preferences.equipment,
           days:preferences.days,
+          ...(preferences.coaching?{coaching:preferences.coaching}:{}),
           firstTime:true,
           onboarded:true,
         },
-        routines:read('form-routines-v1',initialRoutines),
+        routines:read('form-routines-v1',preferences.coaching?[]:initialRoutines),
         exercises:read('form-exercises-v1',initialExercises),
         history:localHistory.filter(item=>!item?.sample),
       },
     };
     const parsed=documentSchema.safeParse(candidate);
-    if(parsed.success)return parsed.data;
+    if(parsed.success){
+      if(!preferences.coaching)return parsed.data;
+      const suggested=prepareCoachingPlan(parsed.data.training.preferences,parsed.data.training.routines,parsed.data.training.exercises);
+      return {...parsed.data,training:{...parsed.data.training,routines:suggested.routines,exercises:suggested.exercises}};
+    }
   }catch{/* A malformed device copy should not block account creation. */}
 
+  const suggested=preferences.coaching?prepareCoachingPlan(preferences,[],initialExercises):null;
   return {
     profile,
     training:{
       preferences:{...preferences,firstTime:true,onboarded:true},
-      routines:initialRoutines,
-      exercises:initialExercises,
+      routines:suggested?.routines||initialRoutines,
+      exercises:suggested?.exercises||initialExercises,
       history:[],
     },
   };

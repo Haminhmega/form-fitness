@@ -8,13 +8,14 @@ Live app: https://formfitness.fit. Open in iPhone Safari and choose Share → Ad
 
 Run npm install, npm run prepare:ai, then npm run dev -- --port 5192.
 
-Checks: npm run test:ai, npm run test:accounts, npm run test:workout, npm run test:catalog, npm run test:anatomy, npm run test:recovery, and npm run build.
+Checks: npm run test:ai, npm run test:accounts, npm run test:workout, npm run test:coaching, npm run test:measurements, npm run test:catalog, npm run test:anatomy, npm run test:recovery, and npm run build.
 
 scripts/test-account-recovery.mjs runs isolated browser account fixtures; scripts/smoke-review-update.mjs checks the integrated workout and library at port 5192 (override with FORM_TEST_URL). Set PLAYWRIGHT_CHROMIUM_EXECUTABLE to use an existing browser executable.
 
 ## Training
 
-- Onboarding asks about goals, experience, equipment, days and units. Recommendations remain editable. A beginner strength check is optional and does not ask for maximum lifts.
+- Coaching intake asks about the main goal (including hypertrophy, glute development and athletic foundations), up to three muscle priorities, experience, training style, impact preference, movements to avoid, session time, equipment and available days. New accounts save a multi-day starter plan; existing users can update it from Profile. The plan explains selections and any constraints. Recommendations remain editable and preserve self-built routines. A beginner strength check is optional and does not ask for maximum lifts.
+- Metric and imperial controls cover both body stats and workout loads. Imperial height uses feet and inches; switching units preserves the original metric values without repeated rounding.
 - Active workouts show the same step-by-step instructions, muscle details and available movement illustrations as the library, above the set log. Timed holds use seconds. Rest and warm-up timers use saved deadlines and survive reopening.
 - The library includes 2,906 catalog movements. Most popular is an editorial shortlist of common gym exercises, not an observed usage ranking. A–Z and Z–A sorting work with search and filters. The focused beta filter lists 100 exercise profiles.
 - Exercise illustrations only display for supported exact variants. Start/end buttons, a scrubber and optional animation allow inspection; reduced-motion settings use static positions.

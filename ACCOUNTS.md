@@ -1,6 +1,6 @@
 # Accounts and synced fitness profiles
 
-Form supports first-party email registration and password login. Google and **Continue with ChatGPT** remain optional sign-in choices. The first visit after signing in opens three setup steps: name/experience; optional body stats; goals/days/equipment and explicit consent to cloud storage plus an offline device copy. Existing accounts load automatically.
+Form supports first-party email registration and password login. Google and **Continue with ChatGPT** remain optional sign-in choices. The first visit after signing in opens six setup steps: identity, optional body stats, training goal and muscle priorities, experience and movement preferences, schedule and equipment, then a plan preview with explicit consent to cloud storage plus an offline device copy. Existing accounts load automatically and can edit coaching preferences from Profile without re-entering body stats.
 
 ## Data and controls
 

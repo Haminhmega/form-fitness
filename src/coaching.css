@@ -1,0 +1,61 @@
+.coaching-intake{min-width:0;color:var(--text,#eff1e8)}
+.coaching-intake h2{font-size:clamp(24px,4.5vw,31px);line-height:1.2;letter-spacing:-.7px;margin:20px 0 12px}
+.coaching-intake h2:focus{outline:none}
+.coaching-intake h2:focus-visible{outline:2px solid var(--accent,#c6f36b);outline-offset:6px;border-radius:3px}
+.coach-intro{color:var(--muted,#b0baa4);font-size:14px;line-height:1.7;margin:0 0 25px}
+.coach-fieldset{border:0;padding:0;margin:0 0 26px;min-width:0}
+.coach-fieldset legend{font-size:13px;line-height:1.7;font-weight:600;margin-bottom:12px;padding:0;color:var(--text,#eff1e8)}
+.coach-fieldset legend>span{display:block;color:var(--muted,#b0baa4);font-weight:400;font-size:11px}
+.coach-goals,.coach-options{display:grid;gap:9px;min-width:0}
+.coach-goals,.coach-options.two{grid-template-columns:repeat(2,minmax(0,1fr))}
+.coach-choice{appearance:none;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;min-width:0;min-height:48px;background:#171e14;border:1px solid #44503b;border-radius:10px;color:#eff1e8;text-align:left;padding:14px;font:inherit;cursor:pointer}
+.coach-choice strong{display:block;font-size:12px;font-weight:600;line-height:1.6}
+.coach-choice small{display:block;font-size:11px;color:#b5bfaa;line-height:1.7;margin-top:5px}
+.coach-choice .coach-check{flex-shrink:0;width:18px;height:18px;border:1px solid #627354;border-radius:50%;display:grid;place-items:center;margin-top:2px}
+.coach-choice.is-selected{border-color:#a4d85c;background:#2b3921}
+.coach-choice.is-selected .coach-check{border-color:#c6f36b;background:#c6f36b;color:#192411}
+.coach-choice.is-selected small{color:#c4d4b4}
+.coach-choice:disabled{cursor:default;opacity:1}
+.coach-chips,.coach-days{display:flex;flex-wrap:wrap;gap:8px}
+.coach-chips button,.coach-days button{appearance:none;display:inline-flex;gap:6px;align-items:center;justify-content:center;min-height:44px;border-radius:9px;border:1px solid #46523d;background:#171e14;color:#dbe3d2;font:inherit;font-size:12px;padding:9px 13px;cursor:pointer}
+.coach-chips button[aria-pressed=true],.coach-days button[aria-pressed=true]{border-color:#9bc856;background:#304122;color:#dff8bd}
+.coach-chips button:disabled{opacity:.45;cursor:not-allowed}
+.coach-choice:focus-visible,.coach-chips button:focus-visible,.coach-days button:focus-visible,.coach-plan-sessions summary:focus-visible{outline:2px solid #d8f6ad;outline-offset:3px}
+.coach-days{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
+.coach-days button{padding:9px 0;font-size:11px}
+.coach-help,.coach-selection-note{font-size:11px;line-height:1.8;color:#adbca2;margin:10px 0 0}
+.coach-fieldset>p.coach-help:first-of-type:not(:last-child){margin:-3px 0 13px}
+.coach-selection-note{font-size:10px}
+.coach-plan-lead{display:flex;align-items:flex-start;gap:14px;padding:19px;border:1px solid #546f3b;background:#25341c;border-radius:12px}
+.coach-plan-lead>svg{color:#c6f36b;flex-shrink:0;margin-top:3px}
+.coach-plan-lead .eyebrow{font-size:9px;color:#c8e7ab;margin:0 0 8px}
+.coach-review h3{font-size:15px;line-height:1.5;margin:0 0 10px}
+.coach-plan-lead p:last-child{font-size:12px;line-height:1.8;color:#c3d1b7;margin:0}
+.coach-plan-facts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px 14px;margin:20px 0 24px;padding:0 2px}
+.coach-plan-facts>div{min-width:0}
+.coach-plan-facts dt{display:flex;gap:7px;align-items:center;font-size:10px;color:#adbea1;margin:0 0 7px}
+.coach-plan-facts dd{font-size:12px;line-height:1.6;margin:0;overflow-wrap:anywhere}
+.coach-reasons{margin:0 0 24px}
+.coach-reasons ul,.coach-plan-notes ul{padding-left:18px;margin:0;font-size:12px;line-height:1.8;display:grid;gap:7px;color:#c2cfb6}
+.coach-plan-sessions{display:grid;gap:9px}
+.coach-plan-sessions h3{margin-bottom:2px}
+.coach-plan-sessions details{background:#171e14;border:1px solid #43503a;border-radius:10px;padding:0 14px}
+.coach-plan-sessions summary{padding:14px 0;min-height:48px;font-size:12px;cursor:pointer;line-height:1.6}
+.coach-plan-sessions summary span{font-weight:600}
+.coach-plan-sessions summary small{font-size:10px;color:#b4c3a8;display:block;margin-left:16px}
+.coach-plan-sessions details>p{font-size:11px;line-height:1.8;color:#adbea1;margin:0 0 12px}
+.coach-plan-sessions ol{margin:0 0 16px;padding-left:21px;display:grid;gap:11px}
+.coach-plan-sessions li{font-size:11px;color:#bacaac;padding-left:3px}
+.coach-plan-sessions li strong{display:block;color:#e3ebdb;font-weight:500;line-height:1.6}
+.coach-plan-sessions li span{display:block;font-size:10px;line-height:1.8;color:#adc29b;margin-top:3px}
+.coach-plan-notes{padding:16px;margin:18px 0;background:#302d1f;border:1px solid #675f3c;border-radius:10px}
+.coach-plan-notes h3{font-size:12px;color:#e5d6ac}
+.coach-plan-notes ul{font-size:11px;color:#d0c6ac}
+.dialog.coaching-dialog{max-width:680px;width:calc(100% - 32px);max-height:calc(100dvh - 40px);overflow-y:auto}
+.coaching-dialog .coaching-intake h2{font-size:clamp(24px,4.5vw,31px);line-height:1.2;letter-spacing:-.7px;margin:20px 0 12px}
+.coaching-dialog .dialog-heading{position:relative}
+.coaching-dialog .coach-step-indicator{font-size:10px;color:#b4c5a5;letter-spacing:1px;margin:21px 0 0}
+.coaching-dialog .onboarding-progress{margin:20px 0}
+.coaching-dialog .dialog-actions{margin-top:22px;padding-top:17px;border-top:1px solid #39472e}
+.coach-dialog-error{font-size:12px;padding:12px;background:#362b20;border:1px solid #7c6146;border-radius:8px;color:#f0d3b2}
+@media(max-width:480px){.coach-goals{grid-template-columns:1fr}.coach-choice{padding:13px;gap:8px}.coach-choice strong{font-size:12px}.coach-options.two .coach-choice{padding:12px 10px}.coach-plan-lead{padding:16px;gap:11px}.coach-days{gap:4px}.coach-days button{font-size:10px}.coach-chips{gap:6px}.coach-chips button{padding:8px 11px}.dialog.coaching-dialog{width:calc(100% - 20px);max-height:calc(100dvh - 24px);padding:23px 18px}.coach-plan-facts{gap:16px 10px}.coaching-dialog .dialog-actions .btn{padding-left:12px;padding-right:12px;font-size:12px}}

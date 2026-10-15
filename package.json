@@ -12,6 +12,8 @@
     "test:ai": "node scripts/test-squat.mjs && node scripts/test-generic-ai.mjs && node scripts/test-specific-ai.mjs && node scripts/test-priority-ai.mjs",
     "test:workout": "node scripts/test-workout.mjs",
     "test:catalog": "node scripts/test-catalog.mjs",
+    "test:coaching": "node scripts/test-coaching.mjs && node scripts/test-coaching-storage.mjs",
+    "test:measurements": "node scripts/test-measurements.mjs",
     "test:anatomy": "node scripts/test-anatomy.mjs",
     "test:recovery": "node scripts/test-recovery.mjs",
     "test:account-recovery": "node scripts/test-account-recovery.mjs",

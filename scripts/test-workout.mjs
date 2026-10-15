@@ -112,6 +112,6 @@ assert.equal(warmup[0].target,'Whole body');
 assert.ok(warmup.some(move=>move.target==='Glutes'));
 assert.equal(new Set(warmup.map(move=>move.target)).size,warmup.length);
 const strengthPrescription=recommendedPrescription({...preferences,goal:'Build strength',experience:'Experienced'},exercise);
-assert.deepEqual([strengthPrescription.sets,strengthPrescription.reps,strengthPrescription.rest],[4,'5–8',120]);
+assert.deepEqual([strengthPrescription.sets,strengthPrescription.reps,strengthPrescription.rest],[4,'5–8',150]);
 
 console.log('Workout domain checks passed: history, progression, personalized recommendations, warm-ups, rest guidance and analyzer support gates.');

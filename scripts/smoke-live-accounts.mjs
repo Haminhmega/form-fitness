@@ -26,7 +26,7 @@ try{
   expect(created,201,'register');registered=true;userId=created.data.user.id;cookie=created.session;
   assert.ok(cookie,'Registration must issue a secure session.');
   const initial=await request('/api/account');expect(initial,200,'load new account');assert.equal(initial.data.record,null);
-  const document={profile:{name:'Disposable release check',age:null,heightCm:null,weightKg:null,targetWeightKg:null,activity:'Lightly active'},training:{preferences:{units:'kg',notifications:false,cloud:true,contribute:false,retention:'Keep until deleted',goal:'Build consistency',experience:'Beginner',equipment:[],days:[],onboarded:true,firstTime:false},routines:[],exercises:[],history:[]}};
+  const document={profile:{name:'Disposable release check',age:null,heightCm:null,weightKg:null,targetWeightKg:null,activity:'Lightly active'},training:{preferences:{units:'kg',notifications:false,cloud:true,contribute:false,retention:'Keep until deleted',goal:'Grow glutes',experience:'Getting started',equipment:['Bodyweight','Dumbbells'],days:['Mon','Wed','Fri'],coaching:{version:1,focusAreas:['Glutes'],sessionMinutes:30,trainingStyle:'Balanced',impact:'Low impact',avoidMovements:['Overhead pressing'],sportFocus:'General athleticism'},onboarded:true,firstTime:false},routines:[],exercises:[],history:[]}};
   expect(await request('/api/account','PUT',{revision:0,document}),200,'save profile');
   expect(await request('/api/auth/login','POST',{email,password:'incorrect-synthetic-password'}),401,'reject wrong password');
   const previous=cookie;
