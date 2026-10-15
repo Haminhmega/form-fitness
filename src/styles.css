@@ -30,3 +30,4 @@
 @media(max-width:760px){.toast.workout-toast{bottom:calc(224px + env(safe-area-inset-bottom))}}
 
 .previous-button{background:transparent;border:0;padding:0;text-align:left;text-decoration:underline;text-decoration-color:#667359;text-underline-offset:4px}.previous-button:hover{color:var(--accent)}.previous-button:disabled{text-decoration:none}
+.progression-cue{display:flex;align-items:center;gap:9px;margin-top:18px;padding:11px 13px;border:1px solid #4a5d37;border-radius:9px;background:#26311e;color:#d8e9c4;font-size:11px}.routine-switcher{display:flex;align-items:center;gap:8px;width:min(270px,100%);margin-top:14px;color:#b8c3ac;font-size:10px}.routine-switcher select{min-height:38px;padding:7px 30px 7px 10px;background:#182015;border-color:#48593a;color:#eef4e8;font-size:11px}.history-note{margin:7px 0 12px;color:#b7c1ad;font-size:11px;white-space:pre-wrap}
