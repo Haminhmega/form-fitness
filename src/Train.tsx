@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Check, ChevronRight, Copy, Dumbbell, Edit3, Film, Layers3, Plus, Search, SlidersHorizontal, Trash2, X } from 'lucide-react';
 import type { Exercise, Routine, RoutineExercise, ToastFn } from './types';
 import { uid } from './types';
-import {getExerciseSupportLevel,supportLabel} from './ai/registry';
+import {getAnalyzer,getExerciseSupportLevel,supportLabel} from './ai/registry';
 import './train.css';
 
 type Props = { routines:Routine[]; setRoutines:(r:Routine[])=>void; exercises:Exercise[]; setExercises:(e:Exercise[])=>void; onStart:(r:Routine)=>void; toast:ToastFn };
@@ -12,18 +12,19 @@ const limits = (value:string,min:number,max:number) => Math.max(min,Math.min(max
 
 function Support({exercise}:{exercise:Exercise}) {
   const level=getExerciseSupportLevel(exercise);
-  return <span className={`train-support ${level==='real_ai' ? 'is-supported' : ''}`}>{level==='logging_only' ? <Dumbbell size={12}/> : <Film size={12}/>} {supportLabel(level)}</span>;
+  return <span className={`train-support ${level==='real_ai'||level==='experimental_ai' ? 'is-supported' : ''}`}>{level==='logging_only' ? <Dumbbell size={12}/> : <Film size={12}/>} {supportLabel(level)}</span>;
 }
 
 function ExerciseDetail({exercise,onClose}:{exercise:Exercise;onClose:()=>void}) {
   const support=getExerciseSupportLevel(exercise);
+  const analyzer=getAnalyzer(exercise.id);
   return <section className="train-detail panel" aria-label={`${exercise.name} details`}>
     <div className="train-detail-heading"><div><span className="eyebrow">MOVEMENT GUIDE</span><h2>{exercise.name}</h2></div><button className="icon-button" aria-label="Close exercise details" onClick={onClose}><X size={20}/></button></div>
     <Support exercise={exercise}/>
     <div className="train-facts"><div><span className="muted">Target muscle</span><strong>{exercise.muscle}</strong></div><div><span className="muted">Equipment</span><strong>{exercise.equipment}</strong></div><div><span className="muted">Type · level</span><strong>{exercise.category||exercise.variation}{exercise.level?` · ${exercise.level}`:''}</strong></div></div>
     <h3>{exercise.catalog?'Dataset overview':'How to do it'}</h3><p>{exercise.instructions}</p>
-    {exercise.catalog&&<p className="train-source-note muted">Catalog data: <a href="https://www.kaggle.com/datasets/niharika41298/gym-exercise-data" target="_blank" rel="noopener">Kaggle Gym Exercise Dataset</a> · CC0 public domain. Logging guidance only.</p>}
-    <div className="train-filming"><Film size={20}/><div><h3>{support==='real_ai'?'Set up your camera':support==='illustrative_only'?'Illustrated example':'Video feedback unavailable'}</h3><p>{exercise.filming}</p>{support==='real_ai' && <p className="muted">Experimental local pose tracking. Measurements are estimates and are not a clinical assessment.</p>}</div></div>
+    {exercise.catalog&&<p className="train-source-note muted">Catalog data: <a href="https://www.kaggle.com/datasets/niharika41298/gym-exercise-data" target="_blank" rel="noopener">Kaggle Gym Exercise Dataset</a> · CC0 public domain. {support==='experimental_ai'?'Beta motion measurement available.':'Logging guidance only.'}</p>}
+    <div className="train-filming"><Film size={20}/><div><h3>{support==='real_ai'||support==='experimental_ai'?'Set up your camera':support==='illustrative_only'?'Illustrated example':'Video feedback unavailable'}</h3><p>{analyzer?.spec.camera.setupInstructions||exercise.filming}</p>{(support==='real_ai'||support==='experimental_ai') && <p className="muted">Local pose tracking measures visible joint motion. It does not identify the exercise or provide a clinical, safety, or technique score.</p>}</div></div>
   </section>;
 }
 
@@ -104,7 +105,7 @@ export default function Train({routines,setRoutines,exercises,setExercises,onSta
         <div className="section-heading train-section-heading"><div><h2>Know your movement.</h2><p className="muted">A growing library, one good rep at a time.</p></div><button className="btn secondary" onClick={()=>{setCustom(!custom);setDetail(null);}}>{custom?<X size={18}/>:<Plus size={18}/>} {custom?'Close form':'Custom exercise'}</button></div>
         {custom&&<CustomExercise onCancel={()=>setCustom(false)} onSave={exercise=>{setExercises([...exercises,exercise]);setCustom(false);setDetail(exercise);toast('Custom exercise created — logging only');}}/>}
         {detail&&<div ref={detailRef}><ExerciseDetail exercise={detail} onClose={()=>setDetail(null)}/></div>}
-        <div className="train-library-layout"><div className="panel train-library-panel">{catalogLoading&&<p className="muted" role="status">Loading 2,906 catalog exercises…</p>}<ExerciseBrowser exercises={availableExercises} onDetail={setDetail}/></div><aside className="train-library-aside"><span className="train-aside-icon"><Film size={24}/></span><h3>A second look<br/>at your set.</h3><p className="muted">Real local AI is enabled only for movements with a registered, tested analyzer.</p><div className="train-supported-list">{exercises.filter(e=>getExerciseSupportLevel(e)!=='logging_only').map(e=><button key={e.id} onClick={()=>setDetail(e)}>{e.name}<span className="muted">{supportLabel(getExerciseSupportLevel(e))}</span><ChevronRight size={17}/></button>)}</div><p className="train-fine-print muted">The expanded catalog comes from the CC0 Kaggle Gym Exercise Dataset. Catalog and custom movements are logging only and never inherit AI support from a similar name.</p><a className="train-data-link" href="https://www.kaggle.com/datasets/niharika41298/gym-exercise-data" target="_blank" rel="noopener">Dataset source · 2,906 imported exercises</a><span className="badge">1 real AI analyzer</span></aside></div>
+        <div className="train-library-layout"><div className="panel train-library-panel">{catalogLoading&&<p className="muted" role="status">Loading 2,906 catalog exercises…</p>}<ExerciseBrowser exercises={availableExercises} onDetail={setDetail}/></div><aside className="train-library-aside"><span className="train-aside-icon"><Film size={24}/></span><h3>A second look<br/>at your set.</h3><p className="muted">One verified analyzer and 100 beta motion checks run locally on your device.</p><div className="train-supported-list">{availableExercises.filter(e=>getExerciseSupportLevel(e)==='real_ai').map(e=><button key={e.id} onClick={()=>setDetail(e)}>{e.name}<span className="muted">{supportLabel(getExerciseSupportLevel(e))}</span><ChevronRight size={17}/></button>)}</div><p className="train-fine-print muted">The 100 beta checks use high-rated dynamic strength exercises from the CC0 Kaggle dataset. They measure visible joint cycles after you select the exercise; they do not identify movement or grade form.</p><a className="train-data-link" href="https://www.kaggle.com/datasets/niharika41298/gym-exercise-data" target="_blank" rel="noopener">Dataset source · 2,906 imported exercises</a><span className="badge">1 verified · 100 beta checks</span></aside></div>
       </>}
     </div>}
   </div>;

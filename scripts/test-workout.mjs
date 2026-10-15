@@ -55,11 +55,15 @@ assert.equal(selectNextRoutine(routines,[{...completed,sample:true}]).id,'streng
 const longSession={...session,startedAt:0};
 const longCompleted=createHistoryEntry(longSession,[exercise],5*60*60*1000,'2026-10-14');
 assert.equal(longCompleted.duration,15);
-assert.equal(listAnalyzers().length,1);
+assert.equal(listAnalyzers().length,101);
 assert.equal(getAnalyzer('squat').spec.canonicalName,'Bodyweight squat');
-assert.equal(getAnalyzer('pushup'),undefined);
+assert.equal(getAnalyzer('pushup').spec.validation,'beta');
+const beta=listAnalyzers().find(analyzer=>analyzer.spec.validation==='beta');
+assert.ok(beta);
+assert.equal(getExerciseSupportLevel({...exercise,id:beta.spec.id,supported:false,supportLevel:'logging_only'}),'experimental_ai');
 assert.equal(getExerciseSupportLevel({...exercise,supported:true,supportLevel:'real_ai'}),'real_ai');
-assert.equal(getExerciseSupportLevel({...exercise,id:'pushup',supported:false,supportLevel:'illustrative_only'}),'illustrative_only');
+assert.equal(getExerciseSupportLevel({...exercise,id:'pushup',supported:false,supportLevel:'illustrative_only'}),'experimental_ai');
+assert.equal(getExerciseSupportLevel({...exercise,id:'unknown-illustration',supported:false,supportLevel:'illustrative_only'}),'illustrative_only');
 assert.equal(getExerciseSupportLevel({...exercise,id:'custom',supported:true,supportLevel:'real_ai',custom:true}),'logging_only');
 
 console.log('Workout domain checks passed: previous performance, notes, progression cues, routine rotation, history totals and analyzer support gates.');

@@ -48,7 +48,7 @@ export async function analyzeVideo(url: string, exerciseId: string, options: Ana
   if (!['http:', 'https:'].includes(location.protocol)) throw new Error('Real analysis needs the served app. Open Form with npm run dev on localhost; the portable file keeps the sample experience.');
   if (!url.startsWith('blob:')) throw new Error('Choose a local video to analyze. Remote videos are not sent to this analyzer.');
   const analyzer=getAnalyzer(exerciseId);
-  if(!analyzer)throw new Error('This exercise does not have a verified local analyzer yet. You can still log the workout or view an illustrated example.');
+  if(!analyzer)throw new Error('This exercise does not have a local motion analyzer yet. You can still log the workout or view an illustrated example.');
   if (typeof Worker === 'undefined' || typeof OffscreenCanvas === 'undefined' || typeof createImageBitmap === 'undefined') throw new Error('This browser cannot run local pose analysis. Update your browser or iOS and try again. Workout logging remains available.');
   assertActive(options.signal);
   const controller = new AbortController();

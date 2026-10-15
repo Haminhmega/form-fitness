@@ -1,6 +1,6 @@
 # Form
 
-A React + TypeScript training prototype with a working, experimental local AI test for bodyweight squat videos. Charcoal, warm white, restrained lime. Includes real ChatGPT sign-in, a user-owned D1 profile, and cross-device sync. No video uploads or model training.
+A React + TypeScript training prototype with one movement-specific bodyweight squat analyzer and 100 beta joint-motion checks. Charcoal, warm white, restrained lime. Includes real account sign-in, a user-owned D1 profile, and cross-device sync. No video uploads or model training.
 
 ## Accounts and body stats
 

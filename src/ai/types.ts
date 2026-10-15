@@ -5,6 +5,6 @@ export interface AnalysisInput { frames: PoseFrame[]; duration: number; width: n
 export interface AnalyzedFrame { time: number; landmarks: PosePoint[]; valid: boolean; angle: number | null; reason?: string }
 export interface SquatRep { index: number; start: number; bottom: number; end: number; descentSeconds: number; ascentSeconds: number; rangeDegrees: number; minKneeAngle: number; side: 'left' | 'right' }
 export interface MovementObservation { id: string; title: string; detail: string; repIndexes: number[]; time?: number; tone: 'neutral' | 'notice' }
-export interface SquatAnalysis { status: 'assessed' | 'partial' | 'unable'; reps: SquatRep[]; frames: AnalyzedFrame[]; duration: number; validFraction: number; issues: string[]; observations: MovementObservation[] }
+export interface SquatAnalysis { status: 'assessed' | 'partial' | 'unable'; reps: SquatRep[]; frames: AnalyzedFrame[]; duration: number; validFraction: number; issues: string[]; observations: MovementObservation[]; metricLabel?: string; phaseLabels?: [string,string] }
 export interface AnalysisProgress { phase: 'model' | 'frames' | 'analysis'; completed: number; total: number }
 export interface AnalyzeVideoOptions { signal: AbortSignal; onProgress: (progress: AnalysisProgress) => void }
