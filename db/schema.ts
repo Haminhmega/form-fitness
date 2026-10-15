@@ -8,6 +8,9 @@ export const accounts=sqliteTable('form_accounts',{
 export const googleIdentities=sqliteTable('form_google_identities',{
   googleSub:text('google_sub').primaryKey(),userId:text('user_id').notNull(),email:text('email').notNull(),name:text('name').notNull(),
 },t=>[uniqueIndex('google_user_unique').on(t.userId)]);
+export const passwordIdentities=sqliteTable('form_password_identities',{
+  userId:text('user_id').primaryKey(),email:text('email').notNull(),name:text('name').notNull(),passwordHash:text('password_hash').notNull(),salt:text('salt').notNull(),iterations:integer('iterations').notNull(),createdAt:text('created_at').notNull(),
+},t=>[uniqueIndex('password_email_unique').on(t.email)]);
 export const sessions=sqliteTable('form_sessions',{
   tokenHash:text('token_hash').primaryKey(),userId:text('user_id').notNull(),expiresAt:integer('expires_at').notNull(),
 },t=>[index('session_user').on(t.userId),index('session_expiry').on(t.expiresAt)]);

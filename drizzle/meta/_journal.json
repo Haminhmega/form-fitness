@@ -15,6 +15,13 @@
       "when": 1791956998276,
       "tag": "0001_motionless_surge",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1792080037351,
+      "tag": "0002_boring_scarlet_spider",
+      "breakpoints": true
     }
   ]
 }

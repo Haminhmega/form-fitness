@@ -4,11 +4,11 @@ A React + TypeScript training prototype with one movement-specific bodyweight sq
 
 ## Accounts and body stats
 
-Continue with ChatGPT, then set your name, optional age/height/current and target weight, activity level, goal, training days and equipment. Metric and imperial input are supported. Profile → Edit stats & goals updates them. See [ACCOUNTS.md](ACCOUNTS.md) for sync, deletion, backend operation and verification limits. The live app remains owner-private.
+Create a Form account with email and password, then set your name, optional age/height/current and target weight, activity level, goal, training days and equipment. Metric and imperial input are supported. Profile → Edit stats & goals updates them. Google and ChatGPT sign-in remain optional alternatives. See [ACCOUNTS.md](ACCOUNTS.md) for sync, deletion, backend operation and verification limits.
 
 ## Install on iPhone
 
-Open [Form](https://form-fitness-minh.breezy-rhea-1400.chatgpt.site) in Safari, sign in to the owning ChatGPT account if asked, then choose Share → Add to Home Screen → Add. The source repository and hosted app are private. See [IPHONE.md](IPHONE.md) for offline setup, updates and device limitations.
+Open [Form](https://formfitness.fit) in Safari, create or log in to your Form account, then choose Share → Add to Home Screen → Add. See [IPHONE.md](IPHONE.md) for offline setup, updates and device limitations.
 
 ## Open it
 

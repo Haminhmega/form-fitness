@@ -2,7 +2,9 @@ import {saveSchema} from '../shared/account';
 import {json,sameOrigin,type Env} from './contracts';
 import {identityResult,googleAuth,clearSessionCookie,authErrorRedirect,hasSessionCookie,hasPlatformSession} from './google-auth';
 import {rateLimit} from './rate-limit';
+import {passwordAuth} from './password-auth';
 const handleAuth=googleAuth();
+const handlePasswordAuth=passwordAuth();
 async function readJson(request:Request){
   if(!request.body)throw Error('body');
   const reader=request.body.getReader();const chunks:Uint8Array[]=[];let length=0;
@@ -20,7 +22,7 @@ export default {async fetch(request:Request,env:Env):Promise<Response>{
       const limited=await rateLimit(env,'auth-ip:'+(request.headers.get('CF-Connecting-IP')||'local'),30);
       if(limited)return browserAuth?authErrorRedirect('rate_limited'):limited;
     }
-    return await handleAuth(request,env)||json({error:'Not found'},404);
+    return await handlePasswordAuth(request,env)||await handleAuth(request,env)||json({error:'Not found'},404);
   }
   if(!url.pathname.startsWith('/api/')){
     const asset=env.ASSETS?await env.ASSETS.fetch(request):new Response('Not found',{status:404});
@@ -49,6 +51,7 @@ export default {async fetch(request:Request,env:Env):Promise<Response>{
       await env.DB.prepare('DELETE FROM form_sessions WHERE user_id=?').bind(user.id).run();
       await env.DB.prepare('DELETE FROM form_oauth_states WHERE link_user_id=?').bind(user.id).run();
       await env.DB.prepare('DELETE FROM form_google_identities WHERE user_id=?').bind(user.id).run();
+      await env.DB.prepare('DELETE FROM form_password_identities WHERE user_id=?').bind(user.id).run();
       return json({deleted:true,hasPlatformSession:hasPlatformSession(request)},200,{'Set-Cookie':clearSessionCookie()});
     }
     const parsed=saveSchema.safeParse(body);

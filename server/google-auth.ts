@@ -29,8 +29,8 @@ export async function identityResult(request:Request,env:Env):Promise<IdentityRe
   const raw=cookie(request,SESSION);
   if(raw!==null){
     if(tokenPattern.test(raw)){
-      const row=await env.DB.prepare('SELECT s.user_id,g.email,g.name FROM form_sessions s JOIN form_google_identities g ON g.user_id=s.user_id WHERE s.token_hash=? AND s.expires_at>?').bind(await hash(raw),Date.now()).first();
-      if(row)return {user:{id:row.user_id,email:row.email,name:row.name,provider:'google',googleLinked:true},clearSession:false};
+      const row=await env.DB.prepare("SELECT s.user_id,COALESCE(p.email,g.email) AS email,COALESCE(p.name,g.name) AS name,CASE WHEN p.user_id IS NOT NULL THEN 'password' ELSE 'google' END AS provider,g.google_sub FROM form_sessions s LEFT JOIN form_password_identities p ON p.user_id=s.user_id LEFT JOIN form_google_identities g ON g.user_id=s.user_id WHERE s.token_hash=? AND s.expires_at>? AND (p.user_id IS NOT NULL OR g.user_id IS NOT NULL)").bind(await hash(raw),Date.now()).first();
+      if(row)return {user:{id:row.user_id,email:row.email,name:row.name,provider:row.provider,googleLinked:!!row.google_sub},clearSession:false};
     }
     const platform=platformIdentity(request);
     if(platform){
@@ -55,7 +55,7 @@ export function googleAuth(dependencies:Dependencies={}){
   const exchange=dependencies.exchange||fetch,verify=dependencies.verify||verifyGoogleToken;
   return async function(request:Request,env:Env):Promise<Response|null>{
     const url=new URL(request.url);
-    if(url.pathname==='/api/auth/options')return json({google:googleReady(env),chatgpt:true});
+    if(url.pathname==='/api/auth/options')return json({password:true,google:googleReady(env),chatgpt:true});
     if(url.pathname==='/api/auth/signout'){
       if(request.method!=='POST')return json({error:'Method not allowed'},405);
       if(!sameOrigin(request))return json({error:'This request must come from Form.'},403);

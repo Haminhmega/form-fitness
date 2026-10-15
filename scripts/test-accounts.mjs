@@ -67,6 +67,24 @@ const staticResponse=await worker.fetch(new Request('https://form.test/'),env);a
 assert.equal((await worker.fetch(new Request('https://form.test/api/unknown'),env)).status,404);
 const row=db.prepare('SELECT document FROM form_accounts WHERE user_id=?').get('a');assert.equal(JSON.parse(row.document).profile.name,'Test Person');
 
+async function passwordRequest(path,body){
+  const response=await worker.fetch(new Request('https://form.test/api/auth/'+path,{method:'POST',headers:{Origin:'https://form.test','Content-Type':'application/json','X-Form-Client':'1','Sec-Fetch-Site':'same-origin','CF-Connecting-IP':'198.51.100.12'},body:JSON.stringify(body)}),env);
+  return {status:response.status,body:await response.json(),headers:response.headers};
+}
+const registered=await passwordRequest('register',{name:'Password Tester',email:'Tester@Example.test',password:'correct horse battery staple'});
+assert.equal(registered.status,201);assert.equal(registered.body.user.provider,'password');assert.equal(registered.body.user.email,'tester@example.test');
+const passwordCookie=registered.headers.getSetCookie().find(value=>value.startsWith('__Host-form-session=')).split(';')[0];
+const passwordAccountResponse=await worker.fetch(new Request('https://form.test/api/account',{headers:{Cookie:passwordCookie}}),env);
+assert.equal(passwordAccountResponse.status,200);const passwordAccount=await passwordAccountResponse.json();assert.equal(passwordAccount.user.provider,'password');assert.equal(passwordAccount.user.name,'Password Tester');
+assert.equal((await passwordRequest('login',{email:'tester@example.test',password:'wrong password'})).status,401);
+assert.equal((await passwordRequest('register',{name:'Other',email:'tester@example.test',password:'another secure password'})).status,409);
+const passwordLogin=await passwordRequest('login',{email:'tester@example.test',password:'correct horse battery staple'});assert.equal(passwordLogin.status,200);
+const loginCookie=passwordLogin.headers.getSetCookie().find(value=>value.startsWith('__Host-form-session=')).split(';')[0];
+const passwordUserId=passwordLogin.body.user.id;
+const passwordDelete=await worker.fetch(new Request('https://form.test/api/account',{method:'DELETE',headers:{Cookie:loginCookie,Origin:'https://form.test','Content-Type':'application/json','X-Form-Client':'1','X-Form-Account':passwordUserId,'Sec-Fetch-Site':'same-origin'},body:JSON.stringify({confirm:'DELETE MY FORM ACCOUNT'})}),env);
+assert.equal(passwordDelete.status,200);assert.equal(db.prepare('SELECT COUNT(*) AS count FROM form_password_identities WHERE user_id=?').get(passwordUserId).count,0);
+assert.equal((await passwordRequest('login',{email:'tester@example.test',password:'correct horse battery staple'})).status,401);
+
 const authEnv={...env,GOOGLE_CLIENT_ID:'test.apps.googleusercontent.com',GOOGLE_CLIENT_SECRET:'test-secret',AUTH_ORIGIN:'https://form.test'};
 let verifiedSub='google-sub-a';
 const auth=googleAuth({
@@ -115,4 +133,4 @@ assert.equal(stale.status,200);assert.equal((await stale.json()).user.googleLink
 assert.equal(await rateLimit(authEnv,'regression-bucket',2,60),null);assert.equal(await rateLimit(authEnv,'regression-bucket',2,60),null);assert.equal((await rateLimit(authEnv,'regression-bucket',2,60)).status,429);
 
 db.close();
-console.log('Account and Google auth checks passed: authentication, isolation, validation, CAS, replay rejection, safe linking, stale-session fallback, rate limiting, deletion and static routing.');
+console.log('Account, password and Google auth checks passed: registration, login, hashing, authentication, isolation, validation, CAS, replay rejection, safe linking, stale-session fallback, rate limiting, deletion and static routing.');

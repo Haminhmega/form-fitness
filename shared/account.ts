@@ -20,4 +20,4 @@ export const saveSchema=z.object({revision:z.number().int().nonnegative(),docume
 export type FitnessProfile=z.infer<typeof profileSchema>;
 export type AccountDocument=z.infer<typeof documentSchema>;
 export type CloudRecord={revision:number;updatedAt:string;document:AccountDocument};
-export type AccountUser={id:string;email:string;name:string;provider:'google'|'chatgpt';googleLinked:boolean};
+export type AccountUser={id:string;email:string;name:string;provider:'password'|'google'|'chatgpt';googleLinked:boolean};
