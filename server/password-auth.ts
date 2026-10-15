@@ -2,11 +2,10 @@ import type {Env} from './contracts';
 import {json,sameOrigin} from './contracts';
 import {hash,revokeSession} from './google-auth';
 import {rateLimit} from './rate-limit';
+import {derivePasswordHash,PASSWORD_ITERATIONS} from './password-hash';
 
 const SESSION='__Host-form-session';
 const SESSION_SECONDS=7*24*60*60;
-const ITERATIONS=310_000;
-const encoder=new TextEncoder();
 const emailPattern=/^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const base64=(bytes:Uint8Array)=>btoa(String.fromCharCode(...bytes)).replaceAll('+','-').replaceAll('/','_').replaceAll('=','');
 const random=(size=32)=>base64(crypto.getRandomValues(new Uint8Array(size)));
@@ -17,10 +16,6 @@ async function readBody(request:Request){
   if(!request.headers.get('Content-Type')?.startsWith('application/json'))throw Error('content');
   const declared=Number(request.headers.get('Content-Length')||0);if(declared>16_384)throw Error('size');
   const text=await request.text();if(text.length>16_384)throw Error('size');return JSON.parse(text);
-}
-async function derive(password:string,salt:string,iterations=ITERATIONS){
-  const key=await crypto.subtle.importKey('raw',encoder.encode(password),'PBKDF2',false,['deriveBits']);
-  return base64(new Uint8Array(await crypto.subtle.deriveBits({name:'PBKDF2',hash:'SHA-256',salt:encoder.encode(salt),iterations},key,256)));
 }
 function equal(a:string,b:string){if(a.length!==b.length)return false;let different=0;for(let i=0;i<a.length;i++)different|=a.charCodeAt(i)^b.charCodeAt(i);return different===0}
 async function createSession(request:Request,env:Env,userId:string){
@@ -41,8 +36,8 @@ export function passwordAuth(){return async function(request:Request,env:Env):Pr
     const name=typeof body?.name==='string'?body.name.trim():'';
     if(!name||name.length>60)return json({error:'Enter your name (60 characters or fewer).'},400);
     const registrationLimited=await rateLimit(env,'register-email:'+email,4,3600);if(registrationLimited)return registrationLimited;
-    const salt=random(24),passwordHash=await derive(password,salt),userId='password:'+crypto.randomUUID();
-    const inserted=await env.DB.prepare('INSERT INTO form_password_identities (user_id,email,name,password_hash,salt,iterations,created_at) VALUES (?,?,?,?,?,?,?) ON CONFLICT(email) DO NOTHING').bind(userId,email,name,passwordHash,salt,ITERATIONS,new Date().toISOString()).run();
+    const salt=random(24),passwordHash=await derivePasswordHash(password,salt),userId='password:'+crypto.randomUUID();
+    const inserted=await env.DB.prepare('INSERT INTO form_password_identities (user_id,email,name,password_hash,salt,iterations,created_at) VALUES (?,?,?,?,?,?,?) ON CONFLICT(email) DO NOTHING').bind(userId,email,name,passwordHash,salt,PASSWORD_ITERATIONS,new Date().toISOString()).run();
     if(!inserted.meta.changes)return json({error:'An account already exists for this email. Log in instead.'},409);
     let token:string;
     try{token=await createSession(request,env,userId)}catch(error){await env.DB.prepare('DELETE FROM form_password_identities WHERE user_id=?').bind(userId).run().catch(()=>{});throw error}
@@ -50,8 +45,8 @@ export function passwordAuth(){return async function(request:Request,env:Env):Pr
   }
   const row=await env.DB.prepare('SELECT user_id,email,name,password_hash,salt,iterations FROM form_password_identities WHERE email=?').bind(email).first();
   const storedIterations=Number(row?.iterations);
-  const iterations=Number.isInteger(storedIterations)&&storedIterations>=100_000&&storedIterations<=1_000_000?storedIterations:ITERATIONS;
-  const candidate=await derive(password,row?.salt||random(24),iterations);
+  const iterations=Number.isInteger(storedIterations)&&storedIterations>=100_000&&storedIterations<=1_000_000?storedIterations:PASSWORD_ITERATIONS;
+  const candidate=await derivePasswordHash(password,row?.salt||random(24),iterations);
   if(!row||!equal(candidate,row.password_hash))return json({error:'Email or password is incorrect.'},401);
   const token=await createSession(request,env,row.user_id);
   return json({signedIn:true,user:{id:row.user_id,email:row.email,name:row.name,provider:'password',googleLinked:false}},200,{'Set-Cookie':sessionCookie(token)});

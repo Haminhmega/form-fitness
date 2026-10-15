@@ -66,5 +66,14 @@ export default {async fetch(request:Request,env:Env):Promise<Response>{
       :await env.DB.prepare("UPDATE form_accounts SET document = ?, revision = revision + 1, updated_at = ? WHERE user_id = ? AND revision = ? AND document != 'null' RETURNING document,revision,updated_at").bind(JSON.stringify(document),updatedAt,user.id,revision).first();
     if(!saved)return json({error:'Another device saved changes. Refresh before saving again.'},409);
     return json({record:{document:JSON.parse(saved.document),revision:saved.revision,updatedAt:saved.updated_at}});
-  }catch{return json({error:'Your account could not be loaded or saved. Please retry.'},503)}
+  }catch(error){
+    const operation=url.pathname==='/api/auth/register'?'register':url.pathname==='/api/auth/login'?'login':url.pathname==='/api/account'?'account':'auth';
+    const reference=crypto.randomUUID();
+    const category=error instanceof Error&&error.name==='NotSupportedError'?'unsupported_crypto':error instanceof Error&&error.message.startsWith('D1_')?'database':'unexpected';
+    // Only fixed categories and a generated reference: never log request bodies,
+    // emails, passwords, cookies, SQL values, or arbitrary exception messages.
+    console.error(JSON.stringify({event:'account_request_failed',operation,category,reference}));
+    const message=operation==='register'?'Account creation is temporarily unavailable.':operation==='login'?'Sign-in is temporarily unavailable.':'Your account could not be loaded or saved.';
+    return json({error:`${message} Please retry. Reference: ${reference}`,code:'ACCOUNT_SERVICE_UNAVAILABLE',reference},503);
+  }
 }};

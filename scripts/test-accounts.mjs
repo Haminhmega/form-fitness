@@ -1,9 +1,10 @@
 import assert from 'node:assert/strict';
 import {DatabaseSync} from 'node:sqlite';
+import {pbkdf2Sync} from 'node:crypto';
 import {readFile,readdir} from 'node:fs/promises';
 import {build} from 'esbuild';
-const result=await build({stdin:{contents:"export {default as worker} from './server/index.ts'; export {googleAuth} from './server/google-auth.ts'; export {rateLimit} from './server/rate-limit.ts'; export {initialExercises,initialRoutines,initialPreferences} from './src/data.ts'; export {buildAccountDocumentFromLocal,clearAccountWorkoutState,clearMigratedTraining,hasLocalDemo,readCachedAccount,readLastCachedAccount,readLocalPreferences} from './src/account-storage.ts';",resolveDir:process.cwd()},bundle:true,format:'esm',platform:'node',write:false});
-const {worker,googleAuth,rateLimit,initialExercises,initialRoutines,initialPreferences,buildAccountDocumentFromLocal,clearAccountWorkoutState,clearMigratedTraining,hasLocalDemo,readCachedAccount,readLastCachedAccount,readLocalPreferences}=await import('data:text/javascript;base64,'+Buffer.from(result.outputFiles[0].text).toString('base64'));
+const result=await build({stdin:{contents:"export {default as worker} from './server/index.ts'; export {googleAuth} from './server/google-auth.ts'; export {rateLimit} from './server/rate-limit.ts'; export {derivePasswordHash,PASSWORD_ITERATIONS} from './server/password-hash.ts'; export {initialExercises,initialRoutines,initialPreferences} from './src/data.ts'; export {buildAccountDocumentFromLocal,clearAccountWorkoutState,clearMigratedTraining,hasLocalDemo,readCachedAccount,readLastCachedAccount,readLocalPreferences} from './src/account-storage.ts';",resolveDir:process.cwd()},bundle:true,format:'esm',platform:'node',write:false});
+const {worker,googleAuth,rateLimit,derivePasswordHash,PASSWORD_ITERATIONS,initialExercises,initialRoutines,initialPreferences,buildAccountDocumentFromLocal,clearAccountWorkoutState,clearMigratedTraining,hasLocalDemo,readCachedAccount,readLastCachedAccount,readLocalPreferences}=await import('data:text/javascript;base64,'+Buffer.from(result.outputFiles[0].text).toString('base64'));
 const db=new DatabaseSync(':memory:');for(const file of (await readdir(new URL('../drizzle/',import.meta.url))).filter(f=>f.endsWith('.sql')).sort())db.exec(await readFile(new URL('../drizzle/'+file,import.meta.url),'utf8'));
 const env={
   DB:{prepare(sql){
@@ -86,12 +87,36 @@ const staticResponse=await worker.fetch(new Request('https://form.test/'),env);a
 assert.equal((await worker.fetch(new Request('https://form.test/api/unknown'),env)).status,404);
 const row=db.prepare('SELECT document FROM form_accounts WHERE user_id=?').get('a');assert.equal(JSON.parse(row.document).profile.name,'Test Person');
 
-async function passwordRequest(path,body,headers={}){
-  const response=await worker.fetch(new Request('https://form.test/api/auth/'+path,{method:'POST',headers:{Origin:'https://form.test','Content-Type':'application/json','X-Form-Client':'1','Sec-Fetch-Site':'same-origin','CF-Connecting-IP':'198.51.100.12',...headers},body:JSON.stringify(body)}),env);
+async function passwordRequest(path,body,headers={},targetEnv=env){
+  const response=await worker.fetch(new Request('https://form.test/api/auth/'+path,{method:'POST',headers:{Origin:'https://form.test','Content-Type':'application/json','X-Form-Client':'1','Sec-Fetch-Site':'same-origin','CF-Connecting-IP':'198.51.100.12',...headers},body:JSON.stringify(body)}),targetEnv);
   return {status:response.status,body:await response.json(),headers:response.headers};
 }
+
+// Node and local workerd do not enforce the production native PBKDF2 cap.
+// Keep that restriction active during the actual registration/login flows.
+const originalDeriveBits=crypto.subtle.deriveBits;
+let rejectedNativeKdfCalls=0;
+crypto.subtle.deriveBits=async function(algorithm,key,length){
+  if(algorithm.name==='PBKDF2'&&algorithm.iterations>100_000){
+    rejectedNativeKdfCalls++;
+    throw new DOMException('Pbkdf2 failed: iteration counts above 100000 are not supported.','NotSupportedError');
+  }
+  return originalDeriveBits.call(this,algorithm,key,length);
+};
+const capProbeKey=await crypto.subtle.importKey('raw',new TextEncoder().encode('local cap probe'),'PBKDF2',false,['deriveBits']);
+await assert.rejects(crypto.subtle.deriveBits({name:'PBKDF2',hash:'SHA-256',salt:new Uint8Array(16),iterations:310_000},capProbeKey,256),{name:'NotSupportedError'});
+assert.equal(PASSWORD_ITERATIONS,600_000);
+for(const [password,salt,iterations] of [['password','salt',1],['password','salt',2],['pa\u0000sswörd','salt-你好',4096]]){
+  const expected=pbkdf2Sync(password,salt,iterations,32,'sha256').toString('base64url');
+  assert.equal(await derivePasswordHash(password,salt,iterations),expected,'Portable PBKDF2 must match the native algorithm and UTF-8 encoding.');
+}
+assert.equal(Buffer.from(await derivePasswordHash('password','salt',1),'base64url').toString('hex'),'120fb6cffcf8b32c43e7225256c4f837a86548c92ccc35480805987cb70be17b','PBKDF2-HMAC-SHA256 known-answer vector.');
+await assert.rejects(derivePasswordHash('local fixture','salt',0),'Invalid KDF parameters must reject, never produce a credential.');
 const registered=await passwordRequest('register',{name:'Password Tester',email:'Tester@Example.test',password:'correct horse battery staple'});
 assert.equal(registered.status,201);assert.equal(registered.body.user.provider,'password');assert.equal(registered.body.user.email,'tester@example.test');
+const storedPassword=db.prepare('SELECT password_hash,salt,iterations FROM form_password_identities WHERE user_id=?').get(registered.body.user.id);
+assert.equal(storedPassword.iterations,600_000);
+assert.equal(storedPassword.password_hash,pbkdf2Sync('correct horse battery staple',storedPassword.salt,600_000,32,'sha256').toString('base64url'));
 const passwordCookie=registered.headers.getSetCookie().find(value=>value.startsWith('__Host-form-session=')).split(';')[0];
 const passwordAccountResponse=await worker.fetch(new Request('https://form.test/api/account',{headers:{Cookie:passwordCookie}}),env);
 assert.equal(passwordAccountResponse.status,200);const passwordAccount=await passwordAccountResponse.json();assert.equal(passwordAccount.user.provider,'password');assert.equal(passwordAccount.user.name,'Password Tester');
@@ -110,6 +135,32 @@ const passwordUserId=passwordLogin.body.user.id;
 const passwordDelete=await worker.fetch(new Request('https://form.test/api/account',{method:'DELETE',headers:{Cookie:loginCookie,Origin:'https://form.test','Content-Type':'application/json','X-Form-Client':'1','X-Form-Account':passwordUserId,'Sec-Fetch-Site':'same-origin'},body:JSON.stringify({confirm:'DELETE MY FORM ACCOUNT'})}),env);
 assert.equal(passwordDelete.status,200);assert.equal(db.prepare('SELECT COUNT(*) AS count FROM form_password_identities WHERE user_id=?').get(passwordUserId).count,0);
 assert.equal((await passwordRequest('login',{email:'tester@example.test',password:'correct horse battery staple'})).status,401);
+
+// A legacy identity must still verify with its original 310,000 iterations.
+const legacySalt='local-legacy-salt-fixture',legacyPassword='legacy password fixture';
+db.prepare('INSERT INTO form_password_identities (user_id,email,name,password_hash,salt,iterations,created_at) VALUES (?,?,?,?,?,?,?)').run('password:legacy-fixture','legacy@example.test','Legacy Tester',pbkdf2Sync(legacyPassword,legacySalt,310_000,32,'sha256').toString('base64url'),legacySalt,310_000,new Date().toISOString());
+assert.equal((await passwordRequest('login',{email:'legacy@example.test',password:legacyPassword})).status,200);
+assert.equal((await passwordRequest('login',{email:'legacy@example.test',password:'wrong legacy password'})).status,401);
+assert.equal((await passwordRequest('login',{email:'unknown@example.test',password:'unknown user password'})).status,401,'Unknown users must receive 401, not the old runtime 503.');
+
+// Unexpected storage failures must not issue a session or create an identity.
+const failedEmail='failed-write@example.test';
+const failedWriteEnv={...env,DB:{prepare(sql){if(sql.startsWith('INSERT INTO form_password_identities'))throw Error('D1_ERROR local storage failure: failed-write@example.test, local failure fixture, private-cookie-value');return env.DB.prepare(sql)}}};
+const capturedErrors=[],originalConsoleError=console.error;
+let failedRegistration;
+try{
+  console.error=(...args)=>capturedErrors.push(args.join(' '));
+  failedRegistration=await passwordRequest('register',{name:'Failure Tester',email:failedEmail,password:'local failure fixture'},{},failedWriteEnv);
+}finally{console.error=originalConsoleError}
+assert.equal(failedRegistration.status,503);
+assert.equal(failedRegistration.body.code,'ACCOUNT_SERVICE_UNAVAILABLE');
+assert.match(failedRegistration.body.reference,/^[a-f0-9-]{36}$/);
+assert.equal(failedRegistration.headers.get('Set-Cookie'),null);
+assert.equal(db.prepare('SELECT count(*) AS count FROM form_password_identities WHERE email=?').get(failedEmail).count,0);
+assert.deepEqual(capturedErrors.map(value=>JSON.parse(value)),[{event:'account_request_failed',operation:'register',category:'database',reference:failedRegistration.body.reference}]);
+assert.doesNotMatch(JSON.stringify([failedRegistration.body,capturedErrors]),/local storage failure|failed-write@example\.test|local failure fixture|private-cookie-value/);
+assert.equal(rejectedNativeKdfCalls,1,'Only the explicit cap probe may use unsupported native PBKDF2.');
+crypto.subtle.deriveBits=originalDeriveBits;
 
 // Changing email or switching between login and registration cannot bypass the IP cap.
 for(let i=0;i<30;i++)assert.equal((await passwordRequest(i%2?'login':'register',{email:`rotated-${i}@example.test`,password:'short'},{'CF-Connecting-IP':'198.51.100.90'})).status,400);
