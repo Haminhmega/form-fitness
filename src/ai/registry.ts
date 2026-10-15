@@ -2,6 +2,7 @@ import type {Exercise,SupportLevel} from '../types';
 import {analyzeGenericMotion} from './generic-motion';
 import {popularExerciseProfiles,type MotionProfile} from './popular-profiles';
 import {analyzeSquat} from './squat';
+import {analyzeSpecificMovement,specificConfigs,type SpecificMovement} from './specific-movements';
 import type {AnalysisInput,SquatAnalysis} from './types';
 
 export type CameraView='side'|'front_three_quarter'|'front';
@@ -25,6 +26,23 @@ const setup:Record<MotionProfile,{view:CameraView;landmarks:number[];text:string
   shoulder:{view:'front_three_quarter',landmarks:[11,12,13,14,23,24],text:'Film from the front or a slight angle with the working elbow, shoulder, and hip fully visible.',category:'upper_push',metric:'shoulder angle'},
 };
 for(const entry of [...popularExerciseProfiles,...builtInBetaProfiles]){const guide=setup[entry.profile];const category=entry.profile==='elbow'&&/push|press|extension|dip|bench|chest|skull/i.test(entry.name)?'upper_push':guide.category;const spec:ExerciseAnalyzerSpec={id:entry.id,canonicalName:entry.name,aliases:[],category,version:'0.1.0',validation:'beta',metricLabel:guide.metric,minimumSampleRateFps:5,camera:{requiredView:guide.view,requiredLandmarks:guide.landmarks,setupInstructions:guide.text},contraindicatedClaims:forbidden};registry.set(entry.id,{spec,analyze:input=>analyzeGenericMotion(input,entry.profile,entry.name)});}
+
+const dedicatedEntries:{id:SpecificMovement;name:string;view:CameraView;camera:string}[]=[
+ {id:'pushup',name:'Push-up',view:'side',camera:'Film from the side with shoulders, elbows, wrists, hips and ankles visible. Keep hands and toes in frame.'},
+ {id:'curl',name:'Standing biceps curl',view:'side',camera:'Film from the working-arm side. Keep shoulder, elbow, wrist and hip visible to compare upper-body movement.'},
+ {id:'row',name:'Single-arm dumbbell row',view:'side',camera:'Film from the working-arm side with bench, shoulder, elbow, wrist and hip visible; keep the supporting side out of the working arm’s path.'},
+ {id:'press',name:'Dumbbell shoulder press',view:'front_three_quarter',camera:'Use a front three-quarter view with wrists, elbows, shoulders and hips visible throughout the overhead press.'},
+ {id:'rdl',name:'Dumbbell Romanian deadlift',view:'side',camera:'Film from the side with shoulder, hip, knee and ankle visible through the complete hip hinge.'},
+ {id:'glute-bridge',name:'Glute bridge',view:'side',camera:'Film from the side at floor height. Include shoulders, hips, knees and ankles in the frame.'},
+ {id:'reverse-lunge',name:'Reverse lunge',view:'side',camera:'Film from the side with shoulders and both legs visible. Perform all reps on one side before switching; alternating reps may be undercounted.'},
+ {id:'hip-abduction',name:'Side-lying hip abduction',view:'front',camera:'Film facing the front of your side-lying body, with the moving top leg visible from hip to ankle. Avoid overlapping the legs in the camera view.'},
+ {id:'plank',name:'Forearm plank',view:'side',camera:'Film from the side at floor height with shoulder, elbow, hip and ankle visible for at least two uninterrupted seconds.'},
+];
+for(const entry of dedicatedEntries){
+ const config=specificConfigs[entry.id],original=registry.get(entry.id)?.spec;
+ const spec:ExerciseAnalyzerSpec={id:entry.id,canonicalName:entry.name,aliases:[],category:original?.category||(entry.id==='plank'?'isometric_core':entry.id==='reverse-lunge'?'lower_push':'hinge'),version:'0.2.0',validation:'beta',metricLabel:config.label,minimumSampleRateFps:5,camera:{requiredView:entry.view,requiredLandmarks:[...config.joints,...config.joints.map(j=>j+1)],setupInstructions:entry.camera},contraindicatedClaims:forbidden};
+ registry.set(entry.id,{spec,analyze:input=>analyzeSpecificMovement(input,entry.id,entry.name)});
+}
 
 export function getAnalyzer(exerciseId:string){return registry.get(exerciseId)}
 export function listAnalyzers(){return [...registry.values()]}

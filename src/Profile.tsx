@@ -1,4 +1,3 @@
-import {Watch,ArrowUpRight} from 'lucide-react';
 import { useState } from 'react';
 import { Bell, Check, ChevronRight, Cloud, Dumbbell, HardDrive, Info, Settings2, ShieldCheck, Sparkles, Trash2, UserRound } from 'lucide-react';
 import type { Preferences, ToastFn } from './types';
@@ -6,19 +5,18 @@ import './progress-profile.css';
 import InstallApp from './InstallApp';
 import {AccountPanel,useAccount} from './Account';
 
-type Props = { preferences: Preferences; setPreferences: (p: Preferences) => void; onOnboarding: () => void; toast: ToastFn; onDevices:()=>void; deviceCount:number; workoutActive?:boolean };
+type Props = { preferences: Preferences; setPreferences: (p: Preferences) => void; onOnboarding: () => void; toast: ToastFn; workoutActive?:boolean };
 function SettingSwitch({ title, description, checked, onChange, id }: { title: string; description: string; checked: boolean; onChange: () => void; id: string }) {
   return <div className="profile-setting"><div><h3 id={`${id}-label`}>{title}</h3><p id={`${id}-description`} className="muted">{description}</p></div><button className={`setting-switch ${checked ? 'is-on' : ''}`} type="button" role="switch" aria-checked={checked} aria-labelledby={`${id}-label`} aria-describedby={`${id}-description`} onClick={onChange}><span>{checked && <Check size={13} aria-hidden="true" />}</span></button></div>;
 }
 
-export default function Profile({ preferences, setPreferences, onOnboarding, toast, onDevices, deviceCount, workoutActive }: Props) {
+export default function Profile({ preferences, setPreferences, onOnboarding, toast, workoutActive }: Props) {
   const account=useAccount();
   const [showDeletion, setShowDeletion] = useState(false);
   const update = <K extends keyof Preferences>(key: K, value: Preferences[K], message?: string) => { setPreferences({ ...preferences, [key]: value }); if (message) toast(message); };
   return <div className="profile-page">
     <header className="page-heading"><div><p className="eyebrow">MADE TO FIT YOU</p><h1>Your training. Your terms.</h1><p className="muted">A few preferences. Clear choices about your data.</p></div><span className="badge"><HardDrive size={14} aria-hidden="true" /> {account.document?'Synced profile':'Local demo'}</span></header>
     <section className="panel profile-card"><div className="profile-avatar"><UserRound size={30} aria-hidden="true" /></div><div className="profile-identity"><p className="eyebrow">YOUR SPACE</p><h2>{account.document?`Good to see you, ${account.document.profile.name}.`:"Let’s build your foundation."}</h2><p className="muted">{preferences.goal} · {preferences.experience}</p></div><button className="btn secondary" onClick={onOnboarding}><Settings2 size={17} aria-hidden="true" />Edit training preferences</button></section>
-    <button className="profile-device-entry panel" onClick={onDevices}><span className="profile-device-icon"><Watch size={25}/></span><span className="profile-device-copy"><span className="eyebrow">A LITTLE MORE CONTEXT</span><strong>Connected devices</strong><span className="muted">Fitbit, WHOOP, Garmin, Apple Health &amp; Health Connect</span></span><span className="profile-device-count">{deviceCount?`${deviceCount} demo ${deviceCount===1?'connection':'connections'}`:'Explore sample imports'}</span><ArrowUpRight size={20}/></button>
     <AccountPanel preferences={preferences} busy={workoutActive}/>
     <InstallApp busy={workoutActive||account.dirty}/>
     <div className="profile-grid"><div className="profile-column">

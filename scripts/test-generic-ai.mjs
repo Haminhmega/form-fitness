@@ -5,9 +5,9 @@ const bundle=await build({stdin:{contents:"export {analyzeGenericMotion} from '.
 const {analyzeGenericMotion,listAnalyzers,getExerciseSupportLevel,popularExerciseProfiles}=await import('data:text/javascript;base64,'+Buffer.from(bundle.outputFiles[0].text).toString('base64'));
 assert.equal(popularExerciseProfiles.length,95);
 assert.equal(new Set(popularExerciseProfiles.map(e=>e.id)).size,95);
-assert.equal(listAnalyzers().length,101);
+assert.equal(listAnalyzers().length,105);
 assert.equal(listAnalyzers().filter(a=>a.spec.validation==='verified').length,1);
-assert.equal(listAnalyzers().filter(a=>a.spec.validation==='beta').length,100);
+assert.equal(listAnalyzers().filter(a=>a.spec.validation==='beta').length,104);
 for(const entry of popularExerciseProfiles)assert.equal(getExerciseSupportLevel({id:entry.id,supported:false}),'experimental_ai');
 for(const id of ['pushup','curl','rdl','row','press'])assert.equal(getExerciseSupportLevel({id,supported:false}),'experimental_ai');
 
@@ -16,4 +16,4 @@ function pose(profile,degrees){const points=Array.from({length:33},()=>({x:.5,y:
 function clip(profile){const keys=[[0,160],[.5,160],[1.3,75],[2.1,160],[2.6,160],[3.4,75],[4.2,160],[4.7,160]];const frames=[];for(let i=0;i<=47;i++){const time=i/10;let k=0;while(k<keys.length-2&&time>keys[k+1][0])k++;const [ta,a]=keys[k],[tb,b]=keys[k+1];const value=a+(b-a)*Math.max(0,Math.min(1,(time-ta)/(tb-ta)));frames.push({time,poses:[pose(profile,value)]});}return {frames,duration:4.7,width:1000,height:1000,sampleRate:10};}
 for(const profile of Object.keys(triples)){const result=analyzeGenericMotion(clip(profile),profile,'Test exercise');assert.equal(result.reps.length,2,`${profile} should find two cycles`);assert.equal(result.metricLabel,`${profile} angle`);assert.ok(result.validFraction>.99);}
 const crowded=clip('elbow');crowded.frames=crowded.frames.map(frame=>({...frame,poses:[frame.poses[0],frame.poses[0]]}));const refused=analyzeGenericMotion(crowded,'elbow','Curl');assert.equal(refused.status,'unable');assert.equal(refused.reps.length,0);assert.ok(refused.issues.some(issue=>issue.includes('withheld')));
-console.log('Generic AI checks passed: 100 unique beta profiles, four joint metrics, cycle measurement, and multi-person abstention.');
+console.log('Generic AI checks passed: 104 beta profiles, four joint metrics, cycle measurement, and multi-person abstention.');
