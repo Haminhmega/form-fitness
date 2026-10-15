@@ -3,19 +3,19 @@ import {Cloud,CloudOff,ArrowRight,ArrowLeft,Check,UserRound,RefreshCw,LogOut,Shi
 import {documentSchema,profileSchema,type AccountDocument,type AccountUser,type CloudRecord,type FitnessProfile} from '../shared/account';
 import {equipmentOptions,experienceLevels,initialPreferences,trainingDays,trainingGoals} from './data';
 import type {Preferences} from './types';
-import {buildAccountDocumentFromLocal,clearMigratedTraining,hasLocalDemo,localDemoKey,readLocalPreferences} from './account-storage';
+import {accountCacheKey,buildAccountDocumentFromLocal,clearAccountWorkoutState,clearMigratedTraining,hasLocalDemo,localDemoKey,readCachedAccount,readLastCachedAccount,readLocalPreferences,skippedProfileKey} from './account-storage';
 import {POUNDS_PER_KILOGRAM} from './units';
 import './account.css';
-type State={user:AccountUser|null;document:AccountDocument|null;revision:number;dirty:boolean;status:'loading'|'guest'|'ready'|'offline'|'saving'|'conflict'|'error';message:string;conflict:CloudRecord|null};
-const empty:State={user:null,document:null,revision:0,dirty:false,status:'loading',message:'',conflict:null};
+type State={user:AccountUser|null;document:AccountDocument|null;revision:number;dirty:boolean;requiresSignIn:boolean;status:'loading'|'guest'|'ready'|'offline'|'saving'|'conflict'|'error';message:string;conflict:CloudRecord|null};
+const empty:State={user:null,document:null,revision:0,dirty:false,requiresSignIn:false,status:'loading',message:'',conflict:null};
 type Context=State&{googleAvailable:boolean;authMessage:string;editTraining:<K extends keyof AccountDocument['training']>(key:K,value:AccountDocument['training'][K])=>void;saveProfile:(profile:FitnessProfile,preferences:Preferences)=>Promise<boolean>;refresh:()=>Promise<void>;sync:()=>Promise<void>;useCloud:()=>void;keepDevice:()=>void;signOut:()=>void;deleteAccount:()=>Promise<void>};
 const AccountContext=createContext<Context>(null!);
 export const useAccount=()=>useContext(AccountContext);
-const key=(id:string)=>'form-account-v1:'+id;
+const key=accountCacheKey;
 const authPath='/signin-with-chatgpt?return_to=%2F';
-function stored(id:string){try{const raw=JSON.parse(localStorage.getItem(key(id))||'null');if(raw&&documentSchema.safeParse(raw.document).success&&Number.isSafeInteger(raw.revision)&&raw.revision>0)return raw as State}catch{}return null}
+function stored(id:string){const cached=readCachedAccount(id);return cached?{...empty,...cached}:null}
 function clearSyncedCache(id:string){try{localStorage.removeItem(key(id));if(localStorage.getItem('form-last-account')===id)localStorage.removeItem('form-last-account')}catch{}}
-function eraseDevice(id:string){try{const names=Object.keys(localStorage).filter(name=>name===key(id)||name.startsWith('form-user:'+id+':'));names.forEach(name=>localStorage.removeItem(name));localStorage.removeItem('form-last-account')}catch{}}
+function eraseDevice(id:string){try{const names=Object.keys(localStorage).filter(name=>name===key(id)||name.startsWith('form-user:'+id+':'));names.forEach(name=>localStorage.removeItem(name));if(localStorage.getItem('form-last-account')===id)localStorage.removeItem('form-last-account')}catch{}}
 async function api(method='GET',body?:unknown,accountId?:string){
   const response=await fetch('/api/account',{method,credentials:'same-origin',cache:'no-store',headers:{'Content-Type':'application/json','X-Form-Client':'1',...(accountId?{'X-Form-Account':accountId}:{})},body:body?JSON.stringify(body):undefined,signal:AbortSignal.timeout(15000)});
   const data=await response.json().catch(()=>({error:'Open the hosted app and sign in to use your account.'}));
@@ -24,6 +24,7 @@ async function api(method='GET',body?:unknown,accountId?:string){
 }
 export function AccountProvider({children}:{children:ReactNode}){
   const [state,setState]=useState<State>(empty);const epoch=useRef(0);const refreshSequence=useRef(0);const [googleAvailable,setGoogleAvailable]=useState(false);const [authMessage,setAuthMessage]=useState('');
+  const [loginRequested,setLoginRequested]=useState(()=>new URL(location.href).searchParams.get('auth')==='login');
   useEffect(()=>{
     void fetch('/api/auth/options',{credentials:'same-origin',cache:'no-store'}).then(r=>r.ok?r.json():null).then(data=>setGoogleAvailable(data?.google===true)).catch(()=>{});
     const url=new URL(location.href),failure=url.searchParams.get('auth_error');
@@ -31,7 +32,7 @@ export function AccountProvider({children}:{children:ReactNode}){
     else if(url.searchParams.get('auth_success'))setAuthMessage('Signed in with Google.');
     if(failure||url.searchParams.has('auth_success')){url.searchParams.delete('auth_error');url.searchParams.delete('auth_success');history.replaceState(null,'',url.pathname+url.search+url.hash)}
   },[]);const current=useRef(state);const saving=useRef(false);const timer=useRef<ReturnType<typeof setTimeout>|null>(null);const [guest,setGuest]=useState(()=>hasLocalDemo());
-  function enterGuest(){try{localStorage.setItem(localDemoKey,'1')}catch{}setGuest(true)}
+  function enterGuest(){try{if(!current.current.user)localStorage.setItem(localDemoKey,'1');else if(!current.current.document)localStorage.setItem(skippedProfileKey(current.current.user.id),'1')}catch{}setGuest(true);setLoginRequested(false);const url=new URL(location.href);url.searchParams.delete('auth');history.replaceState(history.state,'',url.pathname+url.search+url.hash)}
   function leaveGuest(){try{localStorage.removeItem(localDemoKey)}catch{}setGuest(false)}
   function commit(next:State){current.current=next;setState(next);if(next.user&&next.document)try{localStorage.setItem(key(next.user.id),JSON.stringify(next));localStorage.setItem('form-last-account',next.user.id)}catch{/* Online sync remains available without device persistence. */}}
   async function refresh(){
@@ -40,15 +41,16 @@ export function AccountProvider({children}:{children:ReactNode}){
     try{
       const data=await api();if(generation!==epoch.current||sequence!==refreshSequence.current)return;const user=data.user as AccountUser;const remote=data.record as CloudRecord|null;
       if(!user?.id)throw Error('Sign in to use your account.');
-      leaveGuest();const local=current.current.user?.id===user.id?current.current:stored(user.id);
+      if(remote)leaveGuest();else{let skipped=false;try{skipped=localStorage.getItem(skippedProfileKey(user.id))==='1'}catch{}setGuest(skipped)}
+      const local=current.current.user?.id===user.id?current.current:stored(user.id);
       if(!remote)clearSyncedCache(user.id);
       if(remote&&!documentSchema.safeParse(remote.document).success)throw Error('Your saved profile needs a newer version of Form.');
       if(remote&&local?.dirty){
-        commit({...local,user,status:remote.revision===local.revision?'ready':'conflict',conflict:remote.revision===local.revision?null:remote,message:remote.revision===local.revision?'Changes waiting to sync.':'Another device saved changes. Choose which version to keep.'});
+        commit({...local,user,requiresSignIn:false,status:remote.revision===local.revision?'ready':'conflict',conflict:remote.revision===local.revision?null:remote,message:remote.revision===local.revision?'Changes waiting to sync.':'Another device saved changes. Choose which version to keep.'});
       }else commit({...empty,user,document:remote?.document||null,revision:remote?.revision||0,status:'ready',message:remote?'Synced across your devices.':''});
     }catch(error){
       if(generation!==epoch.current||sequence!==refreshSequence.current)return;
-      if((error as {status?:number}).status===401){const local=current.current;if(local.user&&local.document&&local.dirty){commit({...local,status:'error',message:'Your session expired. Sign in again to sync; your unsaved changes are kept on this device.'});return}try{localStorage.removeItem('form-last-account')}catch{}commit({...empty,status:'guest'});return}
+      if((error as {status?:number}).status===401){const local=current.current.user&&current.current.document?current.current:readLastCachedAccount();if(local?.dirty){commit({...empty,...local,requiresSignIn:true,status:'error',message:'Your session expired. Sign in to the same account again to sync; your unsaved changes are kept on this device.'});return}try{localStorage.removeItem('form-last-account')}catch{}commit({...empty,status:'guest'});return}
       let cached=current.current.document?current.current:null;
       if(!cached)try{const id=localStorage.getItem('form-last-account');if(id)cached=stored(id)}catch{}
       if(cached)commit({...cached,status:(error as {status?:number}).status?'error':'offline',message:(error as {status?:number}).status?(error as Error).message:'Using your device copy. Reconnect to sync.'});
@@ -56,7 +58,7 @@ export function AccountProvider({children}:{children:ReactNode}){
     }
   }
   async function sync(){
-    const before=current.current;if(saving.current||!before.user||!before.document||!before.dirty||before.conflict)return;
+    const before=current.current;if(saving.current||!before.user||!before.document||!before.dirty||before.conflict||before.requiresSignIn)return;
     const generation=epoch.current;
     saving.current=true;commit({...before,status:'saving',message:'Saving your changes…'});
     try{
@@ -68,29 +70,29 @@ export function AccountProvider({children}:{children:ReactNode}){
       if(generation!==epoch.current)return;
       const status=(error as {status?:number}).status;
       if(status===409){saving.current=false;await refresh();return}
-      if(status===401){commit({...current.current,status:'error',message:'Your session expired. Sign in again to sync; your changes are kept on this device.'});return}
+      if(status===401){commit({...current.current,requiresSignIn:true,status:'error',message:'Your session expired. Sign in to the same account again to sync; your changes are kept on this device.'});return}
       commit({...current.current,status:status?'error':'offline',message:status?(error as Error).message:'Not synced yet. Your changes are kept on this device.'});
     }finally{if(generation===epoch.current)saving.current=false}
   }
   useEffect(()=>{
-    const onStorage=(event:StorageEvent)=>{if(event.key==='form-signout'&&event.newValue===current.current.user?.id){epoch.current++;refreshSequence.current++;saving.current=false;if(timer.current)clearTimeout(timer.current);setGuest(false);commit({...empty,status:'guest'});}};
+    const onStorage=(event:StorageEvent)=>{if(event.key==='form-signout'&&event.newValue===current.current.user?.id){epoch.current++;refreshSequence.current++;saving.current=false;if(timer.current)clearTimeout(timer.current);clearAccountWorkoutState(event.newValue!);setGuest(false);commit({...empty,status:'guest'});}};
     window.addEventListener('storage',onStorage);return()=>window.removeEventListener('storage',onStorage);
   },[]);
   useEffect(()=>{void refresh();const reconnect=()=>{void refresh()};window.addEventListener('online',reconnect);const visible=()=>{if(document.visibilityState==='visible')void refresh()};document.addEventListener('visibilitychange',visible);return()=>{window.removeEventListener('online',reconnect);document.removeEventListener('visibilitychange',visible)}},[]);
   useEffect(()=>{if(timer.current)clearTimeout(timer.current);if(state.dirty&&state.status==='ready')timer.current=setTimeout(()=>void sync(),800);return()=>{if(timer.current)clearTimeout(timer.current)}},[state.document,state.revision,state.status,state.dirty]);
-  function editTraining<K extends keyof AccountDocument['training']>(field:K,value:AccountDocument['training'][K]){const s=current.current;if(!s.document)return;commit({...s,document:{...s.document,training:{...s.document.training,[field]:value}},dirty:true,status:s.conflict?'conflict':navigator.onLine?'ready':'offline'})}
+  function editTraining<K extends keyof AccountDocument['training']>(field:K,value:AccountDocument['training'][K]){const s=current.current;if(!s.document)return;commit({...s,document:{...s.document,training:{...s.document.training,[field]:value}},dirty:true,status:s.requiresSignIn?'error':s.conflict?'conflict':navigator.onLine?'ready':'offline'})}
   async function saveProfile(profile:FitnessProfile,preferences:Preferences){
     const s=current.current;if(!s.user)return false;const generation=epoch.current;
     const doc:AccountDocument=s.document?{profile,training:{...s.document.training,preferences}}:buildAccountDocumentFromLocal(s.user.id,profile,preferences);
-    if(s.document){commit({...s,document:doc,dirty:true,status:s.conflict?'conflict':s.status==='offline'?'offline':'ready'});return true}
+    if(s.document){commit({...s,document:doc,dirty:true,status:s.requiresSignIn?'error':s.conflict?'conflict':s.status==='offline'?'offline':'ready'});return true}
     commit({...s,status:'saving',message:'Creating your Form account…'});
     try{const {record}=await api('PUT',{revision:0,document:doc},s.user.id);if(generation!==epoch.current)return false;clearMigratedTraining(s.user.id);commit({...s,document:record.document,revision:record.revision,dirty:false,status:'ready',message:'Your Form account is ready.'});return true}catch(error){if(generation!==epoch.current)return false;commit({...s,status:'error',message:(error as Error).message});return false}
   }
   function clearAccountDevice(){
     const s=current.current;epoch.current++;refreshSequence.current++;saving.current=false;
     if(timer.current)clearTimeout(timer.current);
-    if(s.user){eraseDevice(s.user.id);try{localStorage.setItem('form-signout',s.user.id);localStorage.removeItem('form-signout')}catch{}}
-    sessionStorage.removeItem('form-rest');leaveGuest();commit({...empty,status:'guest'});
+    if(s.user){clearAccountWorkoutState(s.user.id);eraseDevice(s.user.id);try{localStorage.setItem('form-signout',s.user.id);localStorage.removeItem('form-signout')}catch{}}
+    leaveGuest();commit({...empty,status:'guest'});
   }
   async function signOut(){
     const s=current.current;if(s.dirty||saving.current)return;
@@ -99,9 +101,9 @@ export function AccountProvider({children}:{children:ReactNode}){
   }
   async function deleteAccount(){const s=current.current;if(!s.user)return;const result=await api('DELETE',{confirm:'DELETE MY FORM ACCOUNT'},s.user.id) as {hasPlatformSession?:boolean};clearAccountDevice();window.location.assign(result.hasPlatformSession?'/signout-with-chatgpt?return_to=%2F':'./');}
   const context:Context={...state,googleAvailable,authMessage,editTraining,saveProfile,refresh,sync,signOut,deleteAccount,useCloud:()=>{const s=current.current;if(s.conflict)commit({...s,document:s.conflict.document,revision:s.conflict.revision,dirty:false,status:'ready',conflict:null,message:'Loaded the cloud version.'})},keepDevice:()=>{const s=current.current;if(s.conflict)commit({...s,revision:s.conflict.revision,status:'ready',conflict:null,dirty:true,message:'Saving this device’s version…'})}};
-  return <AccountContext.Provider value={context}>{state.status==='loading'?<div className="account-loading" role="status"><span className="form-wordmark">form.</span><p>Opening your training space…</p></div>:state.user&&!state.document&&!guest?<ProfileSetup initial={null} preferences={readLocalPreferences(state.user.id,initialPreferences)} onCancel={enterGuest}/>:!state.user&&!guest?<Welcome onGuest={enterGuest}/>:<Fragment key={state.user?.id||'guest'}>{children}</Fragment>}</AccountContext.Provider>
+  return <AccountContext.Provider value={context}>{state.status==='loading'?<div className="account-loading" role="status"><span className="form-wordmark">form.</span><p>Opening your training space…</p></div>:loginRequested?<Welcome onGuest={enterGuest}/>:state.user&&!state.document&&!guest?<ProfileSetup initial={null} preferences={readLocalPreferences(state.user.id,initialPreferences)} onCancel={enterGuest}/>:!state.user&&!guest?<Welcome onGuest={enterGuest}/>:<Fragment key={state.user?.id||'guest'}>{children}</Fragment>}</AccountContext.Provider>
 }
-function Welcome({onGuest}:{onGuest:()=>void}){const account=useAccount();return <main className="account-welcome"><div className="account-brand">form<span>.</span></div><div className="account-welcome-grid"><section><p className="eyebrow">YOUR TRAINING. ALL YOUR DEVICES.</p><h1>A little more<br/>you, every day.</h1><p className="account-lead">Build your profile. Save your sessions. Pick up wherever you train.</p><div className="account-benefits"><p><UserRound/>A plan shaped by your goals</p><p><Cloud/>Stats and completed workouts that sync</p><p><ShieldCheck/>Optional body stats. Private by default.</p></div></section><section className="panel account-entry"><span className="badge">WELCOME TO FORM</span><h2>Your next chapter starts here.</h2><p className="muted">Create your Form account or pick up where you left off.</p><SignInButtons/><p className="settings-note">New here? Your password is salted and hashed before it is stored. After registering, you’ll set up your profile.</p>{(account.authMessage||account.message)&&<p className="notice" role="status">{account.authMessage||account.message}</p>}<a href="./privacy.html" target="_blank" rel="noopener">Privacy & your data</a><button className="btn ghost" onClick={onGuest}>Explore the local demo</button></section></div></main>}
+function Welcome({onGuest}:{onGuest:()=>void}){const account=useAccount();return <main className="account-welcome"><div className="account-brand">form<span>.</span></div><div className="account-welcome-grid"><section><p className="eyebrow">YOUR TRAINING. ALL YOUR DEVICES.</p><h1>A little more<br/>you, every day.</h1><p className="account-lead">Build your profile. Save your sessions. Pick up wherever you train.</p><div className="account-benefits"><p><UserRound/>A plan shaped by your goals</p><p><Cloud/>Stats and completed workouts that sync</p><p><ShieldCheck/>Optional body stats. Private by default.</p></div></section><section className="panel account-entry"><span className="badge">WELCOME TO FORM</span><h2>Your next chapter starts here.</h2><p className="muted">Create your Form account or pick up where you left off.</p><SignInButtons/><p className="settings-note">New here? Your password is salted and hashed before it is stored. After registering, you’ll set up your profile.</p>{(account.authMessage||account.message)&&<p className="notice" role="status">{account.authMessage||account.message}</p>}<a href="./privacy.html" target="_blank" rel="noopener">Privacy & your data</a><button className="btn ghost" onClick={onGuest}>{account.document?'Return to saved training':'Explore the local demo'}</button></section></div></main>}
 function SignInButtons(){
   const a=useAccount();const [mode,setMode]=useState<'login'|'register'>('login');const [name,setName]=useState('');const [email,setEmail]=useState('');const [password,setPassword]=useState('');const [confirm,setConfirm]=useState('');const [busy,setBusy]=useState(false);const [error,setError]=useState('');
   async function submit(event:FormEvent){event.preventDefault();setError('');if(mode==='register'&&password!==confirm){setError('Passwords do not match.');return}setBusy(true);try{const response=await fetch(`/api/auth/${mode}`,{method:'POST',credentials:'same-origin',cache:'no-store',headers:{'Content-Type':'application/json','X-Form-Client':'1'},body:JSON.stringify({email,password,...(mode==='register'?{name}:{})}),signal:AbortSignal.timeout(20000)});const data=await response.json().catch(()=>({error:'Account service is unavailable.'}));if(!response.ok)throw Error(data.error||'Account service is unavailable.');window.location.assign('/')}catch(problem){setError((problem as Error).message);setBusy(false)}}

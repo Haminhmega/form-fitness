@@ -5,6 +5,7 @@ import { uid } from './types';
 import {getAnalyzer,getExerciseSupportLevel,supportLabel,priorityExerciseIds} from './ai/registry';
 import {ExerciseGuide} from './ExerciseGuide';
 import {recommendedPrescription,restReason} from './training-recommendations';
+import {sortExercises,type ExerciseSort} from './exercise-popularity';
 import './train.css';
 
 type Props = { routines:Routine[]; setRoutines:(r:Routine[])=>void; exercises:Exercise[]; setExercises:(e:Exercise[])=>void; preferences:Preferences; onStart:(r:Routine)=>void; onRecord:(e:Exercise)=>void; toast:ToastFn };
@@ -34,17 +35,19 @@ function ExerciseBrowser({exercises,excluded=[],onChoose,chooseLabel='Add',onDet
   const [muscle,setMuscle]=useState('All muscles');
   const [equipment,setEquipment]=useState('All equipment');
   const [priorityOnly,setPriorityOnly]=useState(false);
+  const [sort,setSort]=useState<ExerciseSort>('popular');
   const [limit,setLimit]=useState(60);
-  useEffect(()=>setLimit(60),[query,muscle,equipment,priorityOnly]);
+  useEffect(()=>setLimit(60),[query,muscle,equipment,priorityOnly,sort]);
   const terms=query.trim().toLowerCase().split(/\s+/).filter(Boolean);
-  const visible=exercises.filter(e=>{const haystack=`${e.name} ${e.muscle} ${e.equipment} ${e.category||''}`.toLowerCase();return (!priorityOnly||priorityExerciseIds.has(e.id))&&!excluded.includes(e.id)&&terms.every(term=>haystack.includes(term))&&(muscle==='All muscles'||e.muscle===muscle)&&(equipment==='All equipment'||e.equipment===equipment)});
+  const visible=sortExercises(exercises.filter(e=>{const haystack=`${e.name} ${e.muscle} ${e.equipment} ${e.category||''}`.toLowerCase();return (!priorityOnly||priorityExerciseIds.has(e.id))&&!excluded.includes(e.id)&&terms.every(term=>haystack.includes(term))&&(muscle==='All muscles'||e.muscle===muscle)&&(equipment==='All equipment'||e.equipment===equipment)}),sort);
   const shown=visible.slice(0,limit);
   const filtered=priorityOnly||!!query||muscle!=='All muscles'||equipment!=='All equipment';
   const clear=()=>{setQuery('');setMuscle('All muscles');setEquipment('All equipment');setPriorityOnly(false);};
   return <div className={`train-browser ${compact?'is-compact':''}`}>
     <label className="train-search"><Search size={19}/><span className="sr-only">Search exercises</span><input aria-label="Search exercises" type="search" value={query} onChange={e=>setQuery(e.target.value)} placeholder="Find an exercise"/>{query&&<button type="button" className="icon-button" aria-label="Clear search" onClick={()=>setQuery('')}><X size={17}/></button>}</label>
     <div className="train-filters"><SlidersHorizontal size={17} aria-hidden="true"/><label><span className="sr-only">Filter by muscle group</span><select aria-label="Filter by muscle group" value={muscle} onChange={e=>setMuscle(e.target.value)}><option>All muscles</option>{[...new Set(exercises.map(e=>e.muscle))].sort().map(m=><option key={m}>{m}</option>)}</select></label><label><span className="sr-only">Filter by equipment</span><select aria-label="Filter by equipment" value={equipment} onChange={e=>setEquipment(e.target.value)}><option>All equipment</option>{[...new Set(exercises.map(e=>e.equipment))].sort().map(m=><option key={m}>{m}</option>)}</select></label></div>
-    <label className="priority-filter"><input type="checkbox" checked={priorityOnly} onChange={e=>setPriorityOnly(e.target.checked)}/>60 common exercises · focused beta checks</label>
+    <div className="train-sort"><label><span>Sort exercises</span><select value={sort} onChange={e=>setSort(e.target.value as ExerciseSort)}><option value="popular">Most popular</option><option value="name-asc">Name A–Z</option><option value="name-desc">Name Z–A</option></select></label>{sort==='popular'&&<p className="muted">Popular order is a curated list of common gym movements.</p>}</div>
+    <label className="priority-filter"><input type="checkbox" checked={priorityOnly} onChange={e=>setPriorityOnly(e.target.checked)}/>{priorityExerciseIds.size} common exercises · focused beta checks</label>
     <p className="train-result-count muted" aria-live="polite">{visible.length} {visible.length===1?'exercise':'exercises'}{filtered?' found':''}</p>
     {visible.length ? <><div className="train-exercise-list">{shown.map(e=>{const support=getExerciseSupportLevel(e);return <div className="train-exercise-row" key={e.id}><span className="train-exercise-symbol" aria-hidden="true">{support==='logging_only'?<Dumbbell size={22}/>:<Film size={22}/>}</span><div className="train-exercise-info">{onDetail?<button className="train-text-button" onClick={()=>onDetail(e)}><strong>{e.name}</strong></button>:<strong>{e.name}</strong>}<span className="train-exercise-meta">{e.muscle}<span>·</span>{e.equipment}{e.level&&<><span>·</span>{e.level}</>}{e.custom&&<span>· Custom</span>}</span><Support exercise={e}/></div>{onChoose?<button type="button" className="icon-button train-add" aria-label={`${chooseLabel} ${e.name}`} onClick={()=>onChoose(e)}><Plus size={20}/></button>:<button type="button" className="icon-button" aria-label={`View ${e.name} details`} onClick={()=>onDetail?.(e)}><ChevronRight size={20}/></button>}</div>})}</div>{shown.length<visible.length&&<button type="button" className="btn secondary train-show-more" onClick={()=>setLimit(limit+60)}>Show 60 more <span className="muted">({visible.length-shown.length} remaining)</span></button>}</>:<div className="empty-state train-no-results"><Search size={26}/><h3>{filtered?'No exercises found':'All exercises are in your routine'}</h3><p className="muted">{filtered?'Try another name or broaden your filters.':'Create a custom exercise from the exercise library to add something new.'}</p>{filtered&&<button className="btn secondary" onClick={clear}>Clear filters</button>}</div>}
   </div>;

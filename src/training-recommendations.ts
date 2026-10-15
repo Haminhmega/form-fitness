@@ -1,4 +1,5 @@
 import type {Exercise,Preferences,Routine,RoutineExercise} from './types';
+import {isTimedExercise} from './exercise-logging';
 
 export type WarmupMove={name:string;dose:string;target:string;cue:string};
 
@@ -7,7 +8,7 @@ const goalKey=(goal:string)=>goal.toLowerCase();
 
 export function recommendedPrescription(preferences:Preferences,exercise:Exercise):RoutineExercise{
   const goal=goalKey(preferences.goal);
-  const isHold=/plank|hold/i.test(exercise.name);
+  const isHold=isTimedExercise(exercise);
   if(beginner(preferences))return {exerciseId:exercise.id,sets:2,reps:isHold?'20–30 sec':'10–15',rest:60,notes:'Use a light, controlled effort. Stop each set while your technique still feels repeatable.'};
   if(/strength/.test(goal))return {exerciseId:exercise.id,sets:4,reps:isHold?'30–45 sec':'5–8',rest:120,notes:'Use a challenging load while keeping every rep controlled.'};
   if(/muscle|glute|upper body/.test(goal))return {exerciseId:exercise.id,sets:3,reps:isHold?'30–45 sec':'8–12',rest:90,notes:'Finish with a few good reps still available; add load only after the range feels consistent.'};

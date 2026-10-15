@@ -18,7 +18,8 @@ export default {async fetch(request:Request,env:Env):Promise<Response>{
   if(url.pathname.startsWith('/auth/')||url.pathname.startsWith('/api/auth/')){
     const browserAuth=url.pathname==='/auth/google'||url.pathname==='/auth/google/callback';
     if(!env.DB)return browserAuth?authErrorRedirect('unavailable'):json({error:'Sign-in is temporarily unavailable.'},503);
-    if(browserAuth||url.pathname==='/api/auth/signout'){
+    const passwordAuth=url.pathname==='/api/auth/login'||url.pathname==='/api/auth/register';
+    if(browserAuth||passwordAuth||url.pathname==='/api/auth/signout'){
       const limited=await rateLimit(env,'auth-ip:'+(request.headers.get('CF-Connecting-IP')||'local'),30);
       if(limited)return browserAuth?authErrorRedirect('rate_limited'):limited;
     }

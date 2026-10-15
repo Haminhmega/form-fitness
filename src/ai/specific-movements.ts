@@ -57,7 +57,7 @@ export function analyzeSpecificMovement(input:AnalysisInput,id:SpecificMovement,
  // In a supported row the resting arm can be easier to see than the working
  // arm. Lock to the side with the largest robust measured excursion instead
  // of switching sides frame by frame or defaulting to the left arm.
- const triples:Record<MotionProfile,number[]>={elbow:[11,13,15],hip:[11,23,25],knee:[23,25,27],shoulder:[13,11,23]};
+ const triples:Record<MotionProfile,number[]>={elbow:[11,13,15],hip:[11,23,25],knee:[23,25,27],shoulder:[13,11,23],ankle:[25,27,31]};
  const excursion=(offset:number)=>{
   const ids=triples[config.profile].map(j=>j+offset),values=filtered.frames.flatMap(f=>{
    if(f.poses.length!==1||!ids.every(j=>usable(f.poses[0][j])))return [];

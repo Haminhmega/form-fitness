@@ -16,6 +16,10 @@ export const clearSessionCookie=()=>setCookie(SESSION,'',0);
 function redirect(location:string,cookies:string[]=[]){const headers=new Headers({'Location':location,'Cache-Control':'no-store','Referrer-Policy':'no-referrer','X-Content-Type-Options':'nosniff'});cookies.forEach(value=>headers.append('Set-Cookie',value));return new Response(null,{status:303,headers})}
 export const authErrorRedirect=(reason:string)=>redirect('/?auth_error='+encodeURIComponent(reason));
 export const hasSessionCookie=(request:Request)=>cookie(request,SESSION)!==null;
+export async function revokeSession(request:Request,env:Env){
+  const raw=cookie(request,SESSION);
+  if(raw&&tokenPattern.test(raw))await env.DB.prepare('DELETE FROM form_sessions WHERE token_hash=?').bind(await hash(raw)).run();
+}
 export function googleReady(env:Env){try{return !!env.GOOGLE_CLIENT_ID?.endsWith('.apps.googleusercontent.com')&&!!env.GOOGLE_CLIENT_SECRET&&!!env.AUTH_ORIGIN&&new URL(env.AUTH_ORIGIN).origin===env.AUTH_ORIGIN&&env.AUTH_ORIGIN.startsWith('https://')}catch{return false}}
 function platformIdentity(request:Request):Omit<AccountUser,'googleLinked'>|null{
   const id=request.headers.get('oai-authenticated-user-id'),email=request.headers.get('oai-authenticated-user-email');
@@ -59,8 +63,7 @@ export function googleAuth(dependencies:Dependencies={}){
     if(url.pathname==='/api/auth/signout'){
       if(request.method!=='POST')return json({error:'Method not allowed'},405);
       if(!sameOrigin(request))return json({error:'This request must come from Form.'},403);
-      const raw=cookie(request,SESSION);
-      if(raw&&tokenPattern.test(raw))await env.DB.prepare('DELETE FROM form_sessions WHERE token_hash=?').bind(await hash(raw)).run();
+      await revokeSession(request,env);
       return json({signedOut:true,hasPlatformSession:hasPlatformSession(request)},200,{'Set-Cookie':clearSessionCookie()});
     }
     if(url.pathname!=='/auth/google'&&url.pathname!=='/auth/google/callback')return null;
@@ -122,7 +125,7 @@ export function googleAuth(dependencies:Dependencies={}){
       if(!linked||linked.user_id!==wanted)return fail('already_linked');
       await env.DB.prepare('UPDATE form_google_identities SET email=?,name=? WHERE google_sub=?').bind(google.email,google.name,google.sub).run();
       // Rotation: an existing session is revoked before issuing a fresh token.
-      const previous=cookie(request,SESSION);if(previous&&tokenPattern.test(previous))await env.DB.prepare('DELETE FROM form_sessions WHERE token_hash=?').bind(await hash(previous)).run();
+      await revokeSession(request,env);
       const session=random();await env.DB.prepare('INSERT INTO form_sessions (token_hash,user_id,expires_at) VALUES (?,?,?)').bind(await hash(session),linked.user_id,Date.now()+SESSION_SECONDS*1000).run();
       return redirect('/?auth_success=google',[setCookie(STATE,'',0),setCookie(SESSION,session,SESSION_SECONDS)]);
     }catch{return fail('verification_failed')}

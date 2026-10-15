@@ -1,6 +1,6 @@
 import type {Env} from './contracts';
 import {json,sameOrigin} from './contracts';
-import {hash} from './google-auth';
+import {hash,revokeSession} from './google-auth';
 import {rateLimit} from './rate-limit';
 
 const SESSION='__Host-form-session';
@@ -23,8 +23,9 @@ async function derive(password:string,salt:string,iterations=ITERATIONS){
   return base64(new Uint8Array(await crypto.subtle.deriveBits({name:'PBKDF2',hash:'SHA-256',salt:encoder.encode(salt),iterations},key,256)));
 }
 function equal(a:string,b:string){if(a.length!==b.length)return false;let different=0;for(let i=0;i<a.length;i++)different|=a.charCodeAt(i)^b.charCodeAt(i);return different===0}
-async function createSession(env:Env,userId:string){
+async function createSession(request:Request,env:Env,userId:string){
   const token=random();await env.DB.prepare('DELETE FROM form_sessions WHERE expires_at<?').bind(Date.now()).run();
+  await revokeSession(request,env);
   await env.DB.prepare('INSERT INTO form_sessions (token_hash,user_id,expires_at) VALUES (?,?,?)').bind(await hash(token),userId,Date.now()+SESSION_SECONDS*1000).run();
   return token;
 }
@@ -44,7 +45,7 @@ export function passwordAuth(){return async function(request:Request,env:Env):Pr
     const inserted=await env.DB.prepare('INSERT INTO form_password_identities (user_id,email,name,password_hash,salt,iterations,created_at) VALUES (?,?,?,?,?,?,?) ON CONFLICT(email) DO NOTHING').bind(userId,email,name,passwordHash,salt,ITERATIONS,new Date().toISOString()).run();
     if(!inserted.meta.changes)return json({error:'An account already exists for this email. Log in instead.'},409);
     let token:string;
-    try{token=await createSession(env,userId)}catch(error){await env.DB.prepare('DELETE FROM form_password_identities WHERE user_id=?').bind(userId).run().catch(()=>{});throw error}
+    try{token=await createSession(request,env,userId)}catch(error){await env.DB.prepare('DELETE FROM form_password_identities WHERE user_id=?').bind(userId).run().catch(()=>{});throw error}
     return json({registered:true,user:{id:userId,email,name,provider:'password',googleLinked:false}},201,{'Set-Cookie':sessionCookie(token)});
   }
   const row=await env.DB.prepare('SELECT user_id,email,name,password_hash,salt,iterations FROM form_password_identities WHERE email=?').bind(email).first();
@@ -52,6 +53,6 @@ export function passwordAuth(){return async function(request:Request,env:Env):Pr
   const iterations=Number.isInteger(storedIterations)&&storedIterations>=100_000&&storedIterations<=1_000_000?storedIterations:ITERATIONS;
   const candidate=await derive(password,row?.salt||random(24),iterations);
   if(!row||!equal(candidate,row.password_hash))return json({error:'Email or password is incorrect.'},401);
-  const token=await createSession(env,row.user_id);
+  const token=await createSession(request,env,row.user_id);
   return json({signedIn:true,user:{id:row.user_id,email:row.email,name:row.name,provider:'password',googleLinked:false}},200,{'Set-Cookie':sessionCookie(token)});
 }}

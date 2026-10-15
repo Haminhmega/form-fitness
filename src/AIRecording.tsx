@@ -76,8 +76,9 @@ export default function AIRecording({ exercise, standalone, onClose, onComplete,
   useEffect(() => {
     const video = player.current;
     if (!video || !result || !video.requestVideoFrameCallback) return;
-    let frameId = 0;
-    const tick = () => { setPosition(video.currentTime); frameId = video.requestVideoFrameCallback(tick); };
+    let frameId = 0, lastSample = -1;
+    // Pose analysis samples at 10 Hz; avoid rerendering the full results view at video frame rate.
+    const tick = () => { const sample=Math.floor(video.currentTime*10); if(sample!==lastSample){lastSample=sample;setPosition(video.currentTime)} frameId = video.requestVideoFrameCallback(tick); };
     frameId = video.requestVideoFrameCallback(tick);
     return () => video.cancelVideoFrameCallback(frameId);
   }, [result, clip]);

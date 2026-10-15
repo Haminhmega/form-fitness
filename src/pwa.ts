@@ -21,7 +21,12 @@ export async function startOfflineApp(){
     };
     watchInstall();
     registration.addEventListener('updatefound',watchInstall);
-    navigator.serviceWorker.addEventListener('controllerchange',()=>{if(reloading)location.reload();else publish({ready:true})});
+    // Installed apps can stay open for days; check again when returning to Form.
+    let lastUpdateCheck=Date.now();
+    const checkForUpdate=()=>{if(document.visibilityState==='visible'&&navigator.onLine&&Date.now()-lastUpdateCheck>60000){lastUpdateCheck=Date.now();void registration?.update().catch(()=>{})}};
+    document.addEventListener('visibilitychange',checkForUpdate);
+    window.addEventListener('online',checkForUpdate);
+    navigator.serviceWorker.addEventListener('controllerchange',()=>{if(reloading)location.reload();else publish({ready:true,update:!!registration?.waiting})});
     await navigator.serviceWorker.ready;
     publish({ready:true});
     // Installation can be blocked by storage limits even after registration.

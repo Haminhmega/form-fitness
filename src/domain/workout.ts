@@ -1,5 +1,16 @@
 import {uid,type Exercise,type HistoryEntry,type Routine,type Session} from '../types';
 
+export function localWorkoutDate(date=new Date()):string{
+  return [date.getFullYear(),String(date.getMonth()+1).padStart(2,'0'),String(date.getDate()).padStart(2,'0')].join('-');
+}
+
+export function updateHistorySet(entry:HistoryEntry,exerciseIndex:number,setId:string,field:'weight'|'reps',value:number):HistoryEntry{
+  if(!Number.isFinite(value))return entry;
+  const exercise=entry.exercises[exerciseIndex];
+  if(!exercise?.sets.some(set=>set.id===setId&&set.done))return entry;
+  return {...entry,exercises:entry.exercises.map((item,index)=>index!==exerciseIndex?item:{...item,sets:item.sets.map(set=>set.id===setId&&set.done?{...set,[field]:value}:set)})};
+}
+
 export function parseRepRange(value:string){
   const numbers=value.match(/\d+/g)?.map(Number).filter(Number.isFinite)||[];
   const min=Math.max(1,numbers[0]||8);
@@ -75,7 +86,7 @@ export function createHistoryEntry(
   session:Session,
   exercises:Exercise[],
   now=Date.now(),
-  date=new Date(now).toLocaleDateString('en-CA'),
+  date=localWorkoutDate(new Date(now)),
 ):HistoryEntry{
   const completed=Object.values(session.logs).flat().filter(set=>set.done);
   return {

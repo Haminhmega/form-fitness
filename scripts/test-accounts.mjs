@@ -2,8 +2,8 @@ import assert from 'node:assert/strict';
 import {DatabaseSync} from 'node:sqlite';
 import {readFile,readdir} from 'node:fs/promises';
 import {build} from 'esbuild';
-const result=await build({stdin:{contents:"export {default as worker} from './server/index.ts'; export {googleAuth} from './server/google-auth.ts'; export {rateLimit} from './server/rate-limit.ts'; export {initialExercises,initialRoutines,initialPreferences} from './src/data.ts'; export {buildAccountDocumentFromLocal,clearMigratedTraining,hasLocalDemo,readLocalPreferences} from './src/account-storage.ts';",resolveDir:process.cwd()},bundle:true,format:'esm',platform:'node',write:false});
-const {worker,googleAuth,rateLimit,initialExercises,initialRoutines,initialPreferences,buildAccountDocumentFromLocal,clearMigratedTraining,hasLocalDemo,readLocalPreferences}=await import('data:text/javascript;base64,'+Buffer.from(result.outputFiles[0].text).toString('base64'));
+const result=await build({stdin:{contents:"export {default as worker} from './server/index.ts'; export {googleAuth} from './server/google-auth.ts'; export {rateLimit} from './server/rate-limit.ts'; export {initialExercises,initialRoutines,initialPreferences} from './src/data.ts'; export {buildAccountDocumentFromLocal,clearAccountWorkoutState,clearMigratedTraining,hasLocalDemo,readCachedAccount,readLastCachedAccount,readLocalPreferences} from './src/account-storage.ts';",resolveDir:process.cwd()},bundle:true,format:'esm',platform:'node',write:false});
+const {worker,googleAuth,rateLimit,initialExercises,initialRoutines,initialPreferences,buildAccountDocumentFromLocal,clearAccountWorkoutState,clearMigratedTraining,hasLocalDemo,readCachedAccount,readLastCachedAccount,readLocalPreferences}=await import('data:text/javascript;base64,'+Buffer.from(result.outputFiles[0].text).toString('base64'));
 const db=new DatabaseSync(':memory:');for(const file of (await readdir(new URL('../drizzle/',import.meta.url))).filter(f=>f.endsWith('.sql')).sort())db.exec(await readFile(new URL('../drizzle/'+file,import.meta.url),'utf8'));
 const env={
   DB:{prepare(sql){
@@ -43,6 +43,25 @@ assert.deepEqual(readLocalPreferences('missing',initialPreferences,()=>'{bad'),i
 assert.equal(hasLocalDemo(key=>key==='form-local-demo-v1'?'1':null),true);
 assert.equal(hasLocalDemo(key=>key==='form-session-v1'?'{}':null),true);
 assert.equal(hasLocalDemo(()=>null),false);
+const cache={user:{id:'a',email:'a@example.test',name:'Account A',provider:'password',googleLinked:false},document:doc,revision:4,dirty:true};
+const recoveryValues=new Map([['form-last-account','a'],['form-account-v1:a',JSON.stringify(cache)]]);
+const readRecovery=name=>recoveryValues.get(name)||null;
+assert.equal(readLastCachedAccount(readRecovery).dirty,true);
+assert.equal(readLastCachedAccount(readRecovery).revision,4);
+assert.equal(readLastCachedAccount(readRecovery).requiresSignIn,false);
+assert.equal(readCachedAccount('b',readRecovery),null);
+recoveryValues.set('form-account-v1:a',JSON.stringify({...cache,user:{...cache.user,id:'b'}}));
+assert.equal(readLastCachedAccount(readRecovery),null,'A different account cannot be restored through a stale owner key.');
+recoveryValues.set('form-account-v1:a','{malformed');
+assert.equal(readLastCachedAccount(readRecovery),null);
+assert.equal(readLastCachedAccount(()=>{throw Error('Storage disabled')}),null);
+const timerStorage={'form-user:a:form-session-v1':JSON.stringify({id:'session-a'}),'form-workout-recovery-v1:a:session-a':'owned timer','form-workout-recovery-v1:b:session-b':'other timer'};
+globalThis.localStorage=Object.defineProperties(timerStorage,{getItem:{value:name=>timerStorage[name]??null},removeItem:{value:name=>{delete timerStorage[name]}}});
+const clearedSession=[];globalThis.sessionStorage={removeItem:name=>clearedSession.push(name)};
+clearAccountWorkoutState('a');
+assert.equal(timerStorage['form-workout-recovery-v1:a:session-a'],undefined);
+assert.equal(timerStorage['form-workout-recovery-v1:b:session-b'],'other timer');
+assert.deepEqual(clearedSession,['form-rest','form-warmup']);
 async function call(id,method='GET',body,extra={}){const response=await worker.fetch(new Request('https://form.test/api/account',{method,headers:{...(id?{'oai-authenticated-user-id':id,'oai-authenticated-user-email':id+'@example.test'}:{}),Origin:'https://form.test','Content-Type':'application/json','X-Form-Client':'1','X-Form-Account':id||'',...extra},body:body?JSON.stringify(body):undefined}),env);return {status:response.status,body:await response.json(),headers:response.headers}}
 assert.equal((await call(null)).status,401);
 assert.equal((await call('a','PUT',{revision:0,document:doc},{'X-Form-Account':'b'})).body.code,'ACCOUNT_CHANGED');
@@ -67,8 +86,8 @@ const staticResponse=await worker.fetch(new Request('https://form.test/'),env);a
 assert.equal((await worker.fetch(new Request('https://form.test/api/unknown'),env)).status,404);
 const row=db.prepare('SELECT document FROM form_accounts WHERE user_id=?').get('a');assert.equal(JSON.parse(row.document).profile.name,'Test Person');
 
-async function passwordRequest(path,body){
-  const response=await worker.fetch(new Request('https://form.test/api/auth/'+path,{method:'POST',headers:{Origin:'https://form.test','Content-Type':'application/json','X-Form-Client':'1','Sec-Fetch-Site':'same-origin','CF-Connecting-IP':'198.51.100.12'},body:JSON.stringify(body)}),env);
+async function passwordRequest(path,body,headers={}){
+  const response=await worker.fetch(new Request('https://form.test/api/auth/'+path,{method:'POST',headers:{Origin:'https://form.test','Content-Type':'application/json','X-Form-Client':'1','Sec-Fetch-Site':'same-origin','CF-Connecting-IP':'198.51.100.12',...headers},body:JSON.stringify(body)}),env);
   return {status:response.status,body:await response.json(),headers:response.headers};
 }
 const registered=await passwordRequest('register',{name:'Password Tester',email:'Tester@Example.test',password:'correct horse battery staple'});
@@ -76,14 +95,29 @@ assert.equal(registered.status,201);assert.equal(registered.body.user.provider,'
 const passwordCookie=registered.headers.getSetCookie().find(value=>value.startsWith('__Host-form-session=')).split(';')[0];
 const passwordAccountResponse=await worker.fetch(new Request('https://form.test/api/account',{headers:{Cookie:passwordCookie}}),env);
 assert.equal(passwordAccountResponse.status,200);const passwordAccount=await passwordAccountResponse.json();assert.equal(passwordAccount.user.provider,'password');assert.equal(passwordAccount.user.name,'Password Tester');
-assert.equal((await passwordRequest('login',{email:'tester@example.test',password:'wrong password'})).status,401);
+assert.equal((await passwordRequest('login',{email:'tester@example.test',password:'wrong password'},{Cookie:passwordCookie})).status,401);
+const sessionStatus=async cookie=>(await worker.fetch(new Request('https://form.test/api/account',{headers:{Cookie:cookie}}),env)).status;
+assert.equal(await sessionStatus(passwordCookie),200,'Failed login must preserve the current session.');
 assert.equal((await passwordRequest('register',{name:'Other',email:'tester@example.test',password:'another secure password'})).status,409);
-const passwordLogin=await passwordRequest('login',{email:'tester@example.test',password:'correct horse battery staple'});assert.equal(passwordLogin.status,200);
+const passwordLogin=await passwordRequest('login',{email:'tester@example.test',password:'correct horse battery staple'},{Cookie:passwordCookie});assert.equal(passwordLogin.status,200);
 const loginCookie=passwordLogin.headers.getSetCookie().find(value=>value.startsWith('__Host-form-session=')).split(';')[0];
+assert.equal(await sessionStatus(passwordCookie),401,'A successful login must revoke the supplied previous session.');
+assert.equal(await sessionStatus(loginCookie),200);
+const otherDeviceLogin=await passwordRequest('login',{email:'tester@example.test',password:'correct horse battery staple'});
+assert.equal(otherDeviceLogin.status,200);
+assert.equal(await sessionStatus(loginCookie),200,'A new device must not revoke sessions on unrelated devices.');
 const passwordUserId=passwordLogin.body.user.id;
 const passwordDelete=await worker.fetch(new Request('https://form.test/api/account',{method:'DELETE',headers:{Cookie:loginCookie,Origin:'https://form.test','Content-Type':'application/json','X-Form-Client':'1','X-Form-Account':passwordUserId,'Sec-Fetch-Site':'same-origin'},body:JSON.stringify({confirm:'DELETE MY FORM ACCOUNT'})}),env);
 assert.equal(passwordDelete.status,200);assert.equal(db.prepare('SELECT COUNT(*) AS count FROM form_password_identities WHERE user_id=?').get(passwordUserId).count,0);
 assert.equal((await passwordRequest('login',{email:'tester@example.test',password:'correct horse battery staple'})).status,401);
+
+// Changing email or switching between login and registration cannot bypass the IP cap.
+for(let i=0;i<30;i++)assert.equal((await passwordRequest(i%2?'login':'register',{email:`rotated-${i}@example.test`,password:'short'},{'CF-Connecting-IP':'198.51.100.90'})).status,400);
+for(const path of ['login','register']){
+  const blocked=await passwordRequest(path,{email:`new-${path}@example.test`,password:'valid long password',name:'IP cap test'},{'CF-Connecting-IP':'198.51.100.90'});
+  assert.equal(blocked.status,429);assert.equal(blocked.headers.get('Retry-After'),'60');
+}
+assert.equal((await passwordRequest('login',{email:'other@example.test',password:'short'},{'CF-Connecting-IP':'198.51.100.91'})).status,400,'The cap is isolated by IP.');
 
 const authEnv={...env,GOOGLE_CLIENT_ID:'test.apps.googleusercontent.com',GOOGLE_CLIENT_SECRET:'test-secret',AUTH_ORIGIN:'https://form.test'};
 let verifiedSub='google-sub-a';

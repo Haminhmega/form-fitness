@@ -1,82 +1,37 @@
 # Form
 
-A React + TypeScript training prototype with one movement-specific bodyweight squat analyzer and 100 beta joint-motion checks. Charcoal, warm white, restrained lime. Includes real account sign-in, a user-owned D1 profile, and cross-device sync. No video uploads or model training.
+A React + TypeScript fitness beta with account sync, workout logging, personalized routines, exercise instructions, and experimental on-device motion measurements.
 
-## Accounts and body stats
+Live app: https://formfitness.fit. Open in iPhone Safari and choose Share → Add to Home Screen to install. A ChatGPT account is not required for email/password sign-in.
 
-Create a Form account with email and password, then set your name, optional age/height/current and target weight, activity level, goal, training days and equipment. Metric and imperial input are supported. Profile → Edit stats & goals updates them. Google and ChatGPT sign-in remain optional alternatives. See [ACCOUNTS.md](ACCOUNTS.md) for sync, deletion, backend operation and verification limits.
+## Run and verify
 
-## Install on iPhone
+Run npm install, npm run prepare:ai, then npm run dev -- --port 5192.
 
-Open [Form](https://formfitness.fit) in Safari, create or log in to your Form account, then choose Share → Add to Home Screen → Add. See [IPHONE.md](IPHONE.md) for offline setup, updates and device limitations.
+Checks: npm run test:ai, npm run test:accounts, npm run test:workout, npm run test:catalog, npm run test:anatomy, npm run test:recovery, and npm run build.
 
-## Open it
+scripts/test-account-recovery.mjs runs isolated browser account fixtures; scripts/smoke-review-update.mjs checks the integrated workout and library at port 5192 (override with FORM_TEST_URL). Set PLAYWRIGHT_CHROMIUM_EXECUTABLE to use an existing browser executable.
 
-The live development preview is available at **http://127.0.0.1:5173/** while its local server is running.
+## Training
 
-For a portable design preview, open **Form.html** (delivered beside this source folder). Logging, sample device imports, and illustrated feedback work without a server. **Real AI analysis requires the served app and the included local model/WASM assets**, and is disabled in the standalone HTML. Browser-local state for the portable file and server preview are separate. When browser storage is unavailable, the app remains usable in memory but cannot promise persistence.
+- Onboarding asks about goals, experience, equipment, days and units. Recommendations remain editable. A beginner strength check is optional and does not ask for maximum lifts.
+- Active workouts show the same step-by-step instructions, muscle details and available movement illustrations as the library, above the set log. Timed holds use seconds. Rest and warm-up timers use saved deadlines and survive reopening.
+- The library includes 2,906 catalog movements. Most popular is an editorial shortlist of common gym exercises, not an observed usage ranking. A–Z and Z–A sorting work with search and filters. The focused beta filter lists 100 exercise profiles.
+- Exercise illustrations only display for supported exact variants. Start/end buttons, a scrubber and optional animation allow inspection; reduced-motion settings use static positions.
+- Device connection entry points have been removed. Legacy device/sample source files are retained for reference, not presented as active features.
 
-To run or edit the source, open a terminal in this folder:
+## Motion checks
 
-```sh
-npm install
-npm run prepare:ai
-npm run dev -- --port 5173
-```
+Choose Check my form or open /#form-test. Select the exercise, follow its camera setup, choose a playable 2–60 second clip (maximum 100 MB), and confirm the person and movement. The app runs MediaPipe pose estimation locally and measures visible joint cycles, tempo, range comparisons or hold duration. Catalog recording links preserve the selected exercise on reload.
 
-To verify and build:
+All movement rules are experimental, including squats. Synthetic tests check rule behavior; there is no held-out real-video accuracy benchmark or physical-iPhone validation. The app does not identify the exercise automatically, infer load or grip, grade technique, or predict safety. It reports partial/unable results when the view is insufficient. See AI-TEST.md and docs/ai-100-expansion.md.
 
-```sh
-npm run build
-npm run preview
-```
+Videos and detailed results stay in memory, are never uploaded or cached, and are cleared on leaving the check. Analysis does not change logged reps. View illustrated example opens a movement reference, not simulated feedback about the user's clip.
 
-## Walk through the prototype
+## Accounts and offline use
 
-**Try real AI:** Today → **Check my form**, or open **http://127.0.0.1:5173/#form-test**. Choose a 2–60 second video (up to 100 MB), confirm it shows one person doing standard bodyweight squats from the side, and select **Analyze squat video**. Use an up-to-date Chrome or Edge for this test. Results include usable-frame coverage, detected complete repetitions, lowering/rising timing, projected knee-angle measurements, and timestamped replay with actual tracked joints. Unclear or unsuitable movement yields partial/unable output. A model download occurs during preparation; inference reads assets from this app only. Videos and results stay in memory and are cleared when leaving the screen. Results do not modify logged sets, sample history, or device readings. See AI-TEST.md for implementation and validation limits.
+Email/password accounts, optional Google sign-in, profile stats, routines, preferences and completed-workout sync are real. Expired sessions retain unsynced local edits and request sign-in before syncing. Skipping initial profile setup is remembered per account. Password authentication has per-email and per-IP throttling and rotates the browser session.
 
-Choose **Explore the local demo** when using a preview without hosted sign-in.
+Active workouts remain on the device until completed. Rest timers are scoped to the account and workout. Browser storage can be cleared by the user or OS, so it is not a backup. The installed PWA keeps its current version during training and offers an update when available. Finish the active workout and sync before updating. See ACCOUNTS.md and IPHONE.md.
 
-To explore the **illustrated example**:
-
-1. On Today, choose **Start workout**.
-2. Edit weight/reps and complete a set. Try undo and the rest timer.
-3. Choose **Record this set**, then **View illustrated example** for squats, confirm the variation, and choose **Start sample recording**.
-4. After the countdown, stop the simulated recording and review the illustrated sample.
-5. Choose **See simulated feedback**. You may continue the workout during the wait, then return via Record this set.
-6. Select rep 7 or 8, toggle the illustrative overlay, or flag feedback.
-7. Return to the workout and finish. Confirm saving, then inspect **Your sessions** in Progress.
-
-Use Train to create/edit/duplicate/delete routines, rearrange exercises, search the library, and create custom exercises. The library loads 2,906 CC0 catalog movements from the Kaggle Gym Exercise Dataset on demand; only catalog exercises added to a routine are saved to the user's account. Catalog and custom exercises support logging only. See [EXERCISE_DATA.md](./EXERCISE_DATA.md). Profile controls units and illustrative privacy preferences. **Personalize training** opens the skippable five-step onboarding. **First-time experience** hides seeded history without hiding sessions you logged yourself.
-
-**Connected devices:** open Profile → Connected devices, select Fitbit, WHOOP, Garmin, Apple Health, or Health Connect, choose permitted categories, then import the demo. Today and Progress show the selected readings with their source. Use source preferences to resolve overlap, and try refresh, permission changes, failure states and disconnect. This imports fictional examples only; no real wearable account is connected. See DEVICES.md for the behavior and researched future integration routes.
-
-Illustrated recording screens expose **Preview a state** for denied permission, incomplete framing, multiple people, obscured joints/poor lighting, unsupported movements, interrupted recording, upload/analysis failure, and unable-to-assess results. These controls do not affect the real analyzer.
-
-## Major UX decisions
-
-- Starting and continuing a session is the primary task. Active sessions remain one tap away. On a phone, a persistent workout dock keeps rest controls and finishing within reach.
-- Signed-in profile stats, routines, exercise library, training preferences and completed workouts sync across devices. Active workouts and notes remain local until completion. Reloading or changing screens preserves an active workout. A confirmation prevents accidentally finishing or replacing it.
-- Manual logging is a complete path. Video is optional. Real experimental analysis supports selected bodyweight squat clips; the three original named movements retain illustrated feedback examples.
-- Feedback explains what, where, and a possible next action. Visibility is explicit. There are no overall scores, safety guarantees, diagnoses, or invented research citations.
-- Desktop uses a side rail and contextual panels; phones use bottom navigation and a single task column. Native dialogs, labels, focus rings, reduced motion, and large controls support keyboard and touch use.
-
-## What is mocked
-
-- Alex Lee, seeded October 2026 sessions, previous values, and sample routines are demonstration data.
-- On **View illustrated example**, camera permission, framing checks, countdown capture, analysis waits, observations, confidence, and rep markers are simulated. The real squat test is a separate screen with actual pose inference and experimental measurement logic.
-- User-selected videos use temporary object URLs. They are not uploaded or stored, and are released when the recording screen closes. Illustrated example findings never describe the selected video.
-- Recording comparisons use explicitly labeled illustrations. Tempo remains unassessed. Limited data does not produce improvement claims.
-- Reminder, video-upload, video-retention, model-contribution and video-deletion controls remain illustrative. Account syncing and account deletion are real and separate from these video preferences.
-- Feedback flags are local to the current preview and are not sent. Sample feedback links identify the demonstrated exercise. Only one sample feedback reference per locally logged session is retained.
-- No payment service, validated production coaching, or model training exists. The production build supports Home Screen installation and offline reopening after setup. Profile and completed-session sync require a signed-in hosted account.
-
-## Next milestones
-
-1. Usability testing with beginner/intermediate lifters; screen-reader testing and real-device camera ergonomics.
-2. A validated movement/variation support contract with observable evidence, uncertainty thresholds, and evaluation fixtures.
-3. Real camera capture and upload lifecycle with explicit consent, clear retention/deletion behavior, and robust error recovery.
-4. Physical-iPhone sign-in, installation, offline-sync and multi-device usability testing.
-5. Carefully evaluated, exercise-specific analysis and longitudinal coaching quality testing.
-
-See DESIGN.md for the product/screen contract, AI-TEST.md for the experimental analyzer, and QA.md for checks and limitations. This deliverable is a test version, not a validated coaching product.
+Sample history, fictional profile data and optional prototype preferences are labeled. Form remains a beta; physical-phone testing and real-video evaluation are still required before making validated coaching claims.

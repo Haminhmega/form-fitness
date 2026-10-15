@@ -12,7 +12,7 @@ export type MovementCategory='lower_push'|'upper_push'|'upper_pull'|'hinge'|'iso
 export type ExerciseAnalyzerSpec={id:string;canonicalName:string;aliases:string[];category:MovementCategory;version:string;validation:'verified'|'beta';metricLabel:string;camera:{requiredView:CameraView;requiredLandmarks:number[];setupInstructions:string};minimumSampleRateFps:number;contraindicatedClaims:string[]};
 export type ExerciseAnalyzer={spec:ExerciseAnalyzerSpec;analyze:(input:AnalysisInput)=>SquatAnalysis};
 const forbidden=['injury diagnosis','injury risk','clinical technique score','internal joint force','exercise identification'];
-const squatSpec:ExerciseAnalyzerSpec={id:'squat',canonicalName:'Bodyweight squat',aliases:['Air squat','Bodyweight squat'],category:'lower_push',version:'1.0.0',validation:'verified',metricLabel:'knee angle',minimumSampleRateFps:5,camera:{requiredView:'side',requiredLandmarks:[11,12,23,24,25,26,27,28],setupInstructions:'Film from the side at hip height with shoulders, hips, knees, and ankles visible.'},contraindicatedClaims:forbidden};
+const squatSpec:ExerciseAnalyzerSpec={id:'squat',canonicalName:'Bodyweight squat',aliases:['Air squat','Bodyweight squat'],category:'lower_push',version:'1.0.1',validation:'beta',metricLabel:'knee angle',minimumSampleRateFps:5,camera:{requiredView:'side',requiredLandmarks:[11,12,23,24,25,26,27,28],setupInstructions:'Film from the side at hip height with shoulders, hips, knees, and ankles visible.'},contraindicatedClaims:forbidden};
 const registry=new Map<string,ExerciseAnalyzer>([['squat',{spec:squatSpec,analyze:analyzeSquat}]]);
 const builtInBetaProfiles=[
   {id:'pushup',name:'Push-up',profile:'elbow'},
@@ -26,6 +26,7 @@ const setup:Record<MotionProfile,{view:CameraView;landmarks:number[];text:string
   hip:{view:'side',landmarks:[11,12,23,24,25,26],text:'Film from the side with the working shoulder, hip, and knee fully visible.',category:'hinge',metric:'hip angle'},
   elbow:{view:'front_three_quarter',landmarks:[11,12,13,14,15,16],text:'Film from the side or a slight front angle with the working shoulder, elbow, and wrist fully visible.',category:'upper_pull',metric:'elbow angle'},
   shoulder:{view:'front_three_quarter',landmarks:[11,12,13,14,23,24],text:'Film from the front or a slight angle with the working elbow, shoulder, and hip fully visible.',category:'upper_push',metric:'shoulder angle'},
+  ankle:{view:'side',landmarks:[23,24,25,26,27,28,29,30,31,32],text:'Film from the side with the working knee, ankle, heel and toes clearly visible.',category:'lower_push',metric:'ankle angle'},
 };
 for(const entry of [...popularExerciseProfiles,...builtInBetaProfiles]){const guide=setup[entry.profile];const category=entry.profile==='elbow'&&/push|press|extension|dip|bench|chest|skull/i.test(entry.name)?'upper_push':guide.category;const spec:ExerciseAnalyzerSpec={id:entry.id,canonicalName:entry.name,aliases:[],category,version:'0.1.0',validation:'beta',metricLabel:guide.metric,minimumSampleRateFps:5,camera:{requiredView:guide.view,requiredLandmarks:guide.landmarks,setupInstructions:guide.text},contraindicatedClaims:forbidden};registry.set(entry.id,{spec,analyze:input=>analyzeGenericMotion(input,entry.profile,entry.name)});}
 
@@ -48,7 +49,8 @@ for(const entry of dedicatedEntries){
 
 for(const entry of priorityProfiles){
  const rule=priorityRules[entry.family],guide=setup[rule.profile];
- const spec:ExerciseAnalyzerSpec={id:entry.id,canonicalName:entry.name,aliases:[],category:guide.category,version:'0.3.0',validation:'beta',metricLabel:guide.metric,minimumSampleRateFps:5,camera:{requiredView:rule.view,requiredLandmarks:[...new Set([...guide.landmarks,11,12,23,24])],setupInstructions:rule.camera},contraindicatedClaims:forbidden};
+ const category:MovementCategory=['bench','pushup','inclinePushup','press','pushdown','overheadExtension','skullcrusher','dip','chestPress'].includes(entry.family)?'upper_push':guide.category;
+ const spec:ExerciseAnalyzerSpec={id:entry.id,canonicalName:entry.name,aliases:[],category,version:'0.4.0',validation:'beta',metricLabel:guide.metric,minimumSampleRateFps:5,camera:{requiredView:rule.view,requiredLandmarks:[...new Set([...guide.landmarks,11,12,23,24])],setupInstructions:rule.camera},contraindicatedClaims:forbidden};
  registry.set(entry.id,{spec,analyze:input=>analyzePriorityMotion(input,entry.family,entry.name)});
 }
 export const priorityExerciseIds=new Set<string>(priorityProfiles.map(e=>e.id));

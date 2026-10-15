@@ -52,6 +52,21 @@ export const priorityProfiles=[
     "family": "lunge"
   },
   {
+    "id": "gym-1812-barbell-forward-lunge",
+    "name": "Barbell forward lunge",
+    "family": "lunge"
+  },
+  {
+    "id": "gym-1815-barbell-bulgarian-split-squat",
+    "name": "Barbell Bulgarian split squat",
+    "family": "lunge"
+  },
+  {
+    "id": "gym-1917-dumbbell-lunges",
+    "name": "Dumbbell Lunges",
+    "family": "lunge"
+  },
+  {
     "id": "gym-1292-barbell-deadlift",
     "name": "Barbell Deadlift",
     "family": "hinge"
@@ -69,6 +84,21 @@ export const priorityProfiles=[
   {
     "id": "gym-1329-romanian-deadlift-with-dumbbells",
     "name": "Romanian Deadlift With Dumbbells",
+    "family": "hinge"
+  },
+  {
+    "id": "gym-1303-good-morning",
+    "name": "Good Morning",
+    "family": "hinge"
+  },
+  {
+    "id": "gym-1320-single-leg-kettlebell-deadlift",
+    "name": "Single-leg kettlebell deadlift",
+    "family": "hinge"
+  },
+  {
+    "id": "gym-1937-single-leg-dumbbell-romanian-deadlift",
+    "name": "Single-leg dumbbell Romanian deadlift",
     "family": "hinge"
   },
   {
@@ -132,6 +162,16 @@ export const priorityProfiles=[
     "family": "pushup"
   },
   {
+    "id": "gym-972-push-up-wide",
+    "name": "Push-Up Wide",
+    "family": "pushup"
+  },
+  {
+    "id": "gym-961-incline-push-up",
+    "name": "Incline Push-Up",
+    "family": "inclinePushup"
+  },
+  {
     "id": "gym-1640-bent-over-barbell-row",
     "name": "Bent Over Barbell Row",
     "family": "row"
@@ -159,6 +199,11 @@ export const priorityProfiles=[
   {
     "id": "gym-1698-seated-cable-rows",
     "name": "Seated Cable Rows",
+    "family": "seatedRow"
+  },
+  {
+    "id": "gym-1710-single-arm-cable-seated-row",
+    "name": "Single-arm cable seated row",
     "family": "seatedRow"
   },
   {
@@ -209,6 +254,16 @@ export const priorityProfiles=[
   {
     "id": "gym-858-ez-bar-curl",
     "name": "EZ-Bar Curl",
+    "family": "curl"
+  },
+  {
+    "id": "gym-700-incline-dumbbell-biceps-curl",
+    "name": "Incline dumbbell biceps curl",
+    "family": "curl"
+  },
+  {
+    "id": "gym-731-incline-hammer-curls",
+    "name": "Incline Hammer Curls",
     "family": "curl"
   },
   {
@@ -267,6 +322,16 @@ export const priorityProfiles=[
     "family": "pushdown"
   },
   {
+    "id": "gym-2856-cable-rope-push-down",
+    "name": "Cable rope push-down",
+    "family": "pushdown"
+  },
+  {
+    "id": "gym-2857-cable-straight-bar-push-down",
+    "name": "Cable straight-bar push-down",
+    "family": "pushdown"
+  },
+  {
     "id": "gym-2792-seated-triceps-press",
     "name": "Seated triceps press",
     "family": "overheadExtension"
@@ -279,6 +344,11 @@ export const priorityProfiles=[
   {
     "id": "gym-2842-cable-overhead-triceps-extension",
     "name": "Cable overhead triceps extension",
+    "family": "overheadExtension"
+  },
+  {
+    "id": "gym-2861-rope-overhead-triceps-extension",
+    "name": "Rope overhead triceps extension",
     "family": "overheadExtension"
   },
   {
@@ -300,5 +370,135 @@ export const priorityProfiles=[
     "id": "gym-2074-leg-extensions",
     "name": "Leg Extensions",
     "family": "legExtension"
+  },
+  {
+    "id": "gym-1215-barbell-hip-thrust",
+    "name": "Barbell Hip Thrust",
+    "family": "hipThrust"
+  },
+  {
+    "id": "gym-1285-dumbbell-single-leg-hip-thrust",
+    "name": "Dumbbell single-leg hip thrust",
+    "family": "hipThrust"
+  },
+  {
+    "id": "gym-1505-pullups",
+    "name": "Pullups",
+    "family": "pullup"
+  },
+  {
+    "id": "gym-1511-neutral-grip-pull-up",
+    "name": "Neutral-grip pull-up",
+    "family": "pullup"
+  },
+  {
+    "id": "gym-1518-chin-up",
+    "name": "Chin-Up",
+    "family": "pullup"
+  },
+  {
+    "id": "gym-1411-assisted-chin-up",
+    "name": "Assisted Chin-Up",
+    "family": "pullup"
+  },
+  {
+    "id": "gym-1048-leverage-incline-chest-press",
+    "name": "Leverage Incline Chest Press",
+    "family": "chestPress"
+  },
+  {
+    "id": "gym-1050-leverage-chest-press",
+    "name": "Leverage Chest Press",
+    "family": "chestPress"
+  },
+  {
+    "id": "gym-1054-machine-chest-press",
+    "name": "Machine chest press",
+    "family": "chestPress"
+  },
+  {
+    "id": "gym-1157-chest-dip",
+    "name": "Chest dip",
+    "family": "dip"
+  },
+  {
+    "id": "gym-2882-triceps-dip",
+    "name": "Triceps dip",
+    "family": "dip"
+  },
+  {
+    "id": "gym-1814-barbell-step-up",
+    "name": "Barbell step-up",
+    "family": "stepup"
+  },
+  {
+    "id": "gym-1922-dumbbell-step-up",
+    "name": "Dumbbell step-up",
+    "family": "stepup"
+  },
+  {
+    "id": "gym-1818-hack-squat",
+    "name": "Hack Squat",
+    "family": "supportedSquat"
+  },
+  {
+    "id": "gym-2065-single-leg-press",
+    "name": "Single-Leg Press",
+    "family": "legPress"
+  },
+  {
+    "id": "gym-2067-leg-press",
+    "name": "Leg Press",
+    "family": "legPress"
+  },
+  {
+    "id": "gym-1351-seated-leg-curl",
+    "name": "Seated Leg Curl",
+    "family": "seatedLegCurl"
+  },
+  {
+    "id": "gym-1352-standing-leg-curl",
+    "name": "Standing Leg Curl",
+    "family": "standingLegCurl"
+  },
+  {
+    "id": "gym-873-standing-barbell-calf-raise",
+    "name": "Standing barbell calf raise",
+    "family": "calfRaise"
+  },
+  {
+    "id": "gym-877-standing-dumbbell-calf-raise",
+    "name": "Standing Dumbbell Calf Raise",
+    "family": "calfRaise"
+  },
+  {
+    "id": "gym-878-single-leg-standing-dumbbell-calf-raise",
+    "name": "Single-leg standing dumbbell calf raise",
+    "family": "calfRaise"
+  },
+  {
+    "id": "gym-887-standing-calf-raises",
+    "name": "Standing Calf Raises",
+    "family": "calfRaise"
+  },
+  {
+    "id": "gym-874-barbell-seated-calf-raise",
+    "name": "Barbell Seated Calf Raise",
+    "family": "seatedCalfRaise"
+  },
+  {
+    "id": "gym-888-seated-calf-raise",
+    "name": "Seated Calf Raise",
+    "family": "seatedCalfRaise"
+  },
+  {
+    "id": "gym-1593-back-extension",
+    "name": "Back extension",
+    "family": "backExtension"
+  },
+  {
+    "id": "gym-1621-weighted-back-extension",
+    "name": "Weighted back extension",
+    "family": "backExtension"
   }
 ] as const satisfies readonly {id:string;name:string;family:PriorityFamily}[];

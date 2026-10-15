@@ -24,4 +24,14 @@ jobs:
       - run: npm run prepare:ai
       - run: npm run test:ai
       - run: npm run test:accounts
+      - run: npm run test:workout
+      - run: npm run test:catalog
+      - run: npm run test:anatomy
+      - run: npm run test:recovery
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:account-recovery
+      - run: |
+          npm run dev -- --port 5192 &
+          node scripts/wait-preview.mjs
+          npm run test:ui
       - run: npm run build
