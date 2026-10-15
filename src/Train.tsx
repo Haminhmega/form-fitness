@@ -1,14 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Check, ChevronRight, Copy, Dumbbell, Edit3, Film, Layers3, Plus, Search, SlidersHorizontal, Trash2, X } from 'lucide-react';
-import type { Exercise, Routine, RoutineExercise, ToastFn } from './types';
+import type { Exercise, Preferences, Routine, RoutineExercise, ToastFn } from './types';
 import { uid } from './types';
 import {getAnalyzer,getExerciseSupportLevel,supportLabel} from './ai/registry';
 import {exerciseDescription,exerciseSteps} from './exercise-guide';
 import {MuscleMap} from './MuscleMap';
+import {recommendedPrescription,restReason} from './training-recommendations';
 import './train.css';
 
-type Props = { routines:Routine[]; setRoutines:(r:Routine[])=>void; exercises:Exercise[]; setExercises:(e:Exercise[])=>void; onStart:(r:Routine)=>void; toast:ToastFn };
-const target = (exerciseId:string):RoutineExercise => ({exerciseId,sets:3,reps:'8–12',rest:90,notes:''});
+type Props = { routines:Routine[]; setRoutines:(r:Routine[])=>void; exercises:Exercise[]; setExercises:(e:Exercise[])=>void; preferences:Preferences; onStart:(r:Routine)=>void; toast:ToastFn };
 const copyRoutine = (r:Routine):Routine => ({...r,exercises:r.exercises.map(e=>({...e}))});
 const limits = (value:string,min:number,max:number) => Math.max(min,Math.min(max,Number(value)||min));
 
@@ -49,7 +49,7 @@ function ExerciseBrowser({exercises,excluded=[],onChoose,chooseLabel='Add',onDet
   </div>;
 }
 
-export default function Train({routines,setRoutines,exercises,setExercises,onStart,toast}:Props) {
+export default function Train({routines,setRoutines,exercises,setExercises,preferences,onStart,toast}:Props) {
   const [tab,setTab]=useState<'routines'|'library'>('routines');
   const [draft,setDraft]=useState<Routine|null>(null);
   const [creating,setCreating]=useState(false);
@@ -90,13 +90,13 @@ export default function Train({routines,setRoutines,exercises,setExercises,onSta
       {!draft.exercises.length&&<div className="empty-state"><Layers3 size={30}/><h3>A fresh starting point.</h3><p className="muted">Add the movements you want to practice. You can adjust every target.</p></div>}
       <div className="train-targets">{draft.exercises.map((item,index)=>{const exercise=exercises.find(e=>e.id===item.exerciseId);if(!exercise)return null;return <article className="train-target" key={item.exerciseId}>
         <div className="train-target-top"><span className="train-index">{String(index+1).padStart(2,'0')}</span><div className="train-target-title"><h3>{exercise.name}</h3><Support exercise={exercise}/></div><div className="train-order"><button className="icon-button" disabled={index===0} aria-label={`Move ${exercise.name} up`} onClick={()=>reorder(index,-1)}><ArrowUp size={18}/></button><button className="icon-button" disabled={index===draft.exercises.length-1} aria-label={`Move ${exercise.name} down`} onClick={()=>reorder(index,1)}><ArrowDown size={18}/></button></div></div>
-        <div className="train-target-fields"><label>Sets<input aria-label={`${exercise.name} target sets`} type="number" inputMode="numeric" min={1} max={20} value={item.sets} onChange={e=>updateTarget(index,{sets:limits(e.target.value,1,20)})}/></label><label>Rep target<input aria-label={`${exercise.name} target reps`} maxLength={20} value={item.reps} onChange={e=>updateTarget(index,{reps:e.target.value})} placeholder="8–12"/></label><label>Rest (seconds)<input aria-label={`${exercise.name} rest in seconds`} type="number" inputMode="numeric" min={0} max={600} step={15} value={item.rest} onChange={e=>updateTarget(index,{rest:limits(e.target.value,0,600)})}/></label></div>
+        <div className="train-target-fields"><label>Sets<input aria-label={`${exercise.name} target sets`} type="number" inputMode="numeric" min={1} max={20} value={item.sets} onChange={e=>updateTarget(index,{sets:limits(e.target.value,1,20)})}/></label><label>Rep target<input aria-label={`${exercise.name} target reps`} maxLength={20} value={item.reps} onChange={e=>updateTarget(index,{reps:e.target.value})} placeholder="8–12"/></label><label>Rest (seconds)<input aria-label={`${exercise.name} rest in seconds`} type="number" inputMode="numeric" min={0} max={600} step={15} value={item.rest} onChange={e=>updateTarget(index,{rest:limits(e.target.value,0,600)})}/></label></div><p className="train-rest-guidance"><span className="status-dot"/>{restReason(preferences,item.rest)}</p>
         <label className="train-note">Exercise note <span className="muted">(optional)</span><input aria-label={`${exercise.name} note`} maxLength={240} placeholder="A reminder for your next session" value={item.notes} onChange={e=>updateTarget(index,{notes:e.target.value})}/></label>
         <div className="train-target-actions"><button className="btn ghost" onClick={()=>setPicker(picker===index?null:index)}><Dumbbell size={15}/>{picker===index?'Close replacement':'Replace exercise'}</button><button className="btn ghost" onClick={()=>{const removed=item;const routineId=draft.id;setDraft({...draft,exercises:draft.exercises.filter((_,i)=>i!==index)});setPicker(null);toast('Exercise removed',()=>setDraft(current=>{if(!current||current.id!==routineId||current.exercises.some(e=>e.exerciseId===removed.exerciseId))return current;const restored=[...current.exercises];restored.splice(Math.min(index,restored.length),0,removed);return {...current,exercises:restored};}));}}><Trash2 size={15}/>Remove</button></div>
         {picker===index&&<div className="train-picker"><h3>Replace {exercise.name}</h3>{catalogLoading&&<p className="muted" role="status">Loading the full exercise catalog…</p>}<ExerciseBrowser compact exercises={availableExercises} excluded={draft.exercises.map(e=>e.exerciseId)} chooseLabel="Replace with" onChoose={choice=>{adopt(choice);updateTarget(index,{exerciseId:choice.id});setPicker(null);toast('Exercise replaced');}}/></div>}
       </article>;})}</div>
       <button className="train-add-exercise" onClick={()=>setPicker(picker==='add'?null:'add')}>{picker==='add'?<X size={19}/>:<Plus size={19}/>} {picker==='add'?'Close exercise picker':'Add exercise'}</button>
-      {picker==='add'&&<div className="train-picker"><h3>Find your next movement.</h3>{catalogLoading&&<p className="muted" role="status">Loading the full exercise catalog…</p>}<ExerciseBrowser compact exercises={availableExercises} excluded={draft.exercises.map(e=>e.exerciseId)} onChoose={exercise=>{adopt(exercise);setDraft({...draft,exercises:[...draft.exercises,target(exercise.id)]});toast(`${exercise.name} added`);}}/></div>}
+      {picker==='add'&&<div className="train-picker"><h3>Find your next movement.</h3>{catalogLoading&&<p className="muted" role="status">Loading the full exercise catalog…</p>}<ExerciseBrowser compact exercises={availableExercises} excluded={draft.exercises.map(e=>e.exerciseId)} onChoose={exercise=>{adopt(exercise);setDraft({...draft,exercises:[...draft.exercises,recommendedPrescription(preferences,exercise)]});toast(`${exercise.name} added with a suggested target`);}}/></div>}
       <p className="train-editor-help muted">Changes apply to future workouts. Save when you’re ready.</p>
     </section>:<div id="train-content" role="tabpanel" aria-labelledby={tab==='routines'?'routine-tab':'library-tab'}>
       {tab==='routines'?<>
