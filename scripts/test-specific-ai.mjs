@@ -46,6 +46,6 @@ const interrupted=analyzeSpecificMovement(broken,'plank','Plank');
 assert.equal(interrupted.status,'partial');assert.ok(interrupted.holdSeconds<3);
 const wrongView=clip('row');wrongView.frames.forEach(f=>{f.poses[0][11]=p(.45,.2);f.poses[0][12]=p(.475,.2);f.poses[0][23]=p(.45,.65);f.poses[0][24]=p(.475,.65)});
 assert.equal(analyzeSpecificMovement(wrongView,'row','Row').status,'unable');
-assert.equal(listAnalyzers().length,105);
+assert.equal(listAnalyzers().length,136);
 console.log('Specific movement checks passed: eight rep patterns, moving-arm selection, stationary/crowded/occluded rejection, orientation gates, and timed plank gaps.');
 

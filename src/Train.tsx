@@ -2,15 +2,12 @@ import { useEffect, useRef, useState } from 'react';
 import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Check, ChevronRight, Copy, Dumbbell, Edit3, Film, Layers3, Plus, Search, SlidersHorizontal, Trash2, X } from 'lucide-react';
 import type { Exercise, Preferences, Routine, RoutineExercise, ToastFn } from './types';
 import { uid } from './types';
-import {getAnalyzer,getExerciseSupportLevel,supportLabel} from './ai/registry';
-import {exerciseDescription,exerciseSteps} from './exercise-guide';
-import {MuscleMap} from './MuscleMap';
-import {ExerciseDemo} from './ExerciseDemo';
-import {muscleEmphasis} from './muscle-emphasis';
+import {getAnalyzer,getExerciseSupportLevel,supportLabel,priorityExerciseIds} from './ai/registry';
+import {ExerciseGuide} from './ExerciseGuide';
 import {recommendedPrescription,restReason} from './training-recommendations';
 import './train.css';
 
-type Props = { routines:Routine[]; setRoutines:(r:Routine[])=>void; exercises:Exercise[]; setExercises:(e:Exercise[])=>void; preferences:Preferences; onStart:(r:Routine)=>void; toast:ToastFn };
+type Props = { routines:Routine[]; setRoutines:(r:Routine[])=>void; exercises:Exercise[]; setExercises:(e:Exercise[])=>void; preferences:Preferences; onStart:(r:Routine)=>void; onRecord:(e:Exercise)=>void; toast:ToastFn };
 const copyRoutine = (r:Routine):Routine => ({...r,exercises:r.exercises.map(e=>({...e}))});
 const limits = (value:string,min:number,max:number) => Math.max(min,Math.min(max,Number(value)||min));
 
@@ -19,16 +16,15 @@ function Support({exercise}:{exercise:Exercise}) {
   return <span className={`train-support ${level==='real_ai'||level==='experimental_ai' ? 'is-supported' : ''}`}>{level==='logging_only' ? <Dumbbell size={12}/> : <Film size={12}/>} {supportLabel(level)}</span>;
 }
 
-function ExerciseDetail({exercise,onClose}:{exercise:Exercise;onClose:()=>void}) {
+function ExerciseDetail({exercise,onClose,onRecord}:{exercise:Exercise;onClose:()=>void;onRecord:(e:Exercise)=>void}) {
   const support=getExerciseSupportLevel(exercise);
   const analyzer=getAnalyzer(exercise.id);
-  const steps=exerciseSteps(exercise); const emphasis=muscleEmphasis(exercise);
   return <section className="train-detail panel" aria-label={`${exercise.name} details`}>
     <div className="train-detail-heading"><div><span className="eyebrow">MOVEMENT GUIDE</span><h2>{exercise.name}</h2></div><button className="icon-button" aria-label="Close exercise details" onClick={onClose}><X size={20}/></button></div>
     <Support exercise={exercise}/>
     <div className="train-facts"><div><span className="muted">Target muscle</span><strong>{exercise.muscle}</strong></div><div><span className="muted">Equipment</span><strong>{exercise.equipment}</strong></div><div><span className="muted">Type · level</span><strong>{exercise.category||exercise.variation}{exercise.level?` · ${exercise.level}`:''}</strong></div></div>
-    <div className="train-movement-guide"><MuscleMap exercise={exercise}/><div className="train-guide-copy"><h3>About this movement</h3><p>{exerciseDescription(exercise)}</p><section className="muscle-emphasis"><h3>What this movement emphasizes</h3><p>{emphasis.detail}</p><h3>Grip, angle &amp; movement path</h3><p>{emphasis.variation}</p><small>{emphasis.basis}</small>{emphasis.source&&<a href={emphasis.source} target="_blank" rel="noopener noreferrer">Read the supporting study ↗</a>}</section><h3>Step by step</h3><ol>{steps.map((step,index)=><li key={step}><span>{index+1}</span><p>{step}</p></li>)}</ol></div></div>
-    <details className="movement-instructions"><summary>See this movement</summary><ExerciseDemo key={exercise.id} exercise={exercise}/></details>
+    <ExerciseGuide exercise={exercise}/>
+    {analyzer&&<button className="btn primary" onClick={()=>onRecord(exercise)}>Check a video of this exercise<Film size={18}/></button>}
     <div className="train-filming"><Film size={20}/><div><h3>{support==='real_ai'||support==='experimental_ai'?'Set up your camera':support==='illustrative_only'?'Illustrated example':'Video feedback unavailable'}</h3><p>{analyzer?.spec.camera.setupInstructions||exercise.filming}</p>{(support==='real_ai'||support==='experimental_ai') && <p className="muted">Local pose tracking measures visible joint motion. It does not identify the exercise or provide a clinical, safety, or technique score.</p>}</div></div>
   </section>;
 }
@@ -37,22 +33,24 @@ function ExerciseBrowser({exercises,excluded=[],onChoose,chooseLabel='Add',onDet
   const [query,setQuery]=useState('');
   const [muscle,setMuscle]=useState('All muscles');
   const [equipment,setEquipment]=useState('All equipment');
+  const [priorityOnly,setPriorityOnly]=useState(false);
   const [limit,setLimit]=useState(60);
-  useEffect(()=>setLimit(60),[query,muscle,equipment]);
+  useEffect(()=>setLimit(60),[query,muscle,equipment,priorityOnly]);
   const terms=query.trim().toLowerCase().split(/\s+/).filter(Boolean);
-  const visible=exercises.filter(e=>{const haystack=`${e.name} ${e.muscle} ${e.equipment} ${e.category||''}`.toLowerCase();return !excluded.includes(e.id)&&terms.every(term=>haystack.includes(term))&&(muscle==='All muscles'||e.muscle===muscle)&&(equipment==='All equipment'||e.equipment===equipment)});
+  const visible=exercises.filter(e=>{const haystack=`${e.name} ${e.muscle} ${e.equipment} ${e.category||''}`.toLowerCase();return (!priorityOnly||priorityExerciseIds.has(e.id))&&!excluded.includes(e.id)&&terms.every(term=>haystack.includes(term))&&(muscle==='All muscles'||e.muscle===muscle)&&(equipment==='All equipment'||e.equipment===equipment)});
   const shown=visible.slice(0,limit);
-  const filtered=!!query||muscle!=='All muscles'||equipment!=='All equipment';
-  const clear=()=>{setQuery('');setMuscle('All muscles');setEquipment('All equipment');};
+  const filtered=priorityOnly||!!query||muscle!=='All muscles'||equipment!=='All equipment';
+  const clear=()=>{setQuery('');setMuscle('All muscles');setEquipment('All equipment');setPriorityOnly(false);};
   return <div className={`train-browser ${compact?'is-compact':''}`}>
     <label className="train-search"><Search size={19}/><span className="sr-only">Search exercises</span><input aria-label="Search exercises" type="search" value={query} onChange={e=>setQuery(e.target.value)} placeholder="Find an exercise"/>{query&&<button type="button" className="icon-button" aria-label="Clear search" onClick={()=>setQuery('')}><X size={17}/></button>}</label>
     <div className="train-filters"><SlidersHorizontal size={17} aria-hidden="true"/><label><span className="sr-only">Filter by muscle group</span><select aria-label="Filter by muscle group" value={muscle} onChange={e=>setMuscle(e.target.value)}><option>All muscles</option>{[...new Set(exercises.map(e=>e.muscle))].sort().map(m=><option key={m}>{m}</option>)}</select></label><label><span className="sr-only">Filter by equipment</span><select aria-label="Filter by equipment" value={equipment} onChange={e=>setEquipment(e.target.value)}><option>All equipment</option>{[...new Set(exercises.map(e=>e.equipment))].sort().map(m=><option key={m}>{m}</option>)}</select></label></div>
+    <label className="priority-filter"><input type="checkbox" checked={priorityOnly} onChange={e=>setPriorityOnly(e.target.checked)}/>60 common exercises · focused beta checks</label>
     <p className="train-result-count muted" aria-live="polite">{visible.length} {visible.length===1?'exercise':'exercises'}{filtered?' found':''}</p>
     {visible.length ? <><div className="train-exercise-list">{shown.map(e=>{const support=getExerciseSupportLevel(e);return <div className="train-exercise-row" key={e.id}><span className="train-exercise-symbol" aria-hidden="true">{support==='logging_only'?<Dumbbell size={22}/>:<Film size={22}/>}</span><div className="train-exercise-info">{onDetail?<button className="train-text-button" onClick={()=>onDetail(e)}><strong>{e.name}</strong></button>:<strong>{e.name}</strong>}<span className="train-exercise-meta">{e.muscle}<span>·</span>{e.equipment}{e.level&&<><span>·</span>{e.level}</>}{e.custom&&<span>· Custom</span>}</span><Support exercise={e}/></div>{onChoose?<button type="button" className="icon-button train-add" aria-label={`${chooseLabel} ${e.name}`} onClick={()=>onChoose(e)}><Plus size={20}/></button>:<button type="button" className="icon-button" aria-label={`View ${e.name} details`} onClick={()=>onDetail?.(e)}><ChevronRight size={20}/></button>}</div>})}</div>{shown.length<visible.length&&<button type="button" className="btn secondary train-show-more" onClick={()=>setLimit(limit+60)}>Show 60 more <span className="muted">({visible.length-shown.length} remaining)</span></button>}</>:<div className="empty-state train-no-results"><Search size={26}/><h3>{filtered?'No exercises found':'All exercises are in your routine'}</h3><p className="muted">{filtered?'Try another name or broaden your filters.':'Create a custom exercise from the exercise library to add something new.'}</p>{filtered&&<button className="btn secondary" onClick={clear}>Clear filters</button>}</div>}
   </div>;
 }
 
-export default function Train({routines,setRoutines,exercises,setExercises,preferences,onStart,toast}:Props) {
+export default function Train({routines,setRoutines,exercises,setExercises,preferences,onStart,onRecord,toast}:Props) {
   const [tab,setTab]=useState<'routines'|'library'>('routines');
   const [draft,setDraft]=useState<Routine|null>(null);
   const [creating,setCreating]=useState(false);
@@ -109,8 +107,8 @@ export default function Train({routines,setRoutines,exercises,setExercises,prefe
       </>:<>
         <div className="section-heading train-section-heading"><div><h2>Know your movement.</h2><p className="muted">A growing library, one good rep at a time.</p></div><button className="btn secondary" onClick={()=>{setCustom(!custom);setDetail(null);}}>{custom?<X size={18}/>:<Plus size={18}/>} {custom?'Close form':'Custom exercise'}</button></div>
         {custom&&<CustomExercise onCancel={()=>setCustom(false)} onSave={exercise=>{setExercises([...exercises,exercise]);setCustom(false);setDetail(exercise);toast('Custom exercise created — logging only');}}/>}
-        {detail&&<div ref={detailRef}><ExerciseDetail exercise={detail} onClose={()=>setDetail(null)}/></div>}
-        <div className="train-library-layout"><div className="panel train-library-panel">{catalogLoading&&<p className="muted" role="status">Loading the exercise library…</p>}<ExerciseBrowser exercises={availableExercises} onDetail={setDetail}/></div><aside className="train-library-aside"><span className="train-aside-icon"><Film size={24}/></span><h3>A second look<br/>at your set.</h3><p className="muted">One verified analyzer and 104 beta motion checks run locally on your device.</p><div className="train-supported-list">{availableExercises.filter(e=>getExerciseSupportLevel(e)==='real_ai').map(e=><button key={e.id} onClick={()=>setDetail(e)}>{e.name}<span className="muted">{supportLabel(getExerciseSupportLevel(e))}</span><ChevronRight size={17}/></button>)}</div><p className="train-fine-print muted">Beta checks measure visible joint cycles after you select the exercise. They do not identify movements or provide a clinical technique score.</p><span className="badge">1 verified · 104 beta checks</span></aside></div>
+        {detail&&<div ref={detailRef}><ExerciseDetail exercise={detail} onRecord={exercise=>{adopt(exercise);onRecord(exercise)}} onClose={()=>setDetail(null)}/></div>}
+        <div className="train-library-layout"><div className="panel train-library-panel">{catalogLoading&&<p className="muted" role="status">Loading the exercise library…</p>}<ExerciseBrowser exercises={availableExercises} onDetail={setDetail}/></div><aside className="train-library-aside"><span className="train-aside-icon"><Film size={24}/></span><h3>A second look<br/>at your set.</h3><p className="muted">60 common exercises now have focused beta checks, alongside the existing local motion tools.</p><div className="train-supported-list">{availableExercises.filter(e=>getExerciseSupportLevel(e)==='real_ai').map(e=><button key={e.id} onClick={()=>setDetail(e)}>{e.name}<span className="muted">{supportLabel(getExerciseSupportLevel(e))}</span><ChevronRight size={17}/></button>)}</div><p className="train-fine-print muted">Beta checks measure visible joint cycles after you select the exercise. They do not identify movements or provide a clinical technique score.</p><span className="badge">60 focused beta checks</span></aside></div>
       </>}
     </div>}
   </div>;

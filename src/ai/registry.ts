@@ -1,5 +1,7 @@
 import type {Exercise,SupportLevel} from '../types';
 import {analyzeGenericMotion} from './generic-motion';
+import {priorityProfiles} from './priority-profiles';
+import {analyzePriorityMotion,priorityRules} from './priority-motion';
 import {popularExerciseProfiles,type MotionProfile} from './popular-profiles';
 import {analyzeSquat} from './squat';
 import {analyzeSpecificMovement,specificConfigs,type SpecificMovement} from './specific-movements';
@@ -44,6 +46,12 @@ for(const entry of dedicatedEntries){
  registry.set(entry.id,{spec,analyze:input=>analyzeSpecificMovement(input,entry.id,entry.name)});
 }
 
+for(const entry of priorityProfiles){
+ const rule=priorityRules[entry.family],guide=setup[rule.profile];
+ const spec:ExerciseAnalyzerSpec={id:entry.id,canonicalName:entry.name,aliases:[],category:guide.category,version:'0.3.0',validation:'beta',metricLabel:guide.metric,minimumSampleRateFps:5,camera:{requiredView:rule.view,requiredLandmarks:[...new Set([...guide.landmarks,11,12,23,24])],setupInstructions:rule.camera},contraindicatedClaims:forbidden};
+ registry.set(entry.id,{spec,analyze:input=>analyzePriorityMotion(input,entry.family,entry.name)});
+}
+export const priorityExerciseIds=new Set<string>(priorityProfiles.map(e=>e.id));
 export function getAnalyzer(exerciseId:string){return registry.get(exerciseId)}
 export function listAnalyzers(){return [...registry.values()]}
 export function hasRealAnalyzer(exerciseId:string){return registry.get(exerciseId)?.spec.validation==='verified'}
@@ -52,4 +60,4 @@ export function getExerciseSupportLevel(exercise:Pick<Exercise,'id'|'supported'|
   if(exercise.supportLevel)return ['real_ai','experimental_ai'].includes(exercise.supportLevel)?'logging_only':exercise.supportLevel;
   return exercise.supported?'illustrative_only':'logging_only';
 }
-export function supportLabel(level:SupportLevel){return level==='real_ai'?'Verified AI check':level==='experimental_ai'?'Beta motion check':level==='illustrative_only'?'Illustrated example only':'Logging only'}
+export function supportLabel(level:SupportLevel){return level==='real_ai'?'Tested motion check':level==='experimental_ai'?'Beta motion check':level==='illustrative_only'?'Illustrated example only':'Logging only'}

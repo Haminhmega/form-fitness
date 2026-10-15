@@ -55,7 +55,7 @@ assert.equal(selectNextRoutine(routines,[{...completed,sample:true}]).id,'streng
 const longSession={...session,startedAt:0};
 const longCompleted=createHistoryEntry(longSession,[exercise],5*60*60*1000,'2026-10-14');
 assert.equal(longCompleted.duration,15);
-assert.equal(listAnalyzers().length,105);
+assert.equal(listAnalyzers().length,136);
 assert.equal(getAnalyzer('squat').spec.canonicalName,'Bodyweight squat');
 assert.equal(getAnalyzer('pushup').spec.validation,'beta');
 const beta=listAnalyzers().find(analyzer=>analyzer.spec.validation==='beta');

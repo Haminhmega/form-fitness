@@ -9,7 +9,7 @@
     "preview": "vite preview --host 127.0.0.1",
     "prepare:ai": "node scripts/prepare-ai.mjs",
     "generate:ai-profiles": "node scripts/generate-popular-ai.mjs",
-    "test:ai": "node scripts/test-squat.mjs && node scripts/test-generic-ai.mjs && node scripts/test-specific-ai.mjs",
+    "test:ai": "node scripts/test-squat.mjs && node scripts/test-generic-ai.mjs && node scripts/test-specific-ai.mjs && node scripts/test-priority-ai.mjs",
     "test:workout": "node scripts/test-workout.mjs",
     "test:catalog": "node scripts/test-catalog.mjs",
     "db:generate": "drizzle-kit generate",
