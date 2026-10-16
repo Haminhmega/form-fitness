@@ -1,4 +1,4 @@
-import type {Exercise,Preferences,Routine,RoutineExercise} from './types';
+import type {Exercise,Preferences,Routine,RoutineExercise,TrainingDay} from './types';
 import {isTimedExercise} from './exercise-logging';
 import {getCoaching} from '../shared/coaching';
 import {coachingMovement,type CoachingMovement,type MovementPattern} from './coaching-exercises';
@@ -6,9 +6,16 @@ export {coachingExercises} from './coaching-exercises';
 
 export type WarmupMove={name:string;dose:string;target:string;cue:string};
 export type RecommendedPlan={routines:Routine[];rationale:string[];estimatedMinutes:number;summary:string;warnings:string[]};
+export type PlanContext={age?:number|null};
 const beginner=(preferences:Preferences)=>preferences.experience==='Getting started';
 const goalKey=(goal:string)=>goal.toLowerCase();
 const weekdays=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+const dayNames:Record<string,string>={Mon:'Monday',Tue:'Tuesday',Wed:'Wednesday',Thu:'Thursday',Fri:'Friday',Sat:'Saturday',Sun:'Sunday'};
+// These exercises place substantial demand on an unsupported or axially loaded
+// torso. Supported rows, light standing drills and incidental bracing are not
+// classified as equivalent lower-back training.
+const erectorLoadedIds=new Set(['rdl','coach-barbell-rdl','gym-1810-barbell-squat','gym-1640-bent-over-barbell-row']);
+const unsupportedRowId='gym-1640-bent-over-barbell-row';
 
 function goalType(preferences:Preferences){
   const goal=goalKey(preferences.goal);
@@ -21,12 +28,13 @@ function goalType(preferences:Preferences){
   return 'fitness';
 }
 
-export function recommendedPrescription(preferences:Preferences,exercise:Exercise):RoutineExercise{
+export function recommendedPrescription(preferences:Preferences,exercise:Exercise,context:PlanContext={}):RoutineExercise{
   const goal=goalType(preferences);
+  const youth=typeof context.age==='number'&&context.age>=13&&context.age<18;
   const isHold=isTimedExercise(exercise);
   const metadata=coachingMovement[exercise.id];
   const compound=metadata?!!metadata.compound:true;
-  if(beginner(preferences))return {exerciseId:exercise.id,sets:2,reps:isHold?'20–30 sec':'10–15',rest:60,notes:'Use a light, controlled effort to learn the technique. Finish with 3–4 good reps still available; take longer rests whenever you need them.'};
+  if(beginner(preferences)||youth)return {exerciseId:exercise.id,sets:2,reps:isHold?'20–30 sec':'10–15',rest:60,notes:(youth?'Practice with qualified supervision. ':'')+'Use a light, controlled effort to learn the technique. Finish with 3–4 good reps still available; take longer rests whenever you need them.'};
   if(goal==='strength')return {exerciseId:exercise.id,sets:compound?4:3,reps:isHold?'20–40 sec':compound?'5–8':'10–15',rest:compound?150:90,notes:'Finish with 2–3 controlled reps still available. No maximal lifts: increase the smallest available load only after every set reaches the top of its range with repeatable technique.'};
   if(['muscle','glutes','upper'].includes(goal))return {exerciseId:exercise.id,sets:3,reps:isHold?'20–40 sec':compound?'8–12':'10–15',rest:compound?120:90,notes:'Finish with about 2 good reps still available. Build reps within this range first, then add the smallest available load when all sets feel controlled.'};
   if(goal==='athletic')return {exerciseId:exercise.id,sets:3,reps:isHold?'20–30 sec':compound?'6–10':'10–15',rest:compound?120:75,notes:'Practice balanced, controlled movement without rushing or training to failure. Add a rep before adding load; this is a general strength foundation for activity.'};
@@ -48,7 +56,7 @@ function allowed(preferences:Preferences,exercise:Exercise,meta:CoachingMovement
   const coaching=getCoaching(preferences);
   const equipment=equipmentKey(exercise.equipment);
   if(equipment!=='Bodyweight'&&!preferences.equipment.some(item=>equipmentKey(item)===equipment))return false;
-  if(coaching.trainingStyle==='Bodyweight'&&equipment!=='Bodyweight')return false;
+  if(coaching.trainingStyles.length===1&&coaching.trainingStyles[0]==='Bodyweight'&&equipment!=='Bodyweight')return false;
   if(beginner(preferences)&&meta.experienced)return false;
   if(coaching.avoidMovements.includes('Floor exercises')&&meta.floor)return false;
   if(coaching.avoidMovements.includes('Overhead pressing')&&meta.overhead)return false;
@@ -57,38 +65,71 @@ function allowed(preferences:Preferences,exercise:Exercise,meta:CoachingMovement
   return true;
 }
 
-/** Pick the best-spaced subset of the days the person actually selected. */
-function scheduleDays(preferences:Preferences){
-  const available=weekdays.filter(day=>preferences.days.includes(day));
-  if(!available.length)return [];
-  const count=Math.min(available.length,beginner(preferences)?3:4);
-  let best:string[]=[];
-  let bestScore=-Infinity;
-  function visit(start:number,chosen:string[]){
-    if(chosen.length===count){
-      const indices=chosen.map(day=>weekdays.indexOf(day));
-      const gaps=indices.map((day,index)=>(indices[(index+1)%indices.length]-day+7)%7||7);
-      const adjacent=gaps.filter(gap=>gap===1).length;
-      const score=-adjacent*100-Math.max(...gaps)+Math.min(...gaps);
-      if(score>bestScore){bestScore=score;best=[...chosen];}
-      return;
-    }
-    for(let index=start;index<available.length;index++)visit(index+1,[...chosen,available[index]]);
+// Bit clusters include meaningful secondary work: presses share triceps/front
+// delts; pulls share biceps/rear delts; lower-body lifts share glutes/hamstrings.
+const LOWER=1,PUSH=2,PULL=4;
+const clusterFor=(pattern:MovementPattern)=>['squat','hinge','glute','calf'].includes(pattern)?LOWER:['push','shoulder'].includes(pattern)?PUSH:pattern==='core'?0:PULL;
+const scheduleCache=new Map<string,number[]>();
+const cyclicGaps=(indices:number[])=>indices.map((day,index)=>(indices[(index+1)%indices.length]-day+7)%7||7);
+const separated=(indices:number[])=>cyclicGaps(indices).every(gap=>gap>=2);
+function spacedSubsets(days:string[],maximum:number){
+  const subsets:Array<{mask:number;count:number;spacing:number}>=[];
+  for(let mask=1;mask<(1<<days.length);mask++){
+    const indices=days.flatMap((day,index)=>mask&(1<<index)?[weekdays.indexOf(day)]:[]);
+    if(indices.length<=maximum&&separated(indices))subsets.push({mask,count:indices.length,spacing:cyclicGaps(indices).reduce((sum,gap)=>sum+Math.min(3,gap),0)});
   }
-  visit(0,[]);
-  return best;
+  return subsets;
+}
+
+/** Keep every selected day, optimizing the repeating week, including Sun→Mon. */
+function scheduleAssignments(days:string[],youth:boolean):number[]{
+  if(!days.length)return [LOWER|PUSH|PULL];
+  const key=`${days.join(',')}:${youth}`;
+  const cached=scheduleCache.get(key);
+  if(cached)return [...cached];
+  const indices=days.map(day=>weekdays.indexOf(day));
+  let result:number[];
+  if(youth){
+    const choices=spacedSubsets(days,3).sort((a,b)=>(b.count*100+b.spacing)-(a.count*100+a.spacing));
+    result=days.map((_,index)=>choices[0].mask&(1<<index)?7:0);
+  }else if(days.length<=3&&separated(indices))result=days.map(()=>7);
+  else{
+    // A dense week spreads the dose over two exposures per cluster; a seventh
+    // selected day can therefore be recovery instead of inventing more volume.
+    const choices=spacedSubsets(days,2);
+    let bestScore=-Infinity;
+    result=days.map(()=>0);
+    for(const lower of choices)for(const push of choices)for(const pull of choices){
+      const assignment=days.map((_,index)=>(lower.mask&(1<<index)?LOWER:0)|(push.mask&(1<<index)?PUSH:0)|(pull.mask&(1<<index)?PULL:0));
+      const covered=assignment.filter(Boolean).length;
+      const mixed=assignment.filter(mask=>(mask&LOWER)&&(mask&(PUSH|PULL))).length;
+      const score=covered*10000+(lower.count+push.count+pull.count)*100+(lower.spacing+push.spacing+pull.spacing)*10-mixed*5;
+      if(score>bestScore){bestScore=score;result=assignment;}
+    }
+  }
+  scheduleCache.set(key,result);
+  return [...result];
+}
+
+function directCoreDays(days:string[],assignments:number[]){
+  const active=days.filter((_,index)=>assignments[index]);
+  if(!active.length)return new Set<string>();
+  if(active[0]==='Your day')return new Set(active);
+  const best=spacedSubsets(active,2).sort((a,b)=>(b.count*100+b.spacing)-(a.count*100+a.spacing))[0];
+  return new Set(active.filter((_,index)=>best.mask&(1<<index)));
 }
 
 const focusPattern:Record<string,MovementPattern>={Glutes:'glute',Legs:'squat',Back:'pull',Chest:'push',Shoulders:'shoulder',Arms:'arms',Core:'core'};
 const titles={glutes:'Glute focus',athletic:'Athletic foundation',strength:'Strength base',upper:'Upper-body focus',muscle:'Muscle building',basics:'Technique practice',fitness:'Full-body consistency'};
 
-function plannedPatterns(preferences:Preferences,day:number,totalDays:number):MovementPattern[]{
+function plannedPatterns(preferences:Preferences,day:number,assignment:number,includeCore:boolean):MovementPattern[]{
   const goal=goalType(preferences);
   const coaching=getCoaching(preferences);
   let patterns:MovementPattern[];
-  if(totalDays===4){
-    patterns=day%2===0?(day===0?['squat','hinge','glute','calf','core']:['hinge','squat','glute','core','calf']):(day===1?['push','pull','shoulder','arms','core']:['pull','push','shoulder','core','arms']);
-    if(goal==='glutes'&&day%2===0)patterns=['glute',...patterns.filter(pattern=>pattern!=='glute')];
+  if(assignment!==7){
+    const lower:MovementPattern[]=goal==='glutes'?['glute',day%2?'squat':'hinge',day%2?'hinge':'squat','calf']:day%2?['hinge','squat','calf','glute']:['squat','hinge','calf','glute'];
+    const upper:MovementPattern[]=(assignment&(PUSH|PULL))===(PUSH|PULL)?['push','pull','shoulder','arms']:assignment&PUSH?['push','shoulder']:['pull','arms'];
+    patterns=assignment&LOWER?(assignment&(PUSH|PULL)?[lower[0],...upper,...lower.slice(1)]:lower):upper;
   }else if(goal==='glutes'){
     patterns=day%3===0?['glute','push','pull','hinge','core','squat']:day%3===1?['squat','pull','push','glute','core','shoulder']:['hinge','push','pull','glute','core','squat'];
   }else if(goal==='athletic'){
@@ -101,12 +142,11 @@ function plannedPatterns(preferences:Preferences,day:number,totalDays:number):Mo
   }
   const emphasis=coaching.focusAreas[day%Math.max(1,coaching.focusAreas.length)];
   const focus=focusPattern[emphasis];
-  // Preserve the body region on a four-day upper/lower split.
-  const compatible=totalDays!==4||((day%2===0)===['glute','squat','hinge','calf'].includes(focus));
+  const compatible=focus==='core'?includeCore:!!(assignment&clusterFor(focus));
   if(focus&&compatible)patterns=[focus,...patterns.filter(pattern=>pattern!==focus)];
   // Goal/focus overrides may repeat a pattern (running day B already hinges).
   // Spend the remaining time on a different movement, not a second variant.
-  return [...new Set(patterns)];
+  return [...new Set([...patterns,...(includeCore?['core' as const]:[])])].filter(pattern=>pattern==='core'?includeCore:!!(assignment&clusterFor(pattern)));
 }
 
 function selectionScore(preferences:Preferences,exercise:Exercise,day:number,used:Map<string,number>){
@@ -115,8 +155,9 @@ function selectionScore(preferences:Preferences,exercise:Exercise,day:number,use
   const equipment=equipmentKey(exercise.equipment);
   const goal=goalType(preferences);
   let score=0;
-  if(coaching.trainingStyle==='Machines'&&equipment==='Machines')score+=24;
-  if(coaching.trainingStyle==='Free weights'&&['Dumbbells','Barbell'].includes(equipment))score+=24;
+  if(coaching.trainingStyles.includes('Machines')&&equipment==='Machines')score+=24;
+  if(coaching.trainingStyles.includes('Free weights')&&['Dumbbells','Barbell'].includes(equipment))score+=24;
+  if(coaching.trainingStyles.includes('Bodyweight')&&equipment==='Bodyweight')score+=24;
   if(beginner(preferences)){
     if(['squat','glute-bridge','coach-wall-pushup','coach-standing-hip-hinge','coach-standing-march'].includes(exercise.id))score+=12;
     if(exercise.id==='pushup')score-=8;
@@ -142,6 +183,7 @@ function timeFor(item:RoutineExercise,exercise:Exercise){
 }
 
 export function estimateRoutineMinutes(routine:Routine,exercises:Exercise[]){
+  if(routine.kind==='recovery')return routine.recovery?.minutes||0;
   if(!routine.exercises.length)return 0;
   const available=new Map(exercises.map(exercise=>[exercise.id,exercise]));
   // General warm-up plus short light rehearsal sets before loaded compounds.
@@ -149,9 +191,12 @@ export function estimateRoutineMinutes(routine:Routine,exercises:Exercise[]){
     const exercise=available.get(item.exerciseId);
     return exercise&&exercise.equipment!=='Bodyweight'&&coachingMovement[item.exerciseId]?.compound;
   }).slice(0,2).length*60;
-  const seconds=240+rehearsal+routine.exercises.reduce((sum,item)=>{
+  const seconds=240+rehearsal+routine.exercises.reduce((sum,item,index)=>{
     const exercise=available.get(item.exerciseId);
-    return sum+(exercise?timeFor(item,exercise):0);
+    // The rest timer also runs when moving to the next exercise. The 45-second
+    // setup allowance can overlap that recovery, but cannot replace a long rest.
+    const nextExerciseRest=index<routine.exercises.length-1?Math.max(0,item.rest-45):0;
+    return sum+(exercise?timeFor(item,exercise)+nextExerciseRest:0);
   },0);
   return Math.ceil(seconds/60);
 }
@@ -166,58 +211,201 @@ function selectionReason(preferences:Preferences,exercise:Exercise){
   return why;
 }
 
-export function buildRecommendedPlan(preferences:Preferences,exercises:Exercise[]):RecommendedPlan{
+function sessionTitle(exercises:Exercise[],day:string){
+  if(!exercises.length)return `No matching exercises · ${dayNames[day]||day}`;
+  const movements=exercises.map(exercise=>coachingMovement[exercise.id]);
+  const patterns=new Set(movements.map(movement=>movement.pattern));
+  // Name the work that actually survived the equipment, exclusion and time filters.
+  const muscles=[...new Set(movements.map(movement=>movement.pattern==='calf'?'Calves':movement.areas[0]))];
+  const lower=movements.some(movement=>['squat','hinge','glute','calf'].includes(movement.pattern));
+  const upper=movements.some(movement=>['push','pull','shoulder','arms'].includes(movement.pattern));
+  const pushOnly=(patterns.has('push')||patterns.has('shoulder'))&&movements.every(movement=>['push','shoulder','core'].includes(movement.pattern));
+  const pullOnly=patterns.has('pull')&&movements.every(movement=>['pull','arms','core'].includes(movement.pattern));
+  const prefix=pushOnly?'Push day · ':pullOnly?'Pull day · ':lower&&!upper?'Lower body · ':upper&&!lower?'Upper body · ':'';
+  const labels=muscles.map((muscle,index)=>index?muscle.toLowerCase():muscle);
+  const targets=labels.length<2?labels[0]:`${labels.slice(0,-1).join(', ')} & ${labels.at(-1)}`;
+  return `${prefix}${targets} · ${dayNames[day]||day}`;
+}
+
+function describeResistanceRoutine(routine:Routine,preferences:Preferences,exercises:Exercise[]){
+  const selected=routine.exercises.flatMap(item=>{
+    const exercise=exercises.find(candidate=>candidate.id===item.exerciseId);
+    return exercise?[exercise]:[];
+  });
+  const day=routine.scheduledDay||'Your day';
+  const coaching=getCoaching(preferences);
+  routine.name=sessionTitle(selected,day);
+  const patterns=new Set(selected.map(exercise=>coachingMovement[exercise.id].pattern));
+  const lower=[...patterns].some(pattern=>['squat','hinge','glute','calf'].includes(pattern));
+  const upper=[...patterns].some(pattern=>['push','pull','shoulder','arms'].includes(pattern));
+  const region=!selected.length?'no matching session':coaching.sessionMinutes<=15?'brief practice with limited volume':lower&&!upper?'lower-body emphasis':upper&&!lower?'upper-body emphasis':lower&&patterns.has('push')&&patterns.has('pull')?'full-body practice':'focused practice';
+  routine.description=`${day} · ${region} · about ${estimateRoutineMinutes(routine,exercises)} min including warm-up and rests. Built for ${preferences.goal.toLowerCase()}, ${preferences.experience.toLowerCase()} and your available equipment. ${coaching.focusAreas.length?`Priority: ${coaching.focusAreas.join(', ')}.`:''}`.trim();
+}
+
+export function recommendedMuscleGroups(routine:Routine):string[]{
+  const groups=new Set<string>();
+  routine.exercises.forEach(item=>{
+    const movement=coachingMovement[item.exerciseId];
+    if(!movement)return;
+    let trained:string[];
+    switch(movement.pattern){
+      case 'push':trained=['Chest','Front delts','Triceps'];break;
+      case 'shoulder':trained=item.exerciseId==='gym-2580-dumbbell-lateral-raise'?['Side delts']:['Front delts','Side delts','Triceps'];break;
+      case 'pull':trained=item.exerciseId==='gym-2428-band-pull-apart'?['Back','Rear delts']:['Back','Rear delts','Biceps'];break;
+      case 'arms':trained=['Biceps'];break;
+      case 'squat':trained=['Quads','Glutes'];break;
+      case 'hinge':trained=item.exerciseId==='gym-1351-seated-leg-curl'?['Hamstrings']:['Hamstrings','Glutes'];break;
+      case 'glute':trained=['Glutes'];break;
+      case 'calf':trained=['Calves'];break;
+      default:trained=['Core'];
+    }
+    if(erectorLoadedIds.has(item.exerciseId))trained.push('Spinal erectors');
+    trained.forEach(group=>groups.add(group));
+  });
+  return [...groups];
+}
+
+function recoveryRoutine(day:string,index:number,minutes:number,reason:string):Routine{
+  const duration=Math.min(20,minutes);
+  return {id:index===0?'form-recommended':`form-recommended-${index+1}`,name:`Active recovery · ${dayNames[day]||day}`,scheduledDay:weekdays.includes(day)?day as TrainingDay:undefined,kind:'recovery',exercises:[],description:`${day} · ${duration} easy minutes. ${reason} This day stays in your schedule without adding another resistance session.`,recovery:{minutes:duration,steps:[
+    'Start with 2 minutes of relaxed walking. Keep the effort easy enough to speak comfortably.',
+    `Continue for about ${Math.max(4,duration-4)} minutes with an easy walk or very gentle cycling. Choose the comfortable option; do not add intervals, jumping or resistance sets.`,
+    'Finish with 2 quiet minutes. Relax your shoulders and breathe normally; gentle standing movement is optional. No floor or overhead exercises are required.',
+    'If you feel sore, unusually tired or uncomfortable, use this as a rest day instead. You do not have to fill the timer.',
+  ]}};
+}
+
+export function buildRecommendedPlan(preferences:Preferences,exercises:Exercise[],context:PlanContext={}):RecommendedPlan{
   const coaching=getCoaching(preferences);
   const goal=goalType(preferences);
   const warnings:string[]=[];
-  const days=scheduleDays(preferences);
+  const youth=typeof context.age==='number'&&context.age>=13&&context.age<18;
+  const effectivePreferences=youth?{...preferences,experience:'Getting started'}:preferences;
+  const days=weekdays.filter(day=>preferences.days.includes(day));
+  const scheduled=days.length?days:['Your day'];
+  const assignments=scheduleAssignments(days,youth);
+  const coreDays=directCoreDays(scheduled,assignments);
   const pool=[...new Map(exercises.map(exercise=>[exercise.id,exercise])).values()].filter(exercise=>{
     const meta=coachingMovement[exercise.id];
-    return meta&&allowed(preferences,exercise,meta);
+    return meta&&allowed(effectivePreferences,exercise,meta);
   });
   if(!days.length)warnings.push('Choose at least one available day to place this starter session in your week.');
   if(days.length===1)warnings.push('One day is a useful start. A second separated strength day can help you practice more consistently when your schedule allows.');
-  const requested=weekdays.filter(day=>preferences.days.includes(day)).length;
-  if(requested>days.length)warnings.push(`You selected ${requested} available days. Start with ${days.length} resistance sessions; keep the remaining days for recovery or easy activity.`);
-  if(days.length>1&&days.some((day,index)=>((weekdays.indexOf(days[(index+1)%days.length])-weekdays.indexOf(day)+7)%7)===1))warnings.push(days.length===4?'Your four-day plan alternates lower and upper emphasis. The week includes adjacent days; add a rest day if fatigue affects your technique.':'Some selected days are consecutive. Move a session to leave a recovery day when possible, or keep the later session light if you are still tired.');
+  if(youth)warnings.push('For ages 13–17, practice resistance exercises with qualified supervision and light, controlled loads. This plan uses at most three nonconsecutive resistance days; other selected days stay as easy activity. It does not prescribe maximal strength tests.');
+  const baseSets=beginner(effectivePreferences)?2:goal==='strength'?4:3;
+  const weeklyExposures=Math.min(3,assignments.filter(Boolean).length);
+  const experiencedHypertrophy=!youth&&preferences.experience==='Experienced'&&['muscle','glutes','upper'].includes(goal);
+  const primaryWeeklyTarget=days.length===1?5:10;
+  const weeklyBudgets:Record<number,number>={
+    [LOWER]:experiencedHypertrophy?primaryWeeklyTarget*2+(goal==='glutes'?4:0):baseSets*(weeklyExposures+(goal==='glutes'?1:0)),
+    [PUSH]:experiencedHypertrophy?primaryWeeklyTarget+(days.length===1?2:4):baseSets*weeklyExposures,
+    [PULL]:experiencedHypertrophy?primaryWeeklyTarget+(days.length===1?2:4):baseSets*weeklyExposures,
+  };
+  const occurrences:Record<number,number>={[LOWER]:0,[PUSH]:0,[PULL]:0};
+  const frequency=(cluster:number)=>assignments.filter(mask=>mask&cluster).length;
   const used=new Map<string,number>();
-  const routines=(days.length?days:['Your day']).map((day,index):Routine=>{
-    const patterns=plannedPatterns(preferences,index,days.length);
+  const routines=scheduled.map((day,index):Routine=>{
+    const assignment=assignments[index];
+    if(!assignment)return recoveryRoutine(day,index,coaching.sessionMinutes,youth?'A recovery day separates your supervised technique sessions.':'The surrounding resistance days already cover your weekly training dose and need room for recovery.');
+    const patterns=plannedPatterns(effectivePreferences,assignment&LOWER?occurrences[LOWER]:index,assignment,coreDays.has(day));
+    const remaining:Record<number,number>={0:coreDays.has(day)?2:0};
+    for(const cluster of [LOWER,PUSH,PULL]){
+      const count=frequency(cluster);
+      remaining[cluster]=assignment&cluster?Math.floor(weeklyBudgets[cluster]/count)+(occurrences[cluster]<weeklyBudgets[cluster]%count?1:0):0;
+      if(assignment&cluster)occurrences[cluster]++;
+    }
     const selected:Exercise[]=[];
-    const maxExercises=coaching.sessionMinutes<=20?4:coaching.sessionMinutes<=30?5:beginner(preferences)?5:6;
-    const routine:Routine={id:index===0?'form-recommended':`form-recommended-${index+1}`,name:`Recommended · ${titles[goal]} ${String.fromCharCode(65+index)}`,description:'',exercises:[]};
+    const maxExercises=coaching.sessionMinutes<=15?3:coaching.sessionMinutes<=25?4:coaching.sessionMinutes<=30?5:beginner(effectivePreferences)?5:6;
+    const routine:Routine={id:index===0?'form-recommended':`form-recommended-${index+1}`,scheduledDay:weekdays.includes(day)?day as TrainingDay:undefined,name:'',description:'',exercises:[]};
     for(const pattern of patterns){
       if(selected.length>=maxExercises)break;
-      const candidates=pool.filter(exercise=>coachingMovement[exercise.id].pattern===pattern&&!selected.some(item=>item.id===exercise.id)).sort((a,b)=>selectionScore(preferences,b,index,used)-selectionScore(preferences,a,index,used));
+      const cluster=clusterFor(pattern);
+      if(!remaining[cluster])continue;
+      const candidates=pool.filter(exercise=>coachingMovement[exercise.id].pattern===pattern&&!selected.some(item=>item.id===exercise.id)).sort((a,b)=>selectionScore(effectivePreferences,b,index,used)-selectionScore(effectivePreferences,a,index,used));
       let choice:Exercise|undefined;
       let prescription:RoutineExercise|undefined;
       for(const exercise of candidates){
-        const item=recommendedPrescription(preferences,exercise);
+        const item=recommendedPrescription(effectivePreferences,exercise);
+        if(experiencedHypertrophy&&['squat','hinge','push','pull',...(goal==='glutes'?['glute']:[])].includes(pattern)){
+          const exposures=frequency(cluster);
+          const target=Math.floor(primaryWeeklyTarget/exposures)+(occurrences[cluster]-1<primaryWeeklyTarget%exposures?1:0);
+          item.sets=Math.min(5,Math.max(item.sets,target));
+        }
+        item.sets=Math.min(item.sets,remaining[cluster]);
+        // A priority accessory should not consume the entire cluster's budget
+        // before its foundational movement (or the running goal's calf work).
+        const reserveFor=pattern==='shoulder'?'push':pattern==='arms'?'pull':goal==='athletic'&&coaching.sportFocus==='Running'&&cluster===LOWER&&pattern!=='calf'?'calf':pattern==='glute'?(patterns.includes('squat')?'squat':'hinge'):undefined;
+        if(reserveFor&&patterns.includes(reserveFor)&&!selected.some(candidate=>coachingMovement[candidate.id].pattern===reserveFor)&&remaining[cluster]>1)item.sets=Math.min(item.sets,remaining[cluster]-1);
         // Budget the whole short session, rather than spending it on one lift.
-        if(coaching.sessionMinutes===20)item.sets=2;
-        else if(coaching.sessionMinutes===30)item.sets=Math.min(item.sets,3);
+        const minimumSets=coaching.sessionMinutes<=15||remaining[cluster]===1?1:2;
+        if(coaching.sessionMinutes<=15)item.sets=1;
+        else if(coaching.sessionMinutes<=25)item.sets=Math.min(item.sets,2);
+        else if(coaching.sessionMinutes<=30)item.sets=Math.min(item.sets,3);
         const check={...routine,exercises:[...routine.exercises,item]};
-        while(item.sets>2&&estimateRoutineMinutes(check,exercises)>coaching.sessionMinutes)item.sets--;
+        while(item.sets>minimumSets&&estimateRoutineMinutes(check,exercises)>coaching.sessionMinutes)item.sets--;
         if(estimateRoutineMinutes(check,exercises)<=coaching.sessionMinutes){choice=exercise;prescription=item;break;}
       }
       if(!choice||!prescription)continue;
-      const defaultSets=recommendedPrescription(preferences,choice).sets;
-      prescription.notes=`${selectionReason(preferences,choice)} ${prescription.notes}${prescription.sets<defaultSets?' Fewer sets keep this session within your time preference.':''}`;
+      const defaultSets=recommendedPrescription(effectivePreferences,choice).sets;
+      prescription.notes=`${selectionReason(effectivePreferences,choice)} ${prescription.notes}${prescription.sets<defaultSets?' Fewer sets keep the weekly dose and session time manageable.':''}`;
       selected.push(choice);
       routine.exercises.push(prescription);
+      remaining[cluster]-=prescription.sets;
       used.set(choice.id,(used.get(choice.id)||0)+1);
     }
-    const minutes=estimateRoutineMinutes(routine,exercises);
-    const region=days.length===4?(index%2===0?'lower-body emphasis':'upper-body emphasis'):'full-body practice';
-    routine.description=`${day} · ${region} · about ${minutes} min including warm-up and rests. Built for ${preferences.goal.toLowerCase()}, ${preferences.experience.toLowerCase()} and your available equipment. ${coaching.focusAreas.length?`Priority: ${coaching.focusAreas.join(', ')}.`:''}`.trim();
-    if(routine.exercises.length<3)warnings.push(`${day}: your equipment, movement preferences and time allow only ${routine.exercises.length} matching exercise${routine.exercises.length===1?'':'s'}. This is a limited session; adjust your preferences or add suitable exercises with qualified guidance.`);
+    describeResistanceRoutine(routine,preferences,exercises);
+    if(!routine.exercises.length){
+      warnings.push(`${day}: your equipment, movement preferences and time allow 0 matching resistance exercises for this split. Keep this day easy or review your preferences; an excluded movement has not been substituted.`);
+      return recoveryRoutine(day,index,coaching.sessionMinutes,'No suitable resistance exercise currently fits this day’s split and your preferences.');
+    }
+    if(coaching.sessionMinutes<=15)warnings.push(`${day}: this is a brief practice session with limited volume. Do not rush the warm-up or rests to fit extra work.`);
     return routine;
   });
+  // The broad push/pull/lower split alone cannot capture an unsupported row's
+  // substantial erector loading. Check actual selected exercises in both calendar
+  // directions, including Sunday→Monday, before finalizing the plan.
+  routines.forEach((routine,index)=>{
+    const rowIndex=routine.exercises.findIndex(item=>item.exerciseId===unsupportedRowId);
+    if(rowIndex<0||!routine.scheduledDay)return;
+    const dayIndex=weekdays.indexOf(routine.scheduledDay);
+    const nearbyLoadedTorso=routines.some((other,otherIndex)=>{
+      if(otherIndex===index||!other.scheduledDay||!other.exercises.some(item=>erectorLoadedIds.has(item.exerciseId)))return false;
+      const gap=Math.abs(weekdays.indexOf(other.scheduledDay)-dayIndex);
+      return Math.min(gap,7-gap)<2;
+    });
+    if(!nearbyLoadedTorso)return;
+    const original=routine.exercises[rowIndex];
+    const alternatives=pool.filter(exercise=>coachingMovement[exercise.id].pattern==='pull'&&!erectorLoadedIds.has(exercise.id)&&!routine.exercises.some(item=>item.exerciseId===exercise.id)).sort((a,b)=>selectionScore(effectivePreferences,b,index,used)-selectionScore(effectivePreferences,a,index,used));
+    let replacement:RoutineExercise|undefined;
+    for(const exercise of alternatives){
+      const item=recommendedPrescription(effectivePreferences,exercise);
+      item.sets=Math.min(original.sets,experiencedHypertrophy&&coachingMovement[exercise.id].compound?5:item.sets);
+      item.notes=`${selectionReason(effectivePreferences,exercise)} This supported or upright alternative leaves more recovery for your loaded lower-back work. ${item.notes}`;
+      const trial={...routine,exercises:routine.exercises.map((existing,itemIndex)=>itemIndex===rowIndex?item:existing)};
+      while(item.sets>1&&estimateRoutineMinutes(trial,exercises)>coaching.sessionMinutes)item.sets--;
+      if(estimateRoutineMinutes(trial,exercises)<=coaching.sessionMinutes){replacement=item;break;}
+    }
+    const day=routine.scheduledDay;
+    if(replacement){
+      routine.exercises[rowIndex]=replacement;
+      warnings.push(`${day}: a supported or upright pulling exercise replaces the bent-over barbell row to avoid adjacent days of substantial lower-back loading.`);
+      describeResistanceRoutine(routine,preferences,exercises);
+    }else{
+      routine.exercises.splice(rowIndex,1);
+      warnings.push(`${day}: the bent-over barbell row was left out because it would load your lower back too close to another loaded torso exercise. Your available equipment does not provide a suitable alternative within this session's time.`);
+      if(routine.exercises.length)describeResistanceRoutine(routine,preferences,exercises);
+      else routines[index]=recoveryRoutine(day,index,coaching.sessionMinutes,'This day leaves recovery between loaded lower-back exercises; no suitable supported pulling alternative currently fits your equipment and time.');
+    }
+  });
+  const strengthDays=routines.filter(routine=>routine.kind!=='recovery').length;
+  const recoveryDays=routines.length-strengthDays;
   const weeklyPatterns=new Set(routines.flatMap(routine=>routine.exercises.map(item=>coachingMovement[item.exerciseId].pattern)));
   if(!weeklyPatterns.has('pull'))warnings.push('Your current options do not include a suitable pulling exercise. A resistance band with a secure anchor, dumbbells or a row machine would help balance your upper-body training.');
   if(!weeklyPatterns.has('push'))warnings.push('No suitable chest/pushing exercise fits this plan. Review the equipment and movement preferences before treating it as a complete weekly program.');
   if(!weeklyPatterns.has('squat'))warnings.push('Knee-dominant leg work is limited by your current choices. The plan does not substitute a deep knee bend you asked to avoid.');
   const estimatedMinutes=Math.max(...routines.map(routine=>estimateRoutineMinutes(routine,exercises)),0);
+  const styles=coaching.trainingStyles;
+  const bodyweightOnly=styles.length===1&&styles[0]==='Bodyweight';
   const athleticFeatures=weeklyPatterns.size?['controlled strength']:[];
   if(routines.some(routine=>routine.exercises.some(item=>{
     const movement=coachingMovement[item.exerciseId];
@@ -228,20 +416,29 @@ export function buildRecommendedPlan(preferences:Preferences,exercises:Exercise[
   const athleticRationale=athleticFeatures.length?`Your ${coaching.sportFocus.toLowerCase()} plan includes ${athleticFeatures.join(', ')} within your available time and movement preferences. This is a general foundation, not a sport-specific performance program.`:'No suitable exercises currently fit your athletic goal and preferences. Review the limitations below before starting.';
   const rationale=[
     goal==='glutes'?'Your plan gives glute work an early place in the week while retaining upper-body work; this goal is available to everyone.':goal==='athletic'?athleticRationale:goal==='muscle'?'Your muscle-building plan uses repeatable sets across major muscle groups, with gradual rep and load progression.':goal==='strength'?'Your strength plan prioritizes foundational lifts and longer recovery, scaled to your training experience.':goal==='upper'?'Upper-body pushing and pulling receive priority while lower-body work stays in the week.':'A manageable, repeatable routine builds skill and consistency before adding more work.',
-    beginner(preferences)?'Start with two controlled sets per exercise and a light effort. More reps are not automatically better: stop before technique changes, and use the optional strength introduction only if you want it.':'Work below failure and progress gradually; the listed rep ranges are starting points, not the only way to reach your goal.',
+    coaching.sessionMinutes<=15?'These brief sessions use one controlled practice set per exercise. They provide limited training volume; build consistency here, then add time when you can.':beginner(effectivePreferences)?'Start with up to two controlled sets per exercise and a light effort. More reps are not automatically better: stop before technique changes; smaller sessions spread the weekly work without multiplying it.':'Work below failure and progress gradually; the listed rep ranges are starting points, not the only way to reach your goal.',
     `${days.length||1} planned session${days.length<=1?'':'s'} · up to about ${estimatedMinutes} minutes each within your ${coaching.sessionMinutes}-minute preference. Estimates include warm-up, set rests and both sides of unilateral exercises; equipment waits can add time.`,
-    coaching.trainingStyle==='Balanced'?'Exercise choices use your available equipment and balance different movement patterns.':`${coaching.trainingStyle} choices ${coaching.trainingStyle==='Bodyweight'?'use only bodyweight':'are favored when your equipment and movement preferences allow'}.`,
+    styles.length===1&&styles[0]==='Balanced'?'Exercise choices use your available equipment and balance different movement patterns.':bodyweightOnly?'Your bodyweight preference uses only bodyweight exercises.':`Your selected styles (${styles.join(', ')}) shape the mix of exercises when your equipment and movement preferences allow.`,
   ];
+  rationale.push(`${days.length||1} selected day${days.length===1?'':'s'} stay in your plan: ${strengthDays} resistance and ${recoveryDays} active recovery. Full-body or split sessions are chosen around the spacing of those days, not by ranking one split as universally best.`);
+  rationale.push('The repeating calendar leaves at least two calendar days between meaningful work for the same muscles and prefers three where practical, including across Sunday to Monday. This is a conservative planning rule: it approximates 48–72 hours only if you train at similar times. Soreness, poor sleep or fatigue can mean you need longer.');
+  rationale.push('Presses also count toward triceps and front-deltoid recovery; pulls count toward biceps and rear-deltoids; lower-body lifts share glute work. Loaded hinges, barbell squats and unsupported barbell rows also share substantial spinal-erector demand, so supported pulling alternatives are used when needed. Direct core work is spaced separately. The weekly set budget is spread across your selected days instead of increasing every time you add a day.');
+  if(experiencedHypertrophy)rationale.push(`For an experienced muscle-building starting plan, the budget aims for about ${primaryWeeklyTarget} weekly main pressing and pulling sets, with squat/hinge work and a smaller accessory allowance. Compound sets also train supporting muscles, so these are not extra independent quotas for every muscle. Time, equipment and recovery constraints can reduce the actual dose. This is a starting allocation, not a proven personal optimum; adjust gradually based on performance and recovery.`);
+  if(youth)rationale.push('Your age changes the starting approach: supervised technique practice, light loads and two to three nonconsecutive resistance days when available, with the rest of your selected days kept easy. No heavy low-rep or maximal testing prescription is included.');
+  else if(typeof context.age==='number'&&context.age>=65)rationale.push('Your experience and movement preferences guide the plan; age alone does not set your load or classify your ability. Start at an effort you control, use support where useful and allow extra recovery when you need it.');
+  if(estimatedMinutes>0&&coaching.sessionMinutes-estimatedMinutes>=15)rationale.push(`Your ${coaching.sessionMinutes}-minute preference is a time limit, not a requirement to fill. This plan needs about ${estimatedMinutes} minutes at most; extra sets are not added just to use the remaining time.`);
   if(coaching.focusAreas.length)rationale.push(`Extra emphasis rotates across your priorities: ${coaching.focusAreas.join(', ')}. Other muscle groups remain part of the week.`);
   if(coaching.impact==='Low impact'||coaching.avoidMovements.length)rationale.push(`Your movement preferences are applied to every selected exercise${coaching.avoidMovements.length?`: no ${coaching.avoidMovements.join(', ').toLowerCase()}`:''}. There are no jumping drills in this starter plan.`);
-  return {routines,rationale,estimatedMinutes,summary:`${titles[goal]} · ${days.length||1} days · about ${estimatedMinutes} min per session`,warnings:[...new Set(warnings)]};
+  return {routines,rationale,estimatedMinutes,summary:`${titles[goal]} · ${strengthDays} resistance${recoveryDays?` + ${recoveryDays} recovery`:''} days · up to about ${estimatedMinutes} min`,warnings:[...new Set(warnings)]};
 }
 
-export function buildRecommendedRoutine(preferences:Preferences,exercises:Exercise[]):Routine{
-  return buildRecommendedPlan(preferences,exercises).routines[0];
+export function buildRecommendedRoutine(preferences:Preferences,exercises:Exercise[],context:PlanContext={}):Routine{
+  return buildRecommendedPlan(preferences,exercises,context).routines[0];
 }
 
-export function recommendationSummary(preferences:Preferences){
+export function recommendationSummary(preferences:Preferences,context:PlanContext={}){
+  if(getCoaching(preferences).sessionMinutes<=15)return 'Brief practice · 1 controlled set per exercise · limited volume';
+  if(typeof context.age==='number'&&context.age>=13&&context.age<18)return 'Supervised technique practice · 10–15 controlled reps · light effort';
   if(beginner(preferences))return 'Technique first · 2 controlled sets · 60 sec or longer to recover';
   const goal=goalType(preferences);
   if(goal==='strength')return 'Strength focus · 5–8 reps on main lifts · up to 2½ min rest';

@@ -70,6 +70,27 @@ const localOlder={...history[0],id:'local-old',date:'2026-10-13',exercises:[{...
 const seededFromLocal=createWorkoutSession(routine,[exercise],[sampleNewest,localOlder],3_000,()=>`seed-${++id}`);
 assert.deepEqual([seededFromLocal.logs.squat[0].weight,seededFromLocal.logs.squat[0].reps],[40,9]);
 
+const recoveryRoutine={id:'recovery-tuesday',name:'Tuesday · Recovery',description:'Leave room to recover.',kind:'recovery',scheduledDay:'Tue',recovery:{minutes:20,steps:['Choose an easy walk at conversational pace.','Rest instead if you need to.']},exercises:[]};
+const recoverySession=createWorkoutSession(recoveryRoutine,[exercise],history,120_000,()=>`recovery-${++id}`);
+assert.equal(recoverySession.kind,'recovery');
+assert.equal(recoverySession.scheduledDay,'Tue');
+assert.deepEqual(recoverySession.exercises,[],'Recovery days start without fabricated lifting exercises');
+assert.deepEqual(recoverySession.logs,{});
+assert.deepEqual(recoverySession.recovery,recoveryRoutine.recovery);
+recoverySession.recovery.steps.push('Keep the effort easy.');
+assert.equal(recoveryRoutine.recovery.steps.length,2,'An active recovery session does not mutate its saved plan');
+const restoredRecovery=JSON.parse(JSON.stringify(recoverySession));
+const recoveryHistory=createHistoryEntry({...restoredRecovery,logs:{squat:[{id:'stale-log',weight:90,reps:10,done:true}]},feedback:true},[exercise],120_000+25*60_000,'2026-10-15');
+assert.equal(recoveryHistory.kind,'recovery');
+assert.equal(recoveryHistory.duration,25,'Recovery history records elapsed session minutes');
+assert.equal(recoveryHistory.sets,0,'Recovery never counts stale set logs');
+assert.equal(recoveryHistory.volume,0);
+assert.equal(recoveryHistory.feedback,false);
+assert.deepEqual(recoveryHistory.exercises,[]);
+assert.equal(selectNextRoutine([recoveryRoutine,{...routine,scheduledDay:'Thu'}],[{...recoveryHistory,date:'2026-10-13'}],new Date(2026,9,13,12)).id,routine.id,'Recovery completion advances to the next scheduled day');
+assert.deepEqual(createWorkoutSession({...recoveryRoutine,exercises:routine.exercises},[exercise],[],0).logs,{},'Recovery cannot be converted into a set workout by leftover routine data');
+assert.equal(session.kind,undefined,'Existing resistance sessions keep their original data format');
+
 assert.deepEqual(parseRepRange('8–12'),{min:8,max:12});
 assert.deepEqual(parseRepRange('8-10'),{min:8,max:10});
 assert.match(getProgressionCue('8-10',1,[{id:'a',weight:50,reps:10,done:true}], 'kg','Barbell'),/\+2\.5 kg/);
@@ -78,6 +99,17 @@ assert.match(getProgressionCue('8-10',3,[{id:'a',weight:50,reps:10,done:true}], 
 const routines=[routine,{...routine,id:'accessory',name:'Accessory day'}];
 assert.equal(selectNextRoutine(routines,[completed]).id,'accessory');
 assert.equal(selectNextRoutine(routines,[{...completed,sample:true}]).id,'strength');
+const scheduledRoutines=[{...routine,id:'monday',scheduledDay:'Mon'},recoveryRoutine,{...routine,id:'thursday',scheduledDay:'Thu'},{...routine,id:'sunday',scheduledDay:'Sun'}];
+assert.equal(selectNextRoutine(scheduledRoutines,[],new Date(2026,9,15,12)).id,'thursday','The actual weekday takes priority over rotation order');
+assert.equal(selectNextRoutine(scheduledRoutines,[],new Date(2026,9,13,12)).id,recoveryRoutine.id,'A scheduled recovery day is selected like any other activity');
+assert.equal(selectNextRoutine(scheduledRoutines,[{...completed,routineId:'monday',date:'2026-10-12'}],new Date(2026,9,15,12)).id,'thursday','An old completion does not send Thursday back to Tuesday');
+assert.equal(selectNextRoutine(scheduledRoutines,[{...completed,routineId:'thursday',date:'2026-10-15'}],new Date(2026,9,15,12)).id,'sunday','Completing today selects the nearest upcoming day');
+assert.equal(selectNextRoutine(scheduledRoutines,[{...completed,routineId:'thursday',date:'2026-10-14'}],new Date(2026,9,15,12)).id,'thursday','A prior-day completion does not remove today’s session');
+assert.equal(selectNextRoutine(scheduledRoutines,[{...completed,routineId:'thursday',date:'2026-10-15',sample:true}],new Date(2026,9,15,12)).id,'thursday','Sample history cannot complete today’s schedule');
+assert.equal(selectNextRoutine(scheduledRoutines,[{...completed,routineId:'sunday',date:'2026-10-18'}],new Date(2026,9,18,12)).id,'monday','Upcoming order wraps from Sunday to Monday');
+assert.equal(selectNextRoutine(scheduledRoutines.filter(item=>item.id!=='sunday'),[],new Date(2026,9,17,12)).id,'monday','An unselected Saturday leads to the next scheduled weekday');
+assert.equal(selectNextRoutine([routine,...scheduledRoutines],[],new Date(2026,9,15,12)).id,'thursday','Scheduled plans remain the default when mixed with manual routines');
+assert.equal(selectNextRoutine([],[],new Date(2026,9,15,12)),undefined);
 const longSession={...session,startedAt:0};
 const longCompleted=createHistoryEntry(longSession,[exercise],5*60*60*1000,'2026-10-14');
 assert.equal(longCompleted.duration,15);
@@ -102,7 +134,7 @@ const gluteExercises=[
 ];
 const suggested=buildRecommendedRoutine(preferences,gluteExercises);
 assert.equal(suggested.id,'form-recommended');
-assert.match(suggested.name,/Glute focus/);
+assert.match(suggested.name,/Glutes/i);
 assert.equal(suggested.exercises[0].exerciseId,'glute-bridge');
 assert.deepEqual([suggested.exercises[0].sets,suggested.exercises[0].reps,suggested.exercises[0].rest],[2,'10–15',60]);
 assert.match(suggested.exercises[0].notes,/technique/i);
@@ -113,5 +145,15 @@ assert.ok(warmup.some(move=>move.target==='Glutes'));
 assert.equal(new Set(warmup.map(move=>move.target)).size,warmup.length);
 const strengthPrescription=recommendedPrescription({...preferences,goal:'Build strength',experience:'Experienced'},exercise);
 assert.deepEqual([strengthPrescription.sets,strengthPrescription.reps,strengthPrescription.rest],[4,'5–8',150]);
+const manualStrengthPreferences={...preferences,goal:'Build strength',experience:'Experienced'};
+for(const age of [13,16,17]){
+  const youthPrescription=recommendedPrescription(manualStrengthPreferences,exercise,{age});
+  assert.deepEqual([youthPrescription.sets,youthPrescription.reps,youthPrescription.rest],[2,'10–15',60],'Manual exercise suggestions honor youth age even with experienced strength preferences');
+  assert.match(youthPrescription.notes,/qualified supervision/);
+}
+assert.deepEqual(recommendedPrescription(manualStrengthPreferences,exercise,{age:18}),strengthPrescription,'Adult manual suggestions retain the existing prescription');
+assert.deepEqual(recommendedPrescription(manualStrengthPreferences,exercise,{age:null}),strengthPrescription,'Optional age remains backward compatible');
+assert.equal(recommendedPrescription(manualStrengthPreferences,{...exercise,id:'plank',name:'Forearm plank'},{age:16}).reps,'20–30 sec','Youth holds retain time-based targets');
+assert.equal(manualStrengthPreferences.experience,'Experienced','Age adjustments do not overwrite saved experience');
 
 console.log('Workout domain checks passed: history, progression, personalized recommendations, warm-ups, rest guidance and analyzer support gates.');

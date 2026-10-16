@@ -75,12 +75,12 @@ export function buildAccountDocumentFromLocal(
     const parsed=documentSchema.safeParse(candidate);
     if(parsed.success){
       if(!preferences.coaching)return parsed.data;
-      const suggested=prepareCoachingPlan(parsed.data.training.preferences,parsed.data.training.routines,parsed.data.training.exercises);
+      const suggested=prepareCoachingPlan(parsed.data.training.preferences,parsed.data.training.routines,parsed.data.training.exercises,{age:profile.age});
       return {...parsed.data,training:{...parsed.data.training,routines:suggested.routines,exercises:suggested.exercises}};
     }
   }catch{/* A malformed device copy should not block account creation. */}
 
-  const suggested=preferences.coaching?prepareCoachingPlan(preferences,[],initialExercises):null;
+  const suggested=preferences.coaching?prepareCoachingPlan(preferences,[],initialExercises,{age:profile.age}):null;
   return {
     profile,
     training:{
