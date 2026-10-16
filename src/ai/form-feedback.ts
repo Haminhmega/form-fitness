@@ -7,7 +7,8 @@ import {poseDiscontinuity} from './pose-signal';
 import type {AnalyzedFrame,PosePoint,SquatAnalysis,SquatRep} from './types';
 
 export type FormFeedbackCard={id:string;kind:'technique'|'consistency'|'capture'|'practice';title:string;observed:string;action:string;why:string;time?:number;repIndexes:number[];biomechanics?:string;cue?:string;phase?:FeedbackPhase;highlight?:{side:'left'|'right';joints:number[]}};
-export type FormFeedback={status:'ready'|'limited'|'retake';summary:string;cards:FormFeedbackCard[];limitations:string[]};
+export type FormCheck={id:string;label:string;status:'finding'|'not_detected'|'unable'|'unsupported';detail:string;cardId?:string};
+export type FormFeedback={status:'ready'|'limited'|'retake';summary:string;cards:FormFeedbackCard[];limitations:string[];checks:FormCheck[];coverage?:{percent:number;reps:number;holdSeconds?:number}};
 type Dimensions={width:number;height:number};
 type Side='left'|'right';
 type Metric='knee'|'hip'|'elbow'|'shoulder'|'ankle'|'body';
@@ -156,8 +157,16 @@ function postureChange(group:RepData[],body:boolean){
 
 export function buildFormFeedback(exerciseId:string,result:SquatAnalysis,dimensions:Dimensions):FormFeedback{
   const analyzer=getAnalyzer(exerciseId),guide=guideFor(exerciseId);
+  const priority=priorityProfiles.find(profile=>profile.id===exerciseId);
+  const phases=priority?priorityRules[priority.family].phases:exerciseId==='squat'?['Lowering','Standing'] as [string,string]:specificConfigs[exerciseId as SpecificMovement]?.phases??result.phaseLabels;
   const setup=`${analyzer?.spec.camera.setupInstructions||'Choose a supported exercise and follow its camera setup.'}${guide&&needsTorso(guide)?' Keep the shoulder and hip visible as well as the working joints.':''}`;
-  const capture=(observed:string,action?:string):FormFeedback=>({status:'retake',summary:'Record a clearer example before changing your form.',cards:[{id:'capture-retake',kind:'capture',title:'Retake this clip',observed,action:action||`${setup} Keep only one person visible, hold the camera still and ${guide?.family==='plank'?'hold your setup for at least 2 uninterrupted seconds':'include complete repetitions'}.`,why:'A capture problem can resemble a movement change. No technique correction or form grade is inferred from this clip.',repIndexes:[]}],limitations:[...baseLimitations]});
+  const capture=(observed:string,action?:string):FormFeedback=>{
+    const checks:FormCheck[]=[];
+    if(guide)kinematicCards(guide.family,[],[],phases,checks);
+    checks.unshift({id:'capture',label:'Usable movement footage',status:'unable',detail:observed});
+    if(!checks.some(c=>!['capture','tempo-eccentric-control','concentric-slowing'].includes(c.id)))checks.push({id:'posture-support',label:'Exercise-specific posture assessment',status:'unsupported',detail:'This profile does not have a dedicated posture detector. Counting joint cycles is not a full form assessment.'});
+    return {status:'retake',summary:'Form assessment could not be completed from this recording. See the specific limits below.',checks,cards:[{id:'capture-retake',kind:'capture',title:'Retake this clip',observed,action:action||`${setup} Keep only one person visible, hold the camera still and ${guide?.family==='plank'?'hold your setup for at least 2 uninterrupted seconds':'include complete repetitions'}.`,why:'A capture problem can resemble a movement change. No technique correction or form grade is inferred from this clip.',repIndexes:[]}],limitations:[...baseLimitations]};
+  };
   if(!analyzer||!guide)return capture('This selected exercise does not have a motion analyzer.','Use the exercise guide for practice, or select an exercise with an available beta motion check.');
   if(![dimensions.width,dimensions.height,result.duration,result.validFraction].every(finite)||dimensions.width<=0||dimensions.height<=0||result.duration<2||result.validFraction<0||result.validFraction>1)return capture('Video dimensions, duration or tracking coverage were unavailable or invalid.');
   if(result.status==='unable'||!Array.isArray(result.frames)||result.frames.length<LIMITS.minimumFrames)return capture('There is not enough reliable tracked footage to make a movement suggestion.');
@@ -183,9 +192,8 @@ export function buildFormFeedback(exerciseId:string,result:SquatAnalysis,dimensi
   const groups=comparableGroups(reps),group=groups[0]||[];
   const hold=guide.family==='plank'&&finite(result.holdSeconds)&&result.holdSeconds!>=2&&longest.at(-1)!.time-longest[0].time>=2;
   if(!hold&&!reps.length)return capture('No complete repetition could be independently matched to a continuous, visible working side.');
-  const priority=priorityProfiles.find(profile=>profile.id===exerciseId);
-  const phases=priority?priorityRules[priority.family].phases:exerciseId==='squat'?['Lowering','Standing'] as [string,string]:specificConfigs[exerciseId as SpecificMovement]?.phases??result.phaseLabels;
-  cards.push(...kinematicCards(guide.family,group,hold?longest:[],phases));
+  const checks:FormCheck[]=[];
+  cards.push(...kinematicCards(guide.family,group.length===1&&groups.length>1?[]:group,hold?longest:[],phases,checks));
   if(coverage<LIMITS.readyCoverage){cards.push({id:'capture-limited',kind:'capture',title:'Improve the camera view',observed:'Part of the clip could not be used consistently. Only uninterrupted visible movement is considered below.',action:setup+' Keep the camera fixed and record one working side at a time.',why:'Clearer landmarks make within-set comparisons more useful.',repIndexes:[]});limitations.push('Tracking coverage was limited; suggestions use only the reliable portions.');}
   if(hold){
     const values=smooth(longest,sample=>sample.body!),baseline=median(values.filter(sample=>sample.time<=values[0].time+.8).map(sample=>sample.value));
@@ -207,6 +215,21 @@ export function buildFormFeedback(exerciseId:string,result:SquatAnalysis,dimensi
     if(groups.length>1)limitations.push('Repetitions from different sides or interrupted segments were not compared with each other.');
   }
   const ready=coverage>=LIMITS.readyCoverage&&(hold||group.length>=3);
+  if(guide.bodyLine){
+    const finding=cards.find(card=>card.id==='body-line-change');
+    checks.push({id:'body-line-change',label:'Body-line changes over time',status:finding?'finding':hold||group.length>=2?'not_detected':'unable',detail:finding?.observed??(hold||group.length>=2?'Compared the projected shoulder–hip–ankle angle over visible movement. No sustained change met this check’s threshold. This is not a spinal assessment.':'Need a continuous hold or two comparable repetitions to check changes in the body line.'),cardId:finding?.id});
+  }
+  if(guide.torso){
+    const finding=cards.find(card=>card.id==='torso-change');
+    checks.push({id:'torso-change',label:'Torso movement',status:finding?'finding':group.length>=2?'not_detected':'unable',detail:finding?.observed??(group.length>=2?'Compared projected shoulder-to-hip motion in your visible reps. No repeated torso-change pattern met this check’s threshold. This does not assess spinal curvature.':'Need two complete, comparable reps with shoulder and hip visible to compare torso motion.'),cardId:finding?.id});
+  }
+  if(!hold){
+    const pace=cards.find(card=>card.id==='tempo-change');
+    checks.push({id:'tempo-change',label:'Overall repetition pace',status:pace?'finding':group.length>=3?'not_detected':'unable',detail:pace?.observed??(group.length>=3?'Compared complete repetition times. No repeated late-set pace change met this check’s threshold. Intentional pauses are allowed.':'Need three comparable repetitions to check changes in repetition pace.'),cardId:pace?.id});
+    const finding=cards.find(card=>card.id==='range-change');
+    checks.push({id:'range-change',label:'Movement range and repeatability',status:finding?'finding':group.length>=3?'not_detected':'unable',detail:finding?.observed??(group.length>=3?`Measured projected ${analyzer.spec.metricLabel} excursions of ${group.map(r=>Math.round(r.range)+'°').join(', ')}. No repeated later-range change met this check’s threshold. These are your measured ranges, not a required depth.`:`${group.length} complete comparable ${group.length===1?'rep':'reps'} available; three are needed for a range trend. Film several full reps on one working side.`),cardId:finding?.id});
+  }
+  if(!guide.torso&&!checks.some(c=>!['tempo-eccentric-control','concentric-slowing','range-change','tempo-change'].includes(c.id)))checks.push({id:'posture-support',label:'Exercise-specific posture assessment',status:'unsupported',detail:'This exercise currently supports joint-motion and timing measurements, but has no dedicated posture detector. It cannot judge your overall technique or give this variation a form pass.'});
   if(cards.filter(card=>card.kind==='technique'||card.kind==='consistency').length===0)cards.push({id:'general-practice',kind:'practice',title:ready?'Your measured set, and one cue to practice':'A cue to practice next set',observed:`General practice cue — this is not a fault detected in your clip.${ready?' '+executionHighlights(group,hold?longest:[],phases):''}`,action:guide.practice,why:guide.why,cue:guide.practice.split('. ')[0]+'.',phase:hold?'hold':'setup',repIndexes:[]});
   const order={capture:0,technique:1,consistency:2,practice:3};
   cards.sort((a,b)=>order[a.kind]-order[b.kind]);
@@ -217,5 +240,6 @@ export function buildFormFeedback(exerciseId:string,result:SquatAnalysis,dimensi
     const ids=/body-line/.test(card.id)?[11,23,27]:/torso/.test(card.id)?[11,23]:guide.metric==='knee'?[23,25,27]:guide.metric==='hip'?[11,23,25]:guide.metric==='ankle'?[25,27,31]:guide.metric==='shoulder'?[13,11,23]:[11,13,15];
     if(side)card.highlight={side,joints:ids.map(id=>id+(side==='right'?1:0))};
   }
-  return {status:ready?'ready':'limited',summary:cards.some(card=>card.kind==='technique'||card.kind==='consistency')?'Review these moments, then choose one change to try on your next set.':ready?'No repeated change met these limited checks. This does not establish that your form is correct.':'The visible footage supports only limited feedback. Use the setup and practice cue before recording again.',cards:cards.slice(0,3),limitations};
+  const assessed=checks.filter(c=>c.status==='finding'||c.status==='not_detected').length,unavailable=checks.filter(c=>c.status==='unable'||c.status==='unsupported').length;
+  return {status:ready?'ready':'limited',summary:`${assessed} specific ${assessed===1?'check':'checks'} assessed from the visible footage; ${unavailable} ${unavailable===1?'check was':'checks were'} unavailable. `+(cards.some(card=>card.kind==='technique'||card.kind==='consistency')?'Review the observed findings and choose one cue to try.':'No finding met the checks that ran. This does not establish that your form is correct.'),cards:cards.slice(0,3),checks,coverage:{percent:Math.round(coverage*100),reps:group.length,...(hold?{holdSeconds:longest.at(-1)!.time-longest[0].time}:{})},limitations};
 }

@@ -191,6 +191,24 @@ async function run(){
     assert.notEqual(has(sag,'hip-sag-change').cue,has(pike,'hip-pike-change').cue);
     assert.ok(!has(sag,'hip-pike-change')&&!has(pike,'hip-sag-change'));
   }
+  // Constant deviations must not disappear merely because the first frame
+  // already contains them. These are synthetic direction/persistence checks.
+  for(const hold of [false,true])for(const direction of [1,-1])for(const mirror of [false,true]){
+    const constant=makeFeedbackFixture({exerciseId:'pushup',hold});
+    for(const frame of constant.result.frames){
+      for(const id of [23,24])frame.landmarks[id].y=.4+direction*.09;
+      if(mirror)for(const p of frame.landmarks)p.x=1-p.x;
+    }
+    const assessment=feedback(constant),id=direction===1?'hip-sag-change':'hip-pike-change';
+    assert.match(assessment.cards.find(c=>c.id===id)?.observed||'',/stayed/,'Persistent starting position receives a scoped observation');
+    assert.equal(assessment.checks.find(c=>c.id==='body-position').status,'finding');
+  }
+  assert.equal(steady.coverage.percent,100);
+  assert.ok(steady.checks.some(check=>check.status==='not_detected'));
+  const singlePushup=makeFeedbackFixture({exerciseId:'pushup',bodyChange:true,ranges:[100]});
+  assert.match(has(singlePushup,'hip-sag-change')?.observed||'',/one rep/);
+  assert.equal(feedback(singlePushup).checks.find(c=>c.id==='range-change').status,'unable');
+  assert.ok(feedback(shortCoverage).checks.every(check=>check.status==='unable'||check.status==='unsupported'),'Retake never reports passing checks');
   const phaseAt=(fixture,time)=>{const r=fixture.result.reps.find(r=>time>=r.start&&time<=r.end)||fixture.result.reps.at(-1);return (time-r.start)/(r.end-r.start);};
   const rotateArm=(fixture,drift,extension=false)=>{
     for(const frame of fixture.result.frames){
@@ -251,6 +269,11 @@ async function run(){
   const hiddenHeel=clone(heelRise);for(const f of hiddenHeel.result.frames)for(const j of [29,30])f.landmarks[j].visibility=.5;
   assert.ok(!has(hiddenHeel,'heel-rise-change'),'Hidden optional foot points abstain independently');
 
+  assert.equal(feedback(hiddenHeel).checks.find(c=>c.id==='heel-rise-change').status,'unable');
+  const brieflyHiddenHeel=clone(heelRise);
+  for(const frame of brieflyHiddenHeel.result.frames)if(Math.abs(frame.time-.5)<.01)for(const id of [29,30])frame.landmarks[id].visibility=.1;
+  assert.ok(has(brieflyHiddenHeel,'heel-rise-change'),'An optional landmark gap outside a sustained evidence window does not erase the entire check');
+  assert.equal(feedback(brieflyHiddenHeel).checks.find(c=>c.id==='heel-rise-change').status,'finding');
   const handDrift=makeFeedbackFixture({exerciseId:'rdl',metric:'hip'});
   for(const f of handDrift.result.frames)for(const o of [0,1]){const k=f.landmarks[25+o],amount=.35*Math.sin(Math.PI*phaseAt(handDrift,f.time))**2;f.landmarks[15+o]={...k,x:k.x+amount*200/600};}
   assert.ok(has(handDrift,'hinge-hand-drift'));

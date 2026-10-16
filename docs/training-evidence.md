@@ -1,6 +1,6 @@
 # Training evidence and planner rules
 
-Research checked **15 October 2026**. Scope: exercise split selection, training frequency, time budgets, experience, goals, and age context for Form's general fitness planner. This is a bounded review of official guidance and original systematic reviews, not a complete systematic review or clinical validation of the app.
+Research checked **16 October 2026**. Scope: exercise split selection, training frequency, time budgets, experience, goals, and age context for Form's general fitness planner. This is a bounded review of official guidance and original systematic reviews, not a complete systematic review or clinical validation of the app.
 
 **There is no universally best split.** The planner should choose an explainable starting arrangement that fits the person's goal, experience, actual selected weekdays, equipment, movement preferences, and available time. A deterministic schedule must not be described as clinically optimized, injury-proof, or guaranteed to produce a particular result.
 
@@ -54,7 +54,7 @@ Evaluate goals through both exercise choice and dose. Glute development can prio
 - **Ages 13–17:** use a supervised, technique-first starting approach consistent with youth guidance. If more days are selected, include age-appropriate easy activity/recovery entries rather than silently shortening the selected week. Do not claim a blanket age-based ban on frequent training; advanced youth programming needs qualified individual guidance.
 - **Ages 65+:** add relevant strength/balance context, but do not downgrade an experienced person's capability or impose a maximum training-day count solely because of age. Function, training history, constraints, and tolerance matter.
 - **Age not provided:** do not invent an age. Keep general conservative defaults and explain that age-specific context is unavailable.
-- **Time:** treat 10–120 minutes as an available budget, not a target to fill. Include warm-up, both sides of unilateral work, set recovery, and transitions. Prefer removing a lower-priority exercise or set over silently shortening necessary rest. A short constrained session must expose missing weekly coverage; a longer budget need not become excessive volume.
+- **Time:** treat 10–120 minutes as a session target with an upper bound. Aim near the target with useful strength work; expose significant per-day gaps rather than silently returning a much shorter plan. Include warm-up, both sides of unilateral work, set recovery, and transitions. Prefer removing a lower-priority exercise or set over silently shortening necessary rest. A short constrained session must expose missing weekly coverage; a longer budget need not become excessive volume.
 - **Style/equipment:** treat selected styles as preferences within actual equipment constraints. Choosing bodyweight alone excludes external weights; mixed preferences allow compatible alternatives. A machine/free-weight choice is not evidence of better results by itself.
 - **Progression:** begin below failure, monitor repeatable technique and logged performance, and explain why a target changes. Do not estimate clinical readiness, injury risk, or an exact percentage of maximum from age, body measurements, or the unvalidated movement model.
 
@@ -63,3 +63,39 @@ Evaluate goals through both exercise choice and dose. Glute development can prio
 Test weekdays as a seven-day cycle, substantial muscle overlap, every selected-day count, clustered availability, all duration endpoints, mixed styles, age omitted/13/17/18/65+, excluded movements, and unavailable equipment. Check that review, installed routines, warm-ups, and actual workout targets agree. An age-only change must not erase selected days or automatically classify an experienced older person as a beginner.
 
 Programmatic consistency tests are not evidence of physiological effectiveness. Before describing the planner as validated coaching, review representative plans with qualified professionals and evaluate actual user outcomes, adherence, and reported problems. Revisit the evidence when updating prescription rules; the 2026 frequency findings already illustrate why older summaries should not be treated as permanent absolutes.
+
+
+## Duration and session-structure update (16 October 2026)
+
+Additional sources reviewed:
+
+- [Iversen et al., 2021, *No Time to Lift?*](https://pmc.ncbi.nlm.nih.gov/articles/PMC8449772/): prioritize useful multi-joint work when time is limited; weekly work matters more than an arbitrary session-duration threshold. This narrative review does not validate Form's specific minute bands.
+- [Schoenfeld et al., 2016 randomized trial](https://pubmed.ncbi.nlm.nih.gov/26605807/): in 21 trained young men, three-minute rests outperformed one-minute rests on some strength and hypertrophy outcomes over eight weeks. This supports allowing adequate rest, not claiming three minutes is uniquely optimal for everybody.
+- [NSCA: determining training frequency](https://www.nsca.com/education/articles/kinetic-select/determination-of-resistance-training-frequency/): novice full-body training commonly uses two or three separated sessions; experienced users may distribute work across splits. Daily availability is not a requirement for daily hard lifting.
+- [NSCA older-adult position statement](https://www.nsca.com/about-us/position-statements/resistance-training-for-older-adults/): individualize around training history and capacity; age alone should not set an experienced user's exercise dose.
+
+### Product duration bands — implementation choices, not scientific cutoffs
+
+| Available time | Starting structure | Time-pressure rule |
+| --- | --- | --- |
+| 10–20 min | Brief main-movement practice, usually 1–3 exercises | Keep recovery and explain limited coverage; no claim that this is useless. |
+| 25–40 min | Main lifts first, generally 2–4 complementary movements | Reduce sets/accessories before rushing rest. |
+| 45–60 min | Main lifts and assistance, typically 4–6 exercises where equipment permits | Suggested general starting range in the intake; **not a minimum effective duration**. |
+| 65–90 min | Fuller strength sessions with progressive warm-up sets and complementary roles | Usually 5–8 movements depending on split; respect weekly workload ceilings. |
+| 95–120 min | Longer preparation or work where justified by the program | Never override dose/recovery bounds simply to fill two hours. Expose remaining time. |
+
+The UI suggests 30–45 minutes for new/youth trainees, 60–90 for non-novice strength goals, and 45–60 for other adult starting plans. These are adjustable product suggestions. The user's selected time is preserved. No cardio is added to fill gaps.
+
+### Session structure and dose accounting
+
+The calendar allocator still checks substantial overlap and Sunday-to-Monday recovery. Within a day, role templates distinguish horizontal/incline pressing, overhead pressing, lateral raises and triceps; rows, vertical pulls, rear-deltoid assistance and elbow flexors; squats, hinges, knee flexion/extension, hip work and calves. Equivalent alternatives cannot occupy two slots. Main compound lifts precede assistance. Useful lifts stay stable rather than changing equipment solely because they appeared earlier that week.
+
+The planner reserves weekly cluster, role and muscle budgets before selecting work. A full gym, experienced six-day muscle-building example at a 75-minute target has 5–6 exercises, 17–19 sets and estimated sessions of 61–68 minutes. This is a test fixture, not a prescription for every user. Novice two-set starts remain shorter, and the UI explicitly recommends reviewing the frequency/time combination. It does not conceal a 30-minute beginner split behind a 75-minute label.
+
+Approximate muscle accounting assigns full credit to principal muscles and half credit to selected supporting muscles. The default weekly ceiling is 12 credits for beginners and 18 for others, with a small explicit focus allowance and reduced one-day ceilings. Role and cluster ceilings also apply. These are engineering guardrails, **not validated individual stimulus estimates or weekly targets**. A ceiling is not a requirement to reach it. Equipment, exclusions, time and recovery can reduce delivered work.
+
+Time uses the actual displayed warm-up sequence, including progressive rehearsal sets for the first two eligible loaded compound targets, working-set duration, both sides of unilateral work, prescribed rest, and equipment setup. Estimates assume about three seconds per repetition and overlapping setup/rest where appropriate; they do not predict gym queues or the user's exact tempo. Warm-up seconds are shared by the estimator and the in-workout timer. A significant gap means at least 10 minutes and at least 20% of the target, and is shown for each affected resistance day.
+
+### Regression observations
+
+`test-training-duration.mjs` covers all 23 slider values (10–120 by 5), seven goal variants, three experience levels, and one through seven selected days: 3,381 plans. Separate coaching tests cover 700 equipment/exclusion/time cases and 508 cyclic schedules. Assertions cover time upper bounds, role uniqueness, exercise order, weekly dose ceilings, per-day gap explanations, and a substantive six-day 75-minute example. These are software consistency checks, not evidence of physiological efficacy.

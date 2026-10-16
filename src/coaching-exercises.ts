@@ -8,6 +8,13 @@ const movement=(id:string,name:string,muscle:string,equipment:string,instruction
 });
 
 export const coachingExercises:Exercise[]=[
+  movement('coach-leg-extension','Seated leg extension','Legs','Machine','Adjust the seat so your knees align with the machine pivot and the pad rests above your ankles. Keep your back and hips supported. Straighten your knees through a comfortable range without kicking or locking forcefully. Lower slowly and stop if the movement hurts.','Seated machine'),
+  movement('coach-hammer-curl','Dumbbell hammer curl','Arms','Dumbbells','Stand tall with dumbbells by your sides and palms facing inward. Keep the upper arms quiet while bending your elbows. Lift without rocking your torso or shrugging. Lower with control and keep the neutral grip throughout.','Neutral grip'),
+  movement('coach-cable-pushdown','Cable triceps pushdown','Arms','Cable','Attach a rope or short bar to a high cable. Stand balanced with your upper arms beside your ribs and wrists comfortable. Straighten your elbows without swinging your torso or driving your shoulders forward. Return under control, allowing the elbows to bend while the upper arms stay steady.','Standing cable'),
+  movement('coach-band-pushdown','Band triceps pushdown','Arms','Resistance band','Secure an undamaged band to a purpose-built high anchor. Stand balanced and keep your upper arms beside your ribs. Straighten your elbows without leaning on the band or shrugging. Bend your elbows slowly to return; stop if the anchor or band shifts.','Secure high anchor'),
+  movement('coach-supported-reverse-fly','Chest-supported reverse fly','Back','Dumbbells','Lie chest-down on a securely adjusted incline bench with your feet supported. Hold light dumbbells below your shoulders with elbows softly bent. Raise the arms out to the sides through a comfortable range without shrugging. Lower slowly while keeping your chest supported.','Incline bench, chest supported'),
+  movement('coach-straight-arm-pulldown','Straight-arm cable pull-down','Back','Cable','Attach a rope or bar to a high cable and stand in a balanced stance. Start with the arms raised only as far as comfortable and a small, fixed elbow bend. Bring the handles toward your thighs without rocking your torso. Return slowly while keeping your ribs over your hips.','Standing cable, soft elbows'),
+  movement('coach-incline-dumbbell-press','Incline dumbbell press','Chest','Dumbbells','Set a stable bench to a modest incline and bring the dumbbells beside your upper chest. Keep your feet planted and your back supported. Press upward with wrists above elbows, without shrugging or forcing your elbows wide. Lower with control and return the weights safely to your thighs when finished.','Low incline bench'),
   movement('coach-wall-pushup','Wall push-up','Chest','Bodyweight','Stand facing a solid wall and place your hands slightly wider than your shoulders. Step back until you can lean toward the wall with your body in one line. Bend your elbows to bring your chest toward the wall, then press away without shrugging. Move your feet closer if the effort is too high.','Wall-supported'),
   movement('gym-961-incline-push-up','Incline push-up','Chest','Bodyweight','Place your hands on a stable, immovable bench or counter. Walk your feet back and keep your ribs and hips aligned. Lower your chest toward the support with elbows comfortably angled from your body. Press back up; use a higher support to make it easier.','Stable elevated support'),
   movement('coach-standing-hip-abduction','Standing hip abduction','Glutes','Bodyweight','Stand tall beside a wall and use a hand for balance. Keep your pelvis level and toes facing forward. Move one leg a short distance sideways without leaning your trunk. Return slowly and complete both sides.','Standing, supported'),
@@ -42,6 +49,13 @@ export type MovementPattern='squat'|'hinge'|'glute'|'push'|'pull'|'shoulder'|'ar
 export type CoachingMovement={pattern:MovementPattern;areas:string[];compound?:boolean;unilateral?:boolean;floor?:boolean;overhead?:boolean;deepKnee?:boolean;experienced?:boolean;balance?:boolean};
 // Exclusion flags describe the whole setup, not just the working portion.
 export const coachingMovement:Record<string,CoachingMovement>={
+  'coach-leg-extension':{pattern:'squat',areas:['Legs'],deepKnee:true},
+  'coach-hammer-curl':{pattern:'arms',areas:['Arms']},
+  'coach-cable-pushdown':{pattern:'push',areas:['Arms']},
+  'coach-band-pushdown':{pattern:'push',areas:['Arms']},
+  'coach-supported-reverse-fly':{pattern:'pull',areas:['Back','Shoulders']},
+  'coach-straight-arm-pulldown':{pattern:'pull',areas:['Back'],overhead:true},
+  'coach-incline-dumbbell-press':{pattern:'push',areas:['Chest','Arms'],compound:true},
   squat:{pattern:'squat',areas:['Legs','Glutes'],compound:true,deepKnee:true},
   pushup:{pattern:'push',areas:['Chest','Arms'],compound:true,floor:true},
   curl:{pattern:'arms',areas:['Arms']},
@@ -81,3 +95,19 @@ export const coachingMovement:Record<string,CoachingMovement>={
   'coach-band-hip-abduction':{pattern:'glute',areas:['Glutes'],unilateral:true,balance:true},
   'gym-2428-band-pull-apart':{pattern:'pull',areas:['Back','Shoulders']},
 };
+
+// Distinct training roles permit a row + vertical pull, or press + triceps,
+// without filling a session with equivalent variants of the same movement.
+export function coachingRole(id:string):string{
+  if(id==='coach-leg-extension')return 'knee-extension';
+  if(id==='coach-hammer-curl')return 'neutral-curl';
+  if(['coach-cable-pushdown','coach-band-pushdown'].includes(id))return 'triceps';
+  if(id==='coach-incline-dumbbell-press')return 'incline-press';
+  if(id==='gym-2580-dumbbell-lateral-raise')return 'lateral-raise';
+  if(id==='gym-1473-lat-pull-down')return 'vertical-pull';
+  if(['coach-supported-reverse-fly','gym-2428-band-pull-apart'].includes(id))return 'rear-delt';
+  if(id==='coach-straight-arm-pulldown')return 'lat-isolation';
+  if(id==='gym-1351-seated-leg-curl')return 'knee-flexion';
+  if(['hip-abduction','coach-standing-hip-abduction','coach-band-hip-abduction','coach-machine-hip-abduction'].includes(id))return 'hip-abduction';
+  return coachingMovement[id]?.pattern||id;
+}

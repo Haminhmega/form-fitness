@@ -1,4 +1,9 @@
 .form-feedback{margin:24px 0;color:#eef2e8}
+.feedback-assessment{margin:18px 0 24px;padding:18px;border:1px solid var(--border,#3b4433);border-radius:16px;background:var(--surface,#1c2319)}
+.feedback-assessment h4{margin:0 0 10px;font-size:19px}.feedback-assessment p{font-size:14px;line-height:1.6;margin:8px 0}
+.feedback-assessment ul{list-style:none;padding:0;margin:16px 0}.feedback-assessment li{padding:13px 0;border-top:1px solid var(--border,#3b4433)}
+.feedback-assessment li>div{display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:space-between}.feedback-assessment li span{font-size:12px;padding:4px 8px;border:1px solid currentColor;border-radius:8px}
+.assessment-finding span{color:#ffb46b}.assessment-unable span,.assessment-unsupported span{color:#d1d4cc}.assessment-not_detected span{color:var(--accent)}
 .feedback-phase{display:inline-flex;padding:5px 10px;border:1px solid var(--accent);border-radius:999px;color:var(--accent);font-size:12px;margin:0 0 12px}
 .feedback-cue{border-left:3px solid var(--accent);background:color-mix(in srgb,var(--accent) 8%,transparent);padding:12px 15px;margin:0 0 14px;border-radius:0 10px 10px 0}
 .feedback-cue strong{font-size:12px;color:var(--accent)}

@@ -77,3 +77,7 @@
 .coaching-dialog .dialog-actions{margin-top:22px;padding-top:17px;border-top:1px solid #39472e}
 .coach-dialog-error{font-size:12px;padding:12px;background:#362b20;border:1px solid #7c6146;border-radius:8px;color:#f0d3b2}
 @media(max-width:480px){.coach-goals{grid-template-columns:1fr}.coach-choice{padding:13px;gap:8px}.coach-choice strong{font-size:12px}.coach-options.two .coach-choice{padding:12px 10px}.coach-plan-lead{padding:16px;gap:11px}.coach-days{gap:4px}.coach-days button{font-size:10px}.coach-chips{gap:6px}.coach-chips button{padding:8px 11px}.dialog.coaching-dialog{width:calc(100% - 20px);max-height:calc(100dvh - 24px);padding:23px 18px}.coach-plan-facts{gap:16px 10px}.coaching-dialog .dialog-actions .btn{padding-left:12px;padding-right:12px;font-size:12px}}
+
+.coach-time-advice{padding:16px;border:1px solid var(--border);border-radius:12px;margin:12px 0;background:var(--surface)}
+.coach-time-advice>strong{color:var(--accent)}
+.coach-time-advice p{font-size:13px;line-height:1.6;margin:8px 0 12px}

@@ -135,8 +135,9 @@ const gluteExercises=[
 const suggested=buildRecommendedRoutine(preferences,gluteExercises);
 assert.equal(suggested.id,'form-recommended');
 assert.match(suggested.name,/Glutes/i);
-assert.equal(suggested.exercises[0].exerciseId,'glute-bridge');
-assert.deepEqual([suggested.exercises[0].sets,suggested.exercises[0].reps,suggested.exercises[0].rest],[2,'10–15',60]);
+assert.equal(suggested.exercises[0].exerciseId,'rdl','Main hinge precedes glute assistance work');
+assert.ok(suggested.exercises.some(item=>item.exerciseId==='glute-bridge'));
+assert.deepEqual([suggested.exercises[0].sets,suggested.exercises[0].reps,suggested.exercises[0].rest],[2,'10–15',90]);
 assert.match(suggested.exercises[0].notes,/technique/i);
 assert.match(restReason(preferences,60),/technique/i);
 const warmup=buildWarmup(suggested,gluteExercises);
@@ -144,11 +145,11 @@ assert.equal(warmup[0].target,'Whole body');
 assert.ok(warmup.some(move=>move.target==='Glutes'));
 assert.equal(new Set(warmup.map(move=>move.target)).size,warmup.length);
 const strengthPrescription=recommendedPrescription({...preferences,goal:'Build strength',experience:'Experienced'},exercise);
-assert.deepEqual([strengthPrescription.sets,strengthPrescription.reps,strengthPrescription.rest],[4,'5–8',150]);
+assert.deepEqual([strengthPrescription.sets,strengthPrescription.reps,strengthPrescription.rest],[4,'5–8',180]);
 const manualStrengthPreferences={...preferences,goal:'Build strength',experience:'Experienced'};
 for(const age of [13,16,17]){
   const youthPrescription=recommendedPrescription(manualStrengthPreferences,exercise,{age});
-  assert.deepEqual([youthPrescription.sets,youthPrescription.reps,youthPrescription.rest],[2,'10–15',60],'Manual exercise suggestions honor youth age even with experienced strength preferences');
+  assert.deepEqual([youthPrescription.sets,youthPrescription.reps,youthPrescription.rest],[2,'10–15',90],'Manual exercise suggestions honor youth age even with experienced strength preferences');
   assert.match(youthPrescription.notes,/qualified supervision/);
 }
 assert.deepEqual(recommendedPrescription(manualStrengthPreferences,exercise,{age:18}),strengthPrescription,'Adult manual suggestions retain the existing prescription');

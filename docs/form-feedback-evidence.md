@@ -85,3 +85,16 @@ Verification: `npm run test:ai` retains the original squat/generic/specific/prio
 Synthetic landmark tests can check math, segmentation, timestamp selection, uncertainty gates, and wording. They cannot establish real-video form-coaching accuracy. Before using labels such as “verified form,” obtain consented, representative clips reviewed independently by qualified exercise professionals; include different bodies, clothing, phones, orientations, equipment, intentional variations, and camera errors.
 
 Evaluate each cue separately: false positives, missed observations, agreement on the timestamp, abstention when the view is unsuitable, and whether users understand and can act on the suggestion. Keep training/tuning clips separate from evaluation clips and test new exercise variants independently. A rep-count benchmark does not validate posture advice, and model detection confidence does not replace those evaluations.
+
+
+### Assessment coverage and sustained starting positions (16 October 2026)
+
+This revision supersedes the two-repetition requirement in the spatial-rule table above. One fully observed qualifying rep can produce a clearly scoped single-rep observation; it is not called a repeated set-wide pattern. Isolated reps from fragmented/switching-side groups are not combined. Tempo/range comparisons keep their multi-rep requirements.
+
+Hip-position checks now also consider an absolute projected hip offset of 0.20 torso lengths, sustained for 0.6 seconds in a rep or 1 second in a hold. This catches a deviation already present at the start. These remain heuristic review prompts; level camera and sufficient side view are essential, and deliberate variations are possible explanations. No universal posture or safety conclusion is inferred.
+
+Optional kinematic metrics require at least 80% usable samples in a rep and a sufficient visible opening baseline. A brief missing optional landmark no longer discards all evidence in the rep. Missing samples still break sustained windows and are never interpolated. Each check marks itself assessed only after an uninterrupted numerical evidence window, or its explicitly required comparison, actually runs.
+
+The UI separates observed findings, no finding in checked footage, unable-to-assess, and unsupported checks. It shows tracking coverage and comparable reps/hold duration, with specific re-recording advice and visible limits. Legacy body-line, torso, overall pace and range checks also appear in the assessment list. Prioritized actions and replay links appear before the detailed coverage list.
+
+Synthetic regressions cover constant sag/pike in both facing directions, one-rep wording, missing optional joints, available/unavailable status, and retake abstention. Browser tests use mocked inference and decoding, and verify visible coverage states plus same-side replay highlights. Real-video coaching accuracy and physical-iPhone validation remain pending.

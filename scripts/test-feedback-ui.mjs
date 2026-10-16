@@ -39,6 +39,10 @@ try{
   await page.locator('input[type=file]').setInputFiles({name:'synthetic.webm',mimeType:'video/webm',buffer:Buffer.from('UI fixture, no video data')});
   await page.getByRole('checkbox',{name:/I confirm/}).check();
   await page.getByRole('button',{name:'Analyze push-up video',exact:true}).click();
+  await expect(page.getByRole('region',{name:'What was assessed'})).toBeVisible();
+  await expect(page.locator('.feedback-assessment')).toContainText('Observed finding');
+  await expect(page.locator('.feedback-assessment')).toContainText('Cannot assess from this video');
+  await expect(page.locator('.feedback-assessment')).toContainText('No finding in checked footage');
   const card=page.locator('.form-feedback-card').filter({has:page.getByRole('heading',{name:'Review your hips dropping',exact:true})});
   await expect(card.locator('.feedback-phase')).toHaveText('Lowering phase');
   await expect(card.locator('.feedback-cue')).toContainText('Brace');

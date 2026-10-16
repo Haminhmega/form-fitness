@@ -59,14 +59,14 @@ try {
  await recovered.locator('.train-filter-disclosure > summary').click();
  await recovered.getByRole('checkbox',{name:/Focused beta AI checks only/}).check();
  await recovered.getByLabel('Search exercises',{exact:true}).fill('Seated Calf Raise');
- await recovered.getByRole('button',{name:'View Seated Calf Raise details',exact:true}).click();
+ await recovered.getByRole('button',{name:/^View Seated calf raise details$/i}).click();
  await recovered.getByRole('button',{name:'Check a video of this exercise',exact:true}).click();
- await expect(recovered.getByRole('heading',{name:'Seated Calf Raise',exact:true}).first()).toBeVisible();
+ await expect(recovered.getByRole('heading',{name:/^Seated calf raise$/i}).first()).toBeVisible();
  const selectedURL=recovered.url();
  await recovered.reload();
- await expect(recovered.getByRole('heading',{name:'Seated Calf Raise',exact:true}).first()).toBeVisible();
+ await expect(recovered.getByRole('heading',{name:/^Seated calf raise$/i}).first()).toBeVisible();
  const deepLink=await context.newPage();await deepLink.goto(selectedURL);
- await expect(deepLink.getByRole('heading',{name:'Seated Calf Raise',exact:true}).first()).toBeVisible();
+ await expect(deepLink.getByRole('heading',{name:/^Seated calf raise$/i}).first()).toBeVisible();
  await expect(deepLink.getByText(/Real-world accuracy has not been validated/)).toBeVisible();
  await deepLink.goto(base+'#form-test');
  await expect.poll(()=>deepLink.getByLabel('Movement experience').locator('option').count()).toBeGreaterThanOrEqual(100);

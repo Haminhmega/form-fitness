@@ -17,6 +17,13 @@ export function FormFeedbackPanel({feedback,onReview}:{feedback:FormFeedback;onR
       <details className="feedback-why"><summary>Why this may help</summary>{card.biomechanics&&<p>{card.biomechanics}</p>}<p>{card.why}</p></details>
       {card.time!==undefined&&<button className="btn secondary feedback-review" onClick={()=>onReview(card.time!,card.repIndexes[0],card)}><Focus size={16}/>Review moment at {timestamp(card.time)}<ArrowRight size={16}/></button>}
     </article>)}</div>
+    <section className="feedback-assessment" aria-label="What was assessed">
+      <h4>What I could assess</h4>
+      {feedback.coverage&&<p>{feedback.coverage.percent}% usable tracking · {feedback.coverage.holdSeconds!==undefined?`${feedback.coverage.holdSeconds.toFixed(1)} seconds of continuous hold`:`${feedback.coverage.reps} complete comparable reps`}</p>}
+      <p>“No finding” applies only to the named check and visible footage. It is not a form pass.</p>
+      <ul>{feedback.checks.map(check=><li key={check.id} className={`assessment-${check.status}`}><div><strong>{check.label}</strong><span>{({finding:'Observed finding',not_detected:'No finding in checked footage',unable:'Could not assess',unsupported:'Not supported yet'})[check.status]}</span></div><p>{check.detail}</p></li>)}</ul>
+      <p><strong>Cannot assess from this video:</strong> spinal curvature, muscle activation, exact load or grip, pain, injury risk, or whether the exercise is safe for you.</p>
+    </section>
     <details className="feedback-limits"><summary>What this video can and can’t tell us</summary><ul>{feedback.limitations.map((limitation,index)=><li key={index}>{limitation}</li>)}</ul><p>Suggestions combine visible movement estimates with exercise teaching cues. They are experimental, not a form grade or a safety clearance.</p><a href="https://www.acefitness.org/resources/everyone/exercise-library/" target="_blank" rel="noopener noreferrer">Exercise teaching reference ↗</a><a href="https://developers.google.com/edge/mediapipe/solutions/vision/pose_landmarker" target="_blank" rel="noopener noreferrer">How pose tracking works ↗</a></details>
   </section>;
 }

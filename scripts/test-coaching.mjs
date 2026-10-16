@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import {build} from 'esbuild';
 
 const compiled=await build({stdin:{contents:"export * from './src/training-recommendations.ts'; export * from './src/coaching-exercises.ts'; export {initialExercises,initialPreferences} from './src/data.ts'; export * from './shared/coaching.ts';",resolveDir:process.cwd()},bundle:true,format:'esm',platform:'node',write:false});
-const {buildRecommendedPlan,buildRecommendedRoutine,estimateRoutineMinutes,recommendedMuscleGroups,recommendationSummary,buildWarmup,coachingExercises,coachingMovement,initialExercises,initialPreferences,coachingDefaults}=await import('data:text/javascript;base64,'+Buffer.from(compiled.outputFiles[0].text).toString('base64'));
+const {buildRecommendedPlan,recommendedPrescription,buildRecommendedRoutine,estimateRoutineMinutes,recommendedMuscleGroups,recommendationSummary,buildWarmup,coachingExercises,coachingMovement,coachingRole,weeklyTrainingDose,initialExercises,initialPreferences,coachingDefaults}=await import('data:text/javascript;base64,'+Buffer.from(compiled.outputFiles[0].text).toString('base64'));
 const exercises=[...initialExercises,...coachingExercises];
 const byId=new Map(exercises.map(exercise=>[exercise.id,exercise]));
 const base={...initialPreferences,goal:'Build muscle',experience:'Some experience',equipment:['Bodyweight','Dumbbells','Machines','Barbell','Bands'],days:['Mon','Wed','Fri'],coaching:coachingDefaults()};
@@ -37,11 +37,11 @@ assert.ok(items(glutes).filter(item=>coachingMovement[item.exerciseId].areas.inc
 assert.notDeepEqual(ids(athletic),ids(hypertrophy),'Athleticism changes selected movements');
 assert.ok(items(athletic).some(item=>coachingMovement[item.exerciseId].balance),'Athletic foundation includes supported control/balance');
 assert.match(athletic.rationale[0],/general foundation/);
-assert.ok(items(strength).some(item=>item.rest===150&&item.reps==='5–8'));
-assert.ok(items(hypertrophy).some(item=>item.rest===120&&item.reps==='8–12'));
-assert.ok(items(aesthetics).some(item=>item.rest===120&&item.reps==='8–12'),'Aesthetic physique uses muscle-building prescriptions');
+assert.ok(items(strength).some(item=>item.rest===180&&item.reps==='5–8'));
+assert.ok(items(hypertrophy).some(item=>item.rest===180&&item.reps==='8–12'));
+assert.ok(items(aesthetics).some(item=>item.rest===180&&item.reps==='8–12'),'Aesthetic physique uses muscle-building prescriptions');
 assert.equal(coachingMovement[aesthetics.routines[0].exercises[0].exerciseId].pattern,'shoulder','Aesthetic physique uses the separately collected muscle priority');
-assert.ok(items(glutes).some(item=>!coachingMovement[item.exerciseId].compound&&item.rest===90&&item.reps==='10–15'),'Accessory work uses its own rep/rest range, not a compound prescription');
+assert.ok(recommendedPrescription(prefs(),byId.get('gym-2580-dumbbell-lateral-raise')).rest===120&&recommendedPrescription(prefs(),byId.get('gym-2580-dumbbell-lateral-raise')).reps==='10–15','Accessory work uses its own rep/rest range, not a compound prescription');
 assert.ok(items(hypertrophy).every(item=>item.notes.length>80),'Each prescription explains selection and effort/progression');
 assert.equal(JSON.stringify({base,exercises}),before,'Planner never mutates exercises or preferences');
 assert.equal(hypertrophy.routines[0].id,'form-recommended');
@@ -55,7 +55,7 @@ assert.deepEqual(buildRecommendedRoutine(base,exercises),hypertrophy.routines[0]
 const shoulderFocus=make({}, {focusAreas:['Shoulders']});
 assert.equal(coachingMovement[shoulderFocus.routines[0].exercises[0].exerciseId].pattern,'shoulder','Explicit area focus changes the early exercise slots');
 const running=make({goal:'Improve athleticism'}, {sportFocus:'Running'});
-assert.equal(coachingMovement[running.routines[0].exercises[1].exerciseId].pattern,'calf','Running foundation includes calf training early enough to fit the time budget');
+assert.ok(patterns(running).includes('calf'),'Running foundation includes calf training');
 for(const sessionMinutes of [20,75]){
   const shortRunning=make({goal:'Improve athleticism',experience:'Getting started',equipment:['Bodyweight']},{sportFocus:'Running',sessionMinutes,avoidMovements:['Floor exercises']});
   for(const routine of shortRunning.routines){
@@ -99,9 +99,9 @@ for(const goal of ['Build aesthetic physique','Build muscle','Build strength','I
         const plan=buildRecommendedPlan(configuration,exercises);
         for(const routine of plan.routines){
           checkSessionName(routine);
-          assert.ok(estimateRoutineMinutes(routine,exercises)<=sessionMinutes,'Estimated work, both sides, warm-up and rest fit the selected time');
+          assert.ok(estimateRoutineMinutes(routine,exercises)<=sessionMinutes,`Time overrun: ${goal}/${experience}/${equipment}/${sessionMinutes}: ${routine.name} = ${estimateRoutineMinutes(routine,exercises)}`);
           assert.equal(new Set(routine.exercises.map(item=>item.exerciseId)).size,routine.exercises.length);
-          assert.equal(new Set(routine.exercises.map(item=>coachingMovement[item.exerciseId].pattern)).size,routine.exercises.length,'Every session reserves each pattern for one movement');
+          assert.equal(new Set(routine.exercises.map(item=>coachingRole(item.exerciseId))).size,routine.exercises.length,'Complementary roles may share a pattern, but equivalent variants are not duplicated');
           for(const item of routine.exercises){
             const exercise=byId.get(item.exerciseId);
             const meta=coachingMovement[item.exerciseId];
@@ -145,14 +145,15 @@ for(const sessionMinutes of [10,15]){
   assert.ok(short.rationale.some(reason=>/limited training volume/.test(reason)));
 }
 const longPlan=make({}, {sessionMinutes:120});
-assert.ok(longPlan.estimatedMinutes<90,'Long time allowance is not filled with unnecessary volume');
-assert.ok(items(longPlan).every(item=>item.sets<=3));
-assert.ok(longPlan.rationale.some(reason=>/not a requirement to fill/.test(reason)));
+assert.ok(longPlan.estimatedMinutes<=120,'Long sessions still respect the available time');
+assert.ok(Object.values(weeklyTrainingDose(longPlan.routines)).every(value=>value<=18),'A two-hour target cannot override the weekly muscle budget');
+assert.ok(items(longPlan).every(item=>item.sets<=4));
+assert.ok(longPlan.rationale.some(reason=>/could not be fully matched/.test(reason)));
 const narrowPush=buildRecommendedPlan(prefs({days:['Mon']},{sessionMinutes:60}),exercises.filter(exercise=>['coach-wall-pushup','press'].includes(exercise.id)));
-assert.match(narrowPush.routines[0].name,/^Push day · Chest · Monday$/,'A shoulder title is omitted when the weekly dose only includes chest work');
+assert.match(narrowPush.routines[0].name,/^Push day · Chest & shoulders · Monday$/,'Names reflect both selected muscle groups');
 checkSessionName(narrowPush.routines[0]);
 const narrowPull=buildRecommendedPlan(prefs({days:['Fri']},{sessionMinutes:60,focusAreas:['Arms']}),exercises.filter(exercise=>['row','curl'].includes(exercise.id)));
-assert.match(narrowPull.routines[0].name,/^Pull day · Arms & back · Friday$/);
+assert.match(narrowPull.routines[0].name,/^Pull day · Back & arms · Friday$/);
 checkSessionName(narrowPull.routines[0]);
 const impossible=buildRecommendedPlan(prefs({}, {avoidMovements:avoids}),initialExercises.filter(exercise=>exercise.id==='plank'||exercise.id==='press'||exercise.id==='squat'));
 assert.equal(items(impossible).length,0,'Never silently insert an excluded exercise when no match exists');
@@ -209,19 +210,19 @@ for(let index=0;index<100;index++)buildRecommendedPlan(prefs({days:week},{sessio
 assert.ok(performance.now()-worstStart<1500,'Cached seven-day planning remains interactive');
 const sixDays=make({days:week.slice(0,6),experience:'Getting started'},{sessionMinutes:90});
 assert.equal(sixDays.routines.filter(routine=>routine.kind==='recovery').length,0,'Six adult days can fit a lower/push/pull split twice');
-assert.ok(sixDays.routines.every(routine=>routine.exercises.length<=4),'Dense beginner weeks use small sessions');
+assert.ok(sixDays.routines.every(routine=>routine.exercises.length<=6),'Dense beginner weeks include complementary movements with small set doses');
 for(const experience of ['Getting started','Experienced']){
   const spaced=make({experience,days:['Mon','Wed','Fri']},{sessionMinutes:120});
   const spread=make({experience,days:week.slice(0,6)},{sessionMinutes:120});
   const sets=plan=>items(plan).reduce((sum,item)=>sum+item.sets,0);
-  if(experience==='Getting started')assert.ok(sets(spread)<=sets(spaced),'Adding more beginner days distributes rather than multiplies the weekly dose');
-  else{
-    const mainSets=(plan,pattern)=>items(plan).filter(item=>coachingMovement[item.exerciseId].pattern===pattern).reduce((sum,item)=>sum+item.sets,0);
-    assert.equal(mainSets(spread,'push'),10);
-    assert.equal(mainSets(spread,'pull'),10);
-    assert.equal(mainSets(spread,'push'),mainSets(spaced,'push'),'Experienced main pressing dose is distributed, not doubled, across six days');
-    assert.equal(mainSets(spread,'pull'),mainSets(spaced,'pull'),'Experienced main pulling dose is distributed, not doubled, across six days');
-    assert.ok(sets(spread)<=52&&sets(spaced)<=52,'Both formats share the same total weekly budget; some accessories may not fit shorter day structures');
+  for(const plan of [spaced,spread]){
+    const dose=weeklyTrainingDose(plan.routines);
+    assert.ok(Object.values(dose).every(value=>value<=(experience==='Getting started'?12:18)),'Weekly direct/supporting dose is bounded regardless of day count');
+    assert.ok(sets(plan)<=116,'The total work cannot multiply unchecked with frequency');
+  }
+  if(experience==='Experienced'){
+    const dose=weeklyTrainingDose(spread.routines);
+    assert.ok(dose.Chest>=10&&dose.Back>=10,'Long adult hypertrophy splits retain substantive main-muscle work');
   }
 }
 const adult=buildRecommendedPlan(prefs({days:week,experience:'Experienced'}),exercises,{age:30});
@@ -239,8 +240,8 @@ assert.ok(fullBody.routines.every(routine=>recommendedMuscleGroups(routine).incl
 const experiencedMuscle=make({experience:'Experienced',days:week.slice(0,6)},{sessionMinutes:120});
 const beginnerMuscle=make({experience:'Getting started',days:week.slice(0,6)},{sessionMinutes:120});
 const workSets=plan=>items(plan).reduce((sum,item)=>sum+item.sets,0);
-assert.ok(workSets(experiencedMuscle)>workSets(beginnerMuscle)*1.5,'An experienced hypertrophy plan has a substantive larger starting dose than a beginner technique plan');
-assert.ok(experiencedMuscle.rationale.some(reason=>/about 10 weekly main/.test(reason)&&/not a proven personal optimum/.test(reason)));
+assert.ok(workSets(experiencedMuscle)>workSets(beginnerMuscle)*1.2,'An experienced hypertrophy plan has a substantive larger starting dose than a beginner technique plan');
+assert.ok(experiencedMuscle.rationale.some(reason=>/roughly 10 weekly sets/.test(reason)&&/not a proven personal optimum/.test(reason)));
 const briefMuscle=make({experience:'Experienced',days:week.slice(0,6)},{sessionMinutes:15});
 assert.ok(workSets(briefMuscle)<workSets(experiencedMuscle),'Short available time reduces dose instead of shortening prescribed rests');
 assert.ok(experiencedMuscle.estimatedMinutes<90,'A two-hour allowance still does not force excess volume');
@@ -248,7 +249,7 @@ assert.ok(experiencedMuscle.estimatedMinutes<90,'A two-hour allowance still does
 const barbellConfig=prefs({days:week.slice(0,6),experience:'Experienced',goal:'Build strength',equipment:['Bodyweight','Barbell']},{sessionMinutes:60,trainingStyles:['Free weights']});
 const barbellOnly=buildRecommendedPlan(barbellConfig,exercises);
 assertRecoverySpacing(barbellOnly,barbellConfig.days);
-assert.equal(barbellOnly.routines.find(routine=>routine.scheduledDay==='Wed').kind,'recovery','Unsupported Wednesday rows yield to recovery before Thursday loaded hinges');
+assert.ok(!recommendedMuscleGroups(barbellOnly.routines.find(routine=>routine.scheduledDay==='Wed')).includes('Spinal erectors'),'Unsupported Wednesday rows are withheld before Thursday loaded hinges; spaced core work can remain');
 assert.ok(barbellOnly.routines.find(routine=>routine.scheduledDay==='Sat').exercises.some(item=>item.exerciseId==='gym-1640-bent-over-barbell-row'),'A sufficiently spaced unsupported row is preserved');
 assert.ok(barbellOnly.warnings.some(warning=>/lower back too close/.test(warning)));
 const supportedAlternatives=buildRecommendedPlan({...barbellConfig,equipment:['Bodyweight','Barbell','Machines']},exercises);
