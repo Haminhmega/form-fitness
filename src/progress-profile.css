@@ -11,3 +11,38 @@
 @media(max-width:760px){.progress-page .history-actions .btn{flex:1}.progress-page .history-set-row{grid-template-columns:45px 1fr 1fr;gap:7px;padding:8px}.progress-page .history-set-row input{padding:7px 5px}}
 
 .profile-page .profile-disclosure>summary{cursor:pointer;list-style:none}.profile-page .profile-disclosure>summary::-webkit-details-marker{display:none}.profile-page .profile-disclosure .disclosure-chevron{transition:transform .18s ease}.profile-page .profile-disclosure[open] .disclosure-chevron{transform:rotate(90deg)}.profile-page .profile-disclosure:not([open])>summary{padding-bottom:0;border-bottom:0}.profile-page .profile-disclosure[open]>summary{margin-bottom:2px}
+@media(max-width:600px){
+ .profile-page .page-heading,.progress-page .page-heading{flex-direction:column;align-items:flex-start;gap:12px}
+ .profile-page .profile-card{padding:20px 16px;gap:14px}
+ .profile-page .profile-identity{min-width:0;flex-basis:calc(100% - 70px)}
+ .profile-page .profile-identity h2{font-size:20px;line-height:1.35;overflow-wrap:anywhere}
+ .profile-page .profile-identity .muted{font-size:13px;line-height:1.6}
+ .profile-page .profile-card>.btn{margin-left:0;width:100%;font-size:14px;min-height:48px}
+ .profile-page .settings-panel{padding:20px 16px}
+ .profile-page .settings-title{gap:10px;flex-wrap:wrap}
+ .profile-page .settings-title>div{min-width:0;flex-basis:calc(100% - 65px)}
+ .profile-page .settings-title h2{font-size:19px;line-height:1.35}
+ .profile-page .settings-title .eyebrow{font-size:10px;line-height:1.5;letter-spacing:.8px}
+ .profile-page .settings-title .badge{font-size:11px}
+ .profile-page .profile-setting{gap:14px;padding:20px 0}
+ .profile-page .profile-setting>div{min-width:0}
+ .profile-page .profile-setting h3{font-size:15px;line-height:1.5}
+ .profile-page .profile-setting p{font-size:13px;line-height:1.7}
+ .profile-page .unit-setting{flex-direction:column;align-items:stretch}
+ .profile-page .unit-setting .source-segments{display:flex;flex:none;width:100%}
+ .profile-page .unit-setting .source-segments button{flex:1;font-size:14px;min-height:46px}
+ .profile-page .profile-facts{gap:18px}
+ .profile-page .profile-facts>div{flex-direction:column;gap:6px;font-size:13px}
+ .profile-page .profile-facts>div strong{max-width:100%;text-align:left;font-size:14px;line-height:1.6;overflow-wrap:anywhere}
+ .profile-page .settings-note,.profile-page .privacy-note,.profile-page .video-retention p{font-size:13px;line-height:1.7}
+ .profile-page .profile-footer{flex-wrap:wrap;gap:15px}
+ .profile-page .profile-footer p{font-size:12px}
+ .progress-page .source-segments{max-width:100%;flex-wrap:wrap}
+ .progress-page .source-segments button{font-size:13px;min-height:44px;padding:9px 11px}
+ .progress-page .progress-source>.muted,.progress-page .progress-footnote{font-size:12px;line-height:1.6}
+ .progress-page .summary-stat>span,.progress-page .summary-stat>strong>span{font-size:12px}
+ .progress-page .history-title strong{font-size:15px;line-height:1.5;overflow-wrap:anywhere}
+ .progress-page .history-meta{font-size:12px;flex-wrap:wrap}
+ .progress-page .history-entry>summary{gap:12px}
+ .progress-page .history-set-row input{font-size:16px}
+}

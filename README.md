@@ -8,7 +8,7 @@ Live app: https://formfitness.fit. Open in iPhone Safari and choose Share → Ad
 
 Run npm install, npm run prepare:ai, then npm run dev -- --port 5192.
 
-Checks: npm run test:ai, npm run test:accounts, npm run test:workout, npm run test:coaching, npm run test:measurements, npm run test:catalog, npm run test:anatomy, npm run test:recovery, and npm run build.
+Checks: npm run test:ai, npm run test:camera, npm run test:accounts, npm run test:workout, npm run test:coaching, npm run test:measurements, npm run test:catalog, npm run test:anatomy, npm run test:recovery, and npm run build.
 
 scripts/test-account-recovery.mjs runs isolated browser account fixtures; scripts/smoke-review-update.mjs checks the integrated workout and library at port 5192 (override with FORM_TEST_URL). Set PLAYWRIGHT_CHROMIUM_EXECUTABLE to use an existing browser executable.
 
@@ -23,7 +23,7 @@ scripts/test-account-recovery.mjs runs isolated browser account fixtures; script
 
 ## Motion checks
 
-Choose Check my form or open /#form-test. Select the exercise, follow its camera setup, choose a playable 2–60 second clip (maximum 100 MB), and confirm the person and movement. The app runs MediaPipe pose estimation locally and measures visible joint cycles, tempo, range comparisons or hold duration. Catalog recording links preserve the selected exercise on reload.
+Choose Check my form or open /#form-test. Select the exercise, follow its camera setup, film in the app or choose a playable 2–60 second clip (maximum 100 MB), and confirm the person and movement. The app runs MediaPipe pose estimation locally and measures visible joint cycles, tempo, range comparisons or hold duration. Catalog recording links preserve the selected exercise on reload.
 
 All movement rules are experimental, including squats. Synthetic tests check rule behavior; there is no held-out real-video accuracy benchmark or physical-iPhone validation. The app does not identify the exercise automatically, infer load or grip, grade technique, or predict safety. It reports partial/unable results when the view is insufficient. See AI-TEST.md and docs/ai-100-expansion.md.
 
@@ -36,3 +36,15 @@ Email/password accounts, optional Google sign-in, profile stats, routines, prefe
 Active workouts remain on the device until completed. Rest timers are scoped to the account and workout. Browser storage can be cleared by the user or OS, so it is not a backup. The installed PWA keeps its current version during training and offers an update when available. Finish the active workout and sync before updating. See ACCOUNTS.md and IPHONE.md.
 
 Sample history, fictional profile data and optional prototype preferences are labeled. Form remains a beta; physical-phone testing and real-video evaluation are still required before making validated coaching claims.
+
+## Video suggestions and phone layout
+
+Uploaded clips now receive up to three prioritized actions, derived from continuous, visible same-side repetitions: persistent torso/body-line changes and repeated changes in projected range or timing. Each observed pattern links to a representative moment in the video. Poor capture produces recording guidance; an unremarkable clip receives an explicitly labeled general practice cue, not a passing form grade. Video stays in the browser.
+
+These beta rules use engineering thresholds and synthetic regression fixtures, not clinical cutoffs or validated real-video coaching accuracy. Research, source limitations and the intended release evaluation are documented in [form-feedback-evidence.md](docs/form-feedback-evidence.md). `npm run test:ai` includes feedback quality gates, interruptions, working-side changes, noisy poses and timestamp checks.
+
+Exercise instructions can be collapsed in the library and during a workout. Phone layouts use readable text, larger tap targets, compact set logging and safe-area spacing. Desktop layout remains available at wider sizes.
+
+Today now prioritizes Start/Resume, with session previews, weekly planning and beginner baselines behind labeled disclosures. Train keeps search and sorting visible, groups secondary filters, and preserves results when opening an exercise. Workouts show a short cue with expandable full instructions, one video-check entry, optional notes, and a phone dock for the next set or exercise.
+
+In-app filming uses video-only browser camera capture with an optional 3/5/10-second countdown, preview, Stop and Retake. It stops automatically before 60 seconds and sends the local take through the same review/analysis flow. Camera permission is requested only after an explicit action, tracks are stopped on cancel/exit/background, and uploads remain the fallback. See [in-app recording notes](docs/in-app-recording.md) for browser compatibility and the physical-phone test checklist.

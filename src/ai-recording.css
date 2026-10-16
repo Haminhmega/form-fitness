@@ -3,3 +3,37 @@
 @media(max-width:740px){.ai-layout{grid-template-columns:minmax(0,1fr);gap:21px}.ai-recording .rec-steps li{font-size:9px;gap:5px}.ai-guide-caption{padding:18px}.ai-setup-art{max-height:235px}.ai-player-heading{padding:16px;font-size:8px}.ai-privacy{padding-bottom:0}.ai-analysis-column>h2{font-size:25px}.ai-intro{font-size:13px}.ai-setup-checks li{font-size:12px}.ai-confirm{font-size:12px;padding:20px 0}.ai-experimental-note,.ai-metric-note{font-size:11px}.ai-result-stats span{font-size:10px}.ai-result-heading h2{font-size:25px}.ai-observation h3{font-size:20px}.ai-observation>p{font-size:13px}.ai-result-actions{grid-template-columns:1fr}.ai-footnote{gap:8px;margin-top:24px}.ai-footnote p{font-size:10px;line-height:1.7}.ai-footnote button{font-size:12px!important}.ai-example-bar{flex-direction:column;align-items:flex-start;padding:15px;font-size:11px}.ai-example-bar .btn{width:100%}.ai-status{font-size:12px}.ai-table-scroll table{font-size:10px}.ai-table-scroll th,.ai-table-scroll td{padding:12px 6px}.ai-replay-tools{margin-top:16px}}
 @media(prefers-reduced-motion:reduce){.ai-recording *, .ai-recording *:before{animation:none!important;transition:none!important}}
 .ai-setup-checks{margin-top:20px}@media(max-width:740px){.ai-empty-layout .ai-analysis-column{order:-1}}
+.ai-rep-selector{margin-top:10px;border-top:1px solid #3d4b32}
+.ai-rep-selector summary{min-height:48px;padding:14px 0;font-size:13px;line-height:1.5;color:#ceddc2;cursor:pointer}
+.ai-tracker-details{margin:18px 0}
+.ai-tracker-details .ai-result-stats{margin-top:0}
+.ai-recording details>summary:focus-visible{outline:2px solid #c6f36b;outline-offset:3px;border-radius:4px}
+@media(max-width:600px){
+ .ai-recording{--ai-video-height:340px}
+ .ai-recording .rec-heading{gap:12px;margin-bottom:22px}
+ .ai-recording .rec-heading h1{font-size:32px;line-height:1.12;letter-spacing:-1px}
+ .ai-recording .rec-heading p,.ai-intro{font-size:15px;line-height:1.65}
+ .ai-recording .rec-steps{gap:10px;padding-bottom:20px;margin-bottom:24px}
+ .ai-recording .rec-steps li{font-size:11px;line-height:1.45;align-items:flex-start;flex:1;gap:7px}
+ .ai-recording .rec-steps li>span{flex-shrink:0}
+ .ai-layout{gap:25px}
+ .ai-player-panel,.ai-guide-panel{border-radius:17px}
+ .ai-player-heading{font-size:11px;padding:16px;letter-spacing:.5px}
+ .ai-player-heading>span:last-child{font-size:11px}
+ .ai-video-caption,.ai-tracking-caption{font-size:13px;line-height:1.6}
+ .ai-guide-caption strong{font-size:16px}
+ .ai-guide-caption p,.ai-privacy p,.ai-privacy strong,.ai-setup-checks li,.ai-confirm,.ai-result-heading>p,.ai-progress-panel>p,.ai-error p{font-size:14px;line-height:1.7}
+ .ai-privacy{padding:16px 0 0;gap:10px}
+ .ai-confirm input{width:22px;height:22px}
+ .ai-recording .btn{min-height:50px;font-size:15px!important;white-space:normal}
+ .ai-experimental-note,.ai-metric-note,.ai-quality-notes ul{font-size:13px;line-height:1.7!important}
+ .ai-result-stats span{font-size:12px;line-height:1.5}
+ .ai-result-stats strong{font-size:30px}
+ .ai-replay-tools{margin-top:12px}
+ .ai-replay-tools>label,.ai-rep-selector summary,.ai-measurement-details summary{font-size:14px}
+ .ai-rep-timeline button{font-size:13px!important;min-height:56px}
+ .ai-rep-timeline button small{font-size:11px}
+ .ai-result-actions{gap:10px}
+ .ai-footnote p{font-size:12px;line-height:1.6}
+ .ai-table-scroll table,.ai-table-scroll caption{font-size:12px}
+}

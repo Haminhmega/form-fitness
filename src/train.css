@@ -24,3 +24,58 @@
 .muscle-emphasis{padding:17px;border:1px solid #46573b;background:#222c1d;border-radius:12px;margin:18px 0 24px}.muscle-emphasis p{font-size:13px;line-height:1.75;color:#d5dfce;margin:8px 0 18px}.muscle-emphasis h3{font-size:11px!important;color:#d1eaa9;text-transform:uppercase;letter-spacing:.08em}.muscle-emphasis small{display:block;color:#a9b79e;font-size:10px;line-height:1.6}.muscle-emphasis a{display:inline-block;color:#d0ef9a;font-size:11px;margin-top:10px;padding:10px 0}
 @media(max-width:700px){.train-movement-guide{grid-template-columns:1fr}.anatomy-map{padding:18px}.anatomy-map .anatomy-views svg{max-height:300px}.train-guide-copy li p{font-size:12px}.muscle-emphasis p{font-size:13px}}
 .train-sort{display:flex;align-items:center;gap:18px;flex-wrap:wrap;margin-top:14px}.train-sort>label{display:flex;align-items:center;gap:10px;white-space:nowrap;min-width:0}.train-sort select{width:auto;min-width:160px;margin:0;min-height:44px;font-size:12px}.train-sort p{flex:1;min-width:180px;font-size:11px;line-height:1.5;margin:0}.train-sort+ .priority-filter{margin-top:15px}@media(max-width:600px){.train-sort{gap:9px}.train-sort>label{width:100%;justify-content:space-between}.train-sort select{flex:1;max-width:240px}.train-sort p{flex-basis:100%}}
+.exercise-instructions{min-width:0;margin:18px 0;border-top:1px solid var(--border)}
+.exercise-instructions>summary{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:48px;padding:13px 0;list-style:none;cursor:pointer;font-size:13px;font-weight:600;line-height:1.5;color:var(--accent)}
+.exercise-instructions>summary::-webkit-details-marker{display:none}
+.exercise-instructions>summary:focus-visible{outline:2px solid var(--accent);outline-offset:4px;border-radius:4px}
+.exercise-instructions>summary .instructions-hide,.exercise-instructions[open]>summary .instructions-show{display:none}
+.exercise-instructions[open]>summary .instructions-hide{display:inline}
+.exercise-instructions[open]>summary>svg{transform:rotate(180deg)}
+.exercise-instructions[open]>.exercise-guide{padding-top:10px}
+.workout-guide>.exercise-instructions{margin:0;border-top:0}
+@media(max-width:600px){
+ .train .page-heading h1{font-size:30px;line-height:1.15;letter-spacing:-1px}
+ .train .page-heading p,.train .section-heading p{font-size:14px;line-height:1.6}
+ .train-tabs{gap:22px}
+ .train-tabs button{font-size:14px}
+ .train-routine,.train-library-panel,.train-detail,.train-custom{padding:20px 16px}
+ .train-routine h3{font-size:25px;line-height:1.2}
+ .train-routine-description{font-size:14px;line-height:1.65}
+ .train-routine-stats{flex-wrap:wrap;gap:8px;font-size:12px;line-height:1.5}
+ .train-routine-preview li{font-size:14px;min-height:40px;line-height:1.5}
+ .train-routine-preview li>span:last-child{font-size:12px}
+ .train-routine-main-actions{flex-wrap:wrap}
+ .train-routine-main-actions .btn{font-size:14px;min-height:48px}
+ .train-routine-secondary .btn{font-size:12px;min-height:44px}
+ .train label,.train-target-fields label,.train-target .train-note{font-size:13px}
+ .train .train-filters{display:grid;grid-template-columns:minmax(0,1fr);gap:10px}
+ .train .train-filters select{font-size:16px;min-height:48px;padding:11px 12px}
+ .train .train-sort>label{font-size:13px;flex-wrap:wrap;gap:8px}
+ .train .train-sort select{font-size:16px;max-width:none;min-width:0;min-height:48px}
+ .train-sort p,.train-result-count,.train-bottom-note p,.train-editor-help{font-size:12px;line-height:1.65}
+ .train-exercise-row{gap:12px;padding:18px 0}
+ .train-exercise-info>strong,.train-text-button strong{font-size:14px;line-height:1.5}
+ .train-exercise-meta{font-size:12px;line-height:1.6;gap:5px}
+ .train-exercise-row .train-support,.train-support,.train-target-top .train-index{font-size:11px}
+ .train .train-target-fields{grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}
+ .train .train-target-fields input{font-size:16px;padding:11px 6px}
+ .train-target-title h3{font-size:15px;line-height:1.5}
+ .train-target-actions .btn{font-size:12px;min-height:44px}
+ .train-target .train-exercise-info>strong{font-size:13px}
+ .train-facts{grid-template-columns:1fr;gap:14px}
+ .train-facts>div{gap:5px}
+ .train-facts span{font-size:12px}
+ .train-facts strong{font-size:14px;line-height:1.5}
+ .train-detail h3,.train-filming h3{font-size:14px;line-height:1.5}
+ .train-detail p,.train-filming p,.train-guide-copy li p{font-size:14px;line-height:1.7}
+ .train-filming .muted,.train-rest-guidance,.train-library-aside .train-fine-print{font-size:12px!important}
+ .train-detail>.btn,.train-form-actions .btn{font-size:14px;min-height:48px}
+ .train-detail>.btn{width:100%}
+ .exercise-instructions>summary{font-size:14px;min-height:50px}
+ .train-guide-copy>h3{font-size:12px;line-height:1.6}
+ .train-guide-copy li{padding:12px;gap:10px}
+ .exercise-guide .movement-instructions>summary{font-size:14px;line-height:1.6;min-height:48px}
+ .anatomy-muscle-buttons button{font-size:12px}
+ .anatomy-map figcaption small,.muscle-emphasis small{font-size:12px}
+ .muscle-emphasis a{font-size:13px;min-height:44px}
+}

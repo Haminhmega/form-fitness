@@ -9,10 +9,13 @@ try {
  await page.goto(base);
  await page.getByRole('button',{name:'Explore the local demo',exact:true}).click();
  await page.getByRole('button',{name:'Close training preferences',exact:true}).click();
+ await page.locator('.today-baseline > summary').click();
  await page.getByRole('button',{name:'Explore strength check',exact:true}).click();
  await page.getByRole('button',{name:'Start optional strength check',exact:true}).click();
  await page.getByRole('button',{name:'Skip warm-up',exact:true}).click();
  const guide=page.locator('.workout-guide');
+ await expect(guide.locator('.workout-quick-cue')).toBeVisible();
+ await page.getByText('Show exercise instructions',{exact:true}).click();
  await expect(guide.getByRole('heading',{name:'Step by step',exact:true})).toBeVisible();
  await expect(guide.getByRole('heading',{name:'How to do Bodyweight squat',exact:true})).toBeVisible();
  const workoutSteps=await guide.locator('.train-guide-copy li p').allTextContents();
@@ -22,6 +25,7 @@ try {
  await page.getByRole('button',{name:'Dismiss notification'}).click();
  const recovered=await context.newPage();recovered.on('dialog',dialog=>dialog.accept());
  await recovered.goto(base);
+ await recovered.getByText('Show exercise instructions',{exact:true}).click();
  await expect(recovered.locator('.workout-guide').getByRole('heading',{name:'Step by step',exact:true})).toBeVisible();
  await expect(recovered.getByRole('spinbutton',{name:'Set 1 reps',exact:true})).toHaveValue('9');
  await expect(recovered.getByRole('button',{name:'Undo completion of set 1',exact:true})).toHaveAttribute('aria-pressed','true');
@@ -30,6 +34,7 @@ try {
  await expect(recovered.getByRole('heading',{name:'How to do Forearm plank',exact:true})).toBeVisible();
  await expect(recovered.getByRole('spinbutton',{name:'Set 1 seconds',exact:true})).toBeVisible();
  await recovered.locator('.session-exercise').filter({hasText:'Bodyweight squat'}).click();
+ await recovered.getByText('Show exercise instructions',{exact:true}).click();
  await recovered.getByText('See this movement',{exact:true}).click();
  await expect(recovered.locator('.exercise-demo')).toBeVisible();
  if(await recovered.evaluate(()=>document.documentElement.scrollWidth>innerWidth))throw Error('Mobile overflow');
@@ -45,13 +50,14 @@ try {
  await recovered.getByLabel('Search exercises',{exact:true}).fill('Bodyweight squat');
  await recovered.getByRole('button',{name:'View Bodyweight squat details',exact:true}).click();
  await expect(recovered.locator('.train-detail .train-guide-copy li p')).toHaveText(workoutSteps);
- await recovered.getByRole('button',{name:'Close exercise details',exact:true}).click();
+ await recovered.getByRole('button',{name:'Back to results',exact:true}).click();
  await recovered.getByRole('button',{name:'Clear search',exact:true}).click();
  await expect(recovered.getByLabel('Sort exercises')).toHaveValue('popular');
  await recovered.getByLabel('Sort exercises').selectOption('name-asc');
  await expect(recovered.getByLabel('Sort exercises')).toHaveValue('name-asc');
  await recovered.getByLabel('Sort exercises').selectOption('popular');
- await recovered.getByRole('checkbox',{name:/common exercises · focused beta checks/}).check();
+ await recovered.locator('.train-filter-disclosure > summary').click();
+ await recovered.getByRole('checkbox',{name:/Focused beta AI checks only/}).check();
  await recovered.getByLabel('Search exercises',{exact:true}).fill('Seated Calf Raise');
  await recovered.getByRole('button',{name:'View Seated Calf Raise details',exact:true}).click();
  await recovered.getByRole('button',{name:'Check a video of this exercise',exact:true}).click();

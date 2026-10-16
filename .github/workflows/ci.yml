@@ -23,6 +23,7 @@ jobs:
       - run: npm ci
       - run: npm run prepare:ai
       - run: npm run test:ai
+      - run: npm run test:camera
       - run: npm run test:accounts
       - run: npm run test:workout
       - run: npm run test:coaching
