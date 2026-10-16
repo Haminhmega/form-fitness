@@ -99,7 +99,7 @@ function analyzeHold(input:AnalysisInput,reasons:Map<number,string>):SquatAnalys
   const a=offset===undefined?null:angle(p[11+offset],p[23+offset],p[27+offset],input);
   const usableTime=Number.isFinite(source.time)&&source.time>=0&&source.time<=duration&&source.time>last;
   const ok=usableTime&&input.width>0&&input.height>0&&source.poses.length===1&&a!==null;
-  frames.push({time:source.time,landmarks:p,valid:ok,angle:ok?a:null,reason:ok?undefined:reasons.get(source.time)||'One person with the required joints must stay visible.'});
+  frames.push({time:source.time,landmarks:p,worldLandmarks:source.poses.length===1?source.worldLandmarks?.[0]?.map(point=>({...point})):undefined,valid:ok,angle:ok?a:null,reason:ok?undefined:reasons.get(source.time)||'One person with the required joints must stay visible.'});
   if(ok){valid++;if(start===null||source.time-last>.6)start=source.time;longest=Math.max(longest,source.time-start)}else start=null;
   if(Number.isFinite(source.time))last=Math.max(last,source.time);
  }

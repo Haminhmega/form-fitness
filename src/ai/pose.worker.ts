@@ -52,8 +52,13 @@ workerScope.onmessage = async (event: MessageEvent<PoseRequest>) => {
       lastTimestamp = request.timestampMs;
       const poses: PosePoint[][] = result.landmarks.map(pose => pose.map(point => ({
         x: point.x, y: point.y, z: point.z, visibility: point.visibility ?? 0,
+        presence: 'presence' in point && typeof point.presence === 'number' ? point.presence : undefined,
       })));
-      workerScope.postMessage({ id: request.id, type: 'frame', poses });
+      const worldLandmarks: PosePoint[][] | undefined = result.worldLandmarks?.map(pose => pose.map(point => ({
+        x: point.x, y: point.y, z: point.z, visibility: point.visibility ?? 0,
+        presence: 'presence' in point && typeof point.presence === 'number' ? point.presence : undefined,
+      })));
+      workerScope.postMessage({ id: request.id, type: 'frame', poses, worldLandmarks });
     } finally {
       request.bitmap.close();
     }

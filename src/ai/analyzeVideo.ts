@@ -1,5 +1,6 @@
 import PoseWorker from './pose.worker?worker&inline';
 import { getAnalyzer } from './registry';
+import { smoothPoseInput } from './pose-signal';
 import type { AnalyzeVideoOptions, PoseFrame, PosePoint, SquatAnalysis } from './types';
 
 const SAMPLE_RATE = 10;
@@ -8,7 +9,7 @@ const MIN_DURATION = 2;
 const MODEL_TIMEOUT_MS = 45000;
 const FRAME_TIMEOUT_MS = 12000;
 const ANALYSIS_TIMEOUT_MS = 180000;
-type WorkerResponse = { id: number; type: 'ready' | 'frame' | 'error'; poses?: PosePoint[][]; message?: string };
+type WorkerResponse = { id: number; type: 'ready' | 'frame' | 'error'; poses?: PosePoint[][]; worldLandmarks?: PosePoint[][]; message?: string };
 
 function abortReason(signal: AbortSignal): Error { return signal.reason instanceof Error ? signal.reason : new DOMException('Analysis cancelled.', 'AbortError'); }
 function assertActive(signal: AbortSignal) { if (signal.aborted) throw abortReason(signal); }
@@ -118,14 +119,14 @@ export async function analyzeVideo(url: string, exerciseId: string, options: Ana
         bitmap = null; // Transferred ownership: the worker closes this bitmap after inference.
         let result: WorkerResponse;
         try { result = await responsePromise; } finally { sending.close(); }
-        frames.push({ time, poses: result.poses || [] });
+        frames.push({ time, poses: result.poses || [], worldLandmarks: result.worldLandmarks });
         lastTime = time;
       }
       report({ phase: 'frames', completed: index + 1, total });
     }
     if (!frames.length) throw new Error('No video frames could be decoded. Try a different clip.');
     report({ phase: 'analysis', completed: 0, total: 1 });
-    const result = analyzer.analyze({ frames, duration, width, height, sampleRate: SAMPLE_RATE });
+    const result = analyzer.analyze(smoothPoseInput({ frames, duration, width, height, sampleRate: SAMPLE_RATE }));
     assertActive(signal);
     report({ phase: 'analysis', completed: 1, total: 1 });
     return result;

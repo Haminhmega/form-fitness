@@ -1,5 +1,6 @@
 import type {AnalysisInput,AnalyzedFrame,PosePoint,SquatAnalysis,SquatRep} from './types';
 import type {MotionProfile} from './popular-profiles';
+import {OneEuroFilter} from './one-euro';
 
 type Side='left'|'right';
 type Sample={time:number;angle:number;side:Side};
@@ -27,11 +28,12 @@ function measure(pose:PosePoint[],profile:MotionProfile,width:number,height:numb
 /** Adaptive 2D cycle measurement for explicitly selected exercises. It reports motion only. */
 export function analyzeGenericMotion(input:AnalysisInput,profile:MotionProfile,exerciseName:string,minimumExcursion=20):SquatAnalysis{
   const frames:AnalyzedFrame[]=[],segments:Sample[][]=[];let segment:Sample[]=[];let lastTime=-1;let invalid=0;
-  const duration=finite(input.duration)&&input.duration>0?input.duration:0;const flush=()=>{if(segment.length)segments.push(segment);segment=[];};
-  for(const source of input.frames){const pose=source.poses.length===1?source.poses[0]:[];const frame:AnalyzedFrame={time:source.time,landmarks:pose.map(p=>({...p})),valid:false,angle:null};
+  const angleFilter=new OneEuroFilter();
+  const duration=finite(input.duration)&&input.duration>0?input.duration:0;const flush=()=>{if(segment.length)segments.push(segment);segment=[];angleFilter.reset();};
+  for(const source of input.frames){const pose=source.poses.length===1?source.poses[0]:[];const frame:AnalyzedFrame={time:source.time,landmarks:pose.map(p=>({...p})),worldLandmarks:source.poses.length===1?source.worldLandmarks?.[0]?.map(p=>({...p})):undefined,valid:false,angle:null};
     if(!finite(source.time)||source.time<=lastTime||source.time<0||source.time>duration+.001||source.poses.length!==1||!finite(input.width)||!finite(input.height)||input.width<=0||input.height<=0){frame.reason=source.poses.length>1?'More than one person was detected.':source.poses.length===0?'No person was tracked.':'A frame could not be measured.';invalid++;flush();frames.push(frame);if(finite(source.time))lastTime=Math.max(lastTime,source.time);continue;}
     if(lastTime>=0&&source.time-lastTime>.6)flush();lastTime=source.time;const sample=measure(pose,profile,input.width,input.height,segment[0]?.side);
-    if(!sample){frame.reason='The required joints were not confidently visible.';invalid++;flush();frames.push(frame);continue;}sample.time=source.time;frame.valid=true;frame.angle=round(sample.angle,3);frames.push(frame);segment.push(sample);}
+    if(!sample){frame.reason='The required joints were not confidently visible.';invalid++;flush();frames.push(frame);continue;}sample.time=source.time;frame.valid=true;frame.angle=round(sample.angle,3);frames.push(frame);segment.push({...sample,angle:angleFilter.filter(sample.angle,sample.time)});}
   flush();const reps:SquatRep[]=[];
   const requiredExcursion=finite(minimumExcursion)?Math.max(12,minimumExcursion):20;
   for(const samples of segments){if(samples.length<8||samples.at(-1)!.time-samples[0].time<1.2)continue;const values=samples.map(s=>s.angle),lo=Math.min(...values),hi=Math.max(...values),span=hi-lo;if(span<requiredExcursion)continue;const low=lo+span*.28,high=hi-span*.28;

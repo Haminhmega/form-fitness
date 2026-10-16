@@ -6,7 +6,7 @@ The useful product outcome is a specific, reviewable suggestion: **what changed 
 
 ## What this implementation can observe
 
-At the time of review, `src/ai/pose.worker.ts` returns MediaPipe `result.landmarks`, not `worldLandmarks`. The analyzers use projected image coordinates, scaled to image dimensions, for joint-angle estimates. Their measurements are not laboratory joint angles or direct measurements of depth. The selected exercise supplies the movement interpretation; the model does not establish exercise identity, equipment, load, or grip.
+`src/ai/pose.worker.ts` now preserves both image landmarks and optional inferred `worldLandmarks`. The analyzers retain world points for future evaluation, but the current feedback uses projected image coordinates, scaled to image dimensions, for joint-angle estimates. World coordinates are not treated as validated metric measurements. Fixtures containing only image landmarks remain supported. The selected exercise supplies the movement interpretation; the model does not establish exercise identity, equipment, load, or grip.
 
 - `squat.ts` measures projected knee motion and completed cycles, with visibility and camera-view checks.
 - `specific-movements.ts` uses elbow, hip, or knee motion for selected movement families; it also tracks visible body-line and torso changes in some families and visible plank-hold time.
@@ -56,6 +56,31 @@ These are engineering and communication choices, not thresholds validated by the
 8. **Do not infer the cause or a precise load change.** Camera movement, occlusion, intention, fatigue, and a different technique can produce similar signals. A suggestion to consider a manageable load is general guidance, not a detected load prescription.
 
 ## Validation before stronger claims
+
+### Phase-specific implementation (15 October 2026)
+
+The live sampling path now uses a deterministic [One Euro filter (Casiez, Roussel & Vogel, 2012)](https://gery.casiez.net/publications/CHI2012-casiez.pdf): minimum cutoff 1.2 Hz, beta 0.04, derivative cutoff 1 Hz. Image trajectories use pixel coordinates before filtering; joint-cycle detection uses angular filtering. Filtering trades noise against lag—it does **not** guarantee unchanged extrema. Missing/cropped/low-confidence points are not repaired or made more confident. Filter state resets on gaps, invalid timestamps, missing people, and detected abrupt pose discontinuities. The latter is a conservative geometry gate, not a complete scene-cut or identity detector.
+
+New feedback uses the longest comparable, uninterrupted same-side group. Optional metrics abstain separately when their required landmarks are unavailable. Spatial distances are normalized by the visible shoulder-to-hip length; signed body-line distance is oriented toward screen gravity (+y), with a horizontal-view gate. A tilted camera can still mislead it.
+
+| Review card | Engineering trigger and interpretation |
+| --- | --- |
+| Hip sag / pike | Sustained directional hip displacement relative to shoulder–ankle line and starting position, at least 0.12 torso lengths. Requires two comparable repetitions, or a sustained hold change. The legacy unsigned body-line card remains unsigned. |
+| Upper-arm drift | At least 0.18 torso lengths shoulder-relative elbow displacement, or 18° upper-arm angle change, sustained during lifting in two reps. Possible compensation for a strict variation; not observed muscle takeover or depth-plane elbow flare. |
+| Lowering control | At least three comparable reps, median eccentric <0.75 s and <55% of median concentric, with at least two individual reps meeting the criteria. Optional 2–3 s practice tempo, never a mandatory hypertrophy optimum or evidence of bouncing. |
+| Concentric slowing | Last two lifting phases each ≥45% and ≥0.5 s longer than the first-two median, with at least four comparable reps. No exact RIR, failure or fatigue diagnosis. |
+| Hip shoot | In first half of ascent, torso lean ≥14° beyond descent at a knee angle within 6°, with knee extension exceeding hip extension by ≥5° (and ≥4° knee extension), persistent ≥0.2 s in two reps. This is projected coupling, not measured spinal loading. |
+| Heel rise | Ankle, heel and toe visible throughout the comparison; heel-to-toe vertical change ≥0.08 torso lengths near bottom, persistent in two reps. Suggest stable shoes/wedge as an optional setup choice, not a diagnosis or pressure measurement. |
+| Hinge hand drift | Wrist-to-knee/shin horizontal distance grows ≥0.22 torso lengths while lowering, persistent in two reps. Wrist is explicitly a proxy; no bar or load detection. |
+| Shoulder elevation | Shoulder–ear gap contracts ≥25% near lifting peak, persistent in two reps with visible head and stable projected head angle. Normal scapular upward rotation must remain allowed. No claim of upper-trap dominance or measured scapular motion. |
+
+Other than the hip-shoot and hold checks above, persistence is at least 0.3 s after a three-sample median; missing optional joints interrupt their comparison. No detector threshold above is clinically validated. Exercise phase labels, rather than the historical `descentSeconds` field name or starting joint-angle extremum, determine which half is eccentric. For example, curls and pulldowns start with a concentric phase despite a high-angle start. Unclassified generic cycles abstain from phase-specific tempo coaching.
+
+Clean usable clips show median phase durations (where known), rep-range spread, and projected torso-angle variance alongside a family practice cue. These numbers are not a global quality score. Cards are capped at three, ordered capture → technique → consistency → practice. Replay highlights identify the measured side/segment and clear when leaving the moment, playing, or reanalyzing.
+
+Tempo wording follows the limits in [Schoenfeld, Ogborn & Krieger (2015)](https://pubmed.ncbi.nlm.nih.gov/25601394/): repetition duration evidence does not justify declaring one universal lowering time optimal. The implementation therefore does not adopt the request's stronger causal claims about lost tension, muscle takeover, or guaranteed back protection from a cue.
+
+Verification: `npm run test:ai` retains the original squat/generic/specific/priority/feedback assertions and adds directional, spatial, phase, continuity, scale, filter, and optional-world-coordinate tests. The squat test loader now bundles its imported filter; its assertions are unchanged. `node scripts/test-feedback-ui.mjs` mounts the real recording/feedback components in an isolated browser with **mocked media decoding and inference**, checking seek/highlight behavior and phone/desktop presentation. Neither suite is a real-video accuracy benchmark. `npm run build` checks the production TypeScript/client/PWA/server builds.
 
 Synthetic landmark tests can check math, segmentation, timestamp selection, uncertainty gates, and wording. They cannot establish real-video form-coaching accuracy. Before using labels such as “verified form,” obtain consented, representative clips reviewed independently by qualified exercise professionals; include different bodies, clothing, phones, orientations, equipment, intentional variations, and camera errors.
 

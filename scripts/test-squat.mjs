@@ -1,10 +1,7 @@
 import assert from 'node:assert/strict';
-import fs from 'node:fs';
-import { createRequire } from 'node:module';
-const require = createRequire(import.meta.url);
-const ts = require('typescript');
-const engine = {};
-new Function('exports', ts.transpileModule(fs.readFileSync(new URL('../src/ai/squat.ts', import.meta.url), 'utf8'), { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS } }).outputText)(engine);
+import {build} from 'esbuild';
+const bundle=await build({entryPoints:['src/ai/squat.ts'],bundle:true,format:'esm',platform:'node',write:false});
+const engine=await import('data:text/javascript;base64,'+Buffer.from(bundle.outputFiles[0].text).toString('base64'));
 const { analyzeSquat, SQUAT_LIMITS } = engine;
 let passed = 0;
 const check = (name, task) => { task(); passed++; console.log(`PASS ${name}`); };

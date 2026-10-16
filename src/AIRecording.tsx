@@ -5,7 +5,7 @@ import { getAnalyzer } from './ai/registry';
 import type { AnalysisProgress, AnalyzedFrame, SquatAnalysis } from './ai/types';
 import type {Exercise} from './types';
 import {ExerciseDemo} from './ExerciseDemo';
-import {buildFormFeedback} from './ai/form-feedback';
+import {buildFormFeedback,type FormFeedbackCard} from './ai/form-feedback';
 import {FormFeedbackPanel} from './FormFeedbackPanel';
 import {CameraRecorder,type CameraRecorderHandle} from './CameraRecorder';
 import './recording.css';
@@ -39,6 +39,7 @@ export default function AIRecording({ exercise, standalone, onClose, onComplete,
   const [position, setPosition] = useState(0);
   const [overlay, setOverlay] = useState(true);
   const [selectedRep, setSelectedRep] = useState<number | null>(null);
+  const [review, setReview] = useState<{card:FormFeedbackCard;result:SquatAnalysis}|null>(null);
   const [notice, setNotice] = useState('');
   const [cameraActive,setCameraActive]=useState(false);
   const camera=useRef<CameraRecorderHandle>(null);
@@ -126,15 +127,20 @@ export default function AIRecording({ exercise, standalone, onClose, onComplete,
     } finally { if (job.current === runId) { setRunning(false); controller.current = null; } }
   }
   function seek(seconds: number, repIndex?: number) {
+    setReview(null);
     if (player.current) { player.current.pause(); player.current.currentTime = seconds; }
     setPosition(seconds); setSelectedRep(repIndex ?? null);
   }
   const feedback = useMemo(()=>result&&metadata?buildFormFeedback(exercise.id,result,{width:metadata.width,height:metadata.height}):null,[exercise.id,result,metadata]);
-  function reviewMoment(seconds:number,repIndex?:number){
+  function reviewMoment(seconds:number,repIndex?:number,card?:FormFeedbackCard){
     seek(seconds,repIndex);
+    if(card&&result){setReview({card,result});setOverlay(true);}
     player.current?.scrollIntoView({behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth',block:'center'});
   }
   const current = result ? frameAt(result.frames, position) : undefined;
+  const activeReview=review&&review.result===result&&review.card.time!==undefined&&Math.abs(position-review.card.time)<=.25&&current?.valid?review.card:null;
+  const highlighted=new Set(activeReview?.highlight?.joints??[]);
+  const reviewBones=activeReview?[...bones,[7,11],[8,12],[23,27],[24,28],[27,31],[28,32]].filter(([a,b])=>highlighted.has(a)&&highlighted.has(b)):[];
   const percent = progress.phase === 'model' ? 0 : progress.phase === 'analysis' ? 100 : Math.min(100, Math.round(progress.completed / Math.max(1, progress.total) * 100));
   const meanDown = result?.reps.length ? result.reps.reduce((n,r) => n + r.descentSeconds, 0) / result.reps.length : null;
   const meanUp = result?.reps.length ? result.reps.reduce((n,r) => n + r.ascentSeconds, 0) / result.reps.length : null;
@@ -150,8 +156,8 @@ export default function AIRecording({ exercise, standalone, onClose, onComplete,
     <div className={`ai-layout ${!clip ? 'ai-empty-layout' : ''}`} hidden={cameraActive}>
       <div className="ai-media-column">
         {clip ? <div className="ai-player-panel"><div className="ai-player-heading"><span><Film size={15}/>YOUR LOCAL CLIP</span><span>{metadata ? `${decimal(metadata.duration)} seconds` : 'Reading video…'}</span></div><div className="ai-video-stage" style={{ aspectRatio: `${w}/${h}`, maxWidth: `calc(var(--ai-video-height, 460px) * ${w/h})` }}>
-          <video ref={player} src={clip.url} controls playsInline muted preload="metadata" aria-label={`Your ${exercise.name} video replay`} onTimeUpdate={e=>setPosition(e.currentTarget.currentTime)} onError={()=>{setMetadata(null);setError('This browser cannot decode this video. Try an MP4 with H.264 video or a WebM file.');}}/>
-          {result && overlay && current?.valid && <svg className="ai-pose-overlay" viewBox={`0 0 ${w} ${h}`} aria-hidden="true"><g stroke="var(--accent)" strokeWidth={Math.max(w/280,2)} fill="#15200e">{bones.map(([a,b])=>{const p=current.landmarks[a],q=current.landmarks[b];return p&&q&&p.visibility>=.5&&q.visibility>=.5?<line key={`${a}-${b}`} x1={p.x*w} y1={p.y*h} x2={q.x*w} y2={q.y*h}/>:null;})}{current.landmarks.map((p,i)=>i>=11&&p.visibility>=.5?<circle key={i} cx={p.x*w} cy={p.y*h} r={Math.max(w/180,3)}/>:null)}</g></svg>}
+          <video ref={player} src={clip.url} controls playsInline muted preload="metadata" aria-label={`Your ${exercise.name} video replay`} onPlay={()=>setReview(null)} onTimeUpdate={e=>setPosition(e.currentTarget.currentTime)} onError={()=>{setMetadata(null);setError('This browser cannot decode this video. Try an MP4 with H.264 video or a WebM file.');}}/>
+          {result && overlay && current?.valid && <svg className="ai-pose-overlay" viewBox={`0 0 ${w} ${h}`} aria-hidden="true"><g stroke="var(--accent)" strokeWidth={Math.max(w/280,2)} fill="#15200e">{bones.map(([a,b])=>{const p=current.landmarks[a],q=current.landmarks[b];return p&&q&&p.visibility>=.5&&q.visibility>=.5?<line key={`${a}-${b}`} x1={p.x*w} y1={p.y*h} x2={q.x*w} y2={q.y*h}/>:null;})}{current.landmarks.map((p,i)=>i>=11&&p.visibility>=.5?<circle key={i} cx={p.x*w} cy={p.y*h} r={Math.max(w/180,3)}/>:null)}</g>{activeReview&&<g stroke="#ffb46b" fill="#ffb46b" strokeWidth={Math.max(w/170,3)}>{reviewBones.map(([a,b])=>{const p=current.landmarks[a],q=current.landmarks[b];return p&&q&&Math.min(p.visibility,p.presence??1,q.visibility,q.presence??1)>=.65?<line key={`${a}-${b}`} x1={p.x*w} y1={p.y*h} x2={q.x*w} y2={q.y*h}/>:null;})}{current.landmarks.map((p,i)=>highlighted.has(i)&&Math.min(p.visibility,p.presence??1)>=.65?<circle key={i} cx={p.x*w} cy={p.y*h} r={Math.max(w/125,4)}/>:null)}</g>}</svg>}
         </div><div className="ai-video-caption"><span>{clip.name}</span>{result && <label><input type="checkbox" checked={overlay} onChange={e=>setOverlay(e.target.checked)}/>Show tracked joints</label>}</div>{result && <div className="ai-tracking-caption"><span className={current?.valid?'ai-tracking-dot':'ai-tracking-dot unavailable'}/>{current?.valid ? `Tracked frame · projected ${result.metricLabel||analyzer.spec.metricLabel} ${current.angle===null?'unavailable':`${Math.round(current.angle)}°`}` : 'Tracking unavailable at this moment'}</div>}</div> : <div className="ai-guide-panel"><div className="ai-player-heading"><span><Focus size={15}/>A CLEARER VIEW</span><span>CAMERA GUIDE</span></div><SetupIllustration exercise={exercise} label={`${analyzer.spec.camera.requiredView.replaceAll('_',' ')} camera guide for ${exercise.name}`}/><div className="ai-guide-caption"><strong>{analyzer.spec.camera.requiredView==='side'?'Use a clear side view.':'Use a clear front or slight angle.'}</strong><p>{analyzer.spec.camera.setupInstructions} Keep your shoulders, hips and working joints visible. Hold the camera still.</p></div></div>}
         <div className="ai-privacy"><ShieldCheck size={19}/><p><strong>Your video stays on this device.</strong><span>Processing happens in this browser. Your clip and results are cleared when you leave this screen. No video is sent to a server.</span></p></div>
         {result && <div className="ai-replay-tools"><label>Replay position <span>{time(position)} / {time(metadata?.duration||0)}</span><input type="range" min="0" max={metadata?.duration||1} step=".05" value={Math.min(position,metadata?.duration||0)} aria-label="Video replay position in seconds" onChange={e=>seek(Number(e.target.value))}/></label>{result.reps.length>0 && <details className="ai-rep-selector"><summary>Jump to a rep ({result.reps.length})</summary><div className="ai-rep-timeline" aria-label="Measured repetitions">{result.reps.map(rep=><button key={rep.index} onClick={()=>seek(rep.start,rep.index)} className={selectedRep===rep.index?'selected':''} aria-pressed={selectedRep===rep.index}><Play size={13}/><span>Rep {rep.index}<small>{time(rep.start)}–{time(rep.end)}</small></span></button>)}</div></details>}</div>}
@@ -161,6 +167,7 @@ export default function AIRecording({ exercise, standalone, onClose, onComplete,
         {running && <div className="ai-progress-panel"><div className="ai-loading-mark"><LoaderCircle size={27}/></div><span className="eyebrow">WORKING ON YOUR DEVICE</span><h2 role="status">{progress.phase==='model'?'Preparing the pose model':progress.phase==='analysis'?'Reviewing tracked movement':'Tracking your movement'}</h2><p>{progress.phase==='model'?'Loading the model from this app. The first analysis may take a moment.':progress.phase==='analysis'?'Finding complete repetitions in the visible portions of the clip.':`${progress.completed} of ${progress.total} frames processed. Your video stays here.`}</p><progress max="100" value={progress.phase==='model'?undefined:percent} aria-label="Video analysis progress"/><div className="ai-progress-label">{progress.phase==='model'?'Loading model…':`${percent}%`}</div><button className="btn secondary ai-wide" onClick={cancel}><X size={17}/>Cancel analysis</button></div>}
         {result && <>
           <div className="ai-result-heading"><span className="eyebrow">YOUR VIDEO REVIEW</span><h2 ref={heading} tabIndex={-1}>{feedback?.status==='retake'?'Let’s get a clearer clip.':'A focus for your next set.'}</h2><p>{exercise.name} · {result.status==='unable'?'Not enough reliable tracking':result.status==='partial'?'Based on the usable parts of your clip':'Based on the visible movement in your clip'}</p></div>
+          {activeReview&&<p className="feedback-review-caption" role="status">Highlighted review: {activeReview.title}. This marks the measured segment, not a confirmed fault.</p>}
           {feedback&&<FormFeedbackPanel feedback={feedback} onReview={reviewMoment}/>}
           <details className="ai-measurement-details ai-tracker-details"><summary>Tracking &amp; timing details</summary>
             <div className="ai-result-stats"><div><span>{result.holdSeconds!==undefined?'Longest tracked hold':'Complete reps detected'}</span><strong>{result.status==='unable'?'—':result.holdSeconds!==undefined?result.holdSeconds.toFixed(1)+'s':result.reps.length}</strong></div><div><span>Usable sampled frames</span><strong>{Math.round(result.validFraction*100)}<small>%</small></strong></div>{result.holdSeconds===undefined&&<><div><span>Avg. {result.phaseLabels?.[0]?.toLowerCase()||'lowering time'}</span><strong>{meanDown===null?'—':decimal(meanDown)}{meanDown!==null&&<small>s</small>}</strong></div><div><span>Avg. {result.phaseLabels?.[1]?.toLowerCase()||'rising time'}</span><strong>{meanUp===null?'—':decimal(meanUp)}{meanUp!==null&&<small>s</small>}</strong></div></>}</div>

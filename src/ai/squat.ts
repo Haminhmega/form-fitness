@@ -1,4 +1,5 @@
 import type { AnalysisInput, AnalyzedFrame, MovementObservation, PosePoint, SquatAnalysis, SquatRep } from './types';
+import { OneEuroFilter } from './one-euro';
 
 /** Experimental segmentation settings, not validated clinical or coaching cutoffs. */
 export const SQUAT_LIMITS = {
@@ -6,7 +7,7 @@ export const SQUAT_LIMITS = {
   frameMargin: 0.015, minimumTorsoHeight: 0.08, minimumLegSegmentHeight: 0.065,
   maximumShoulderSpanRatio: 0.65, maximumHipSpanRatio: 0.55,
   uprightAngle: 158, leaveUprightAngle: 154, bentAngle: 125,
-  uprightHoldSeconds: 0.16, bentHoldSeconds: 0.12, smoothingSeconds: 0.10,
+  uprightHoldSeconds: 0.16, bentHoldSeconds: 0.12,
   minimumRepSeconds: 0.8, maximumRepSeconds: 20, minimumPhaseSeconds: 0.25,
   minimumRangeDegrees: 35, minimumClipSeconds: 2, minimumValidFrames: 8,
   minimumTrackedSeconds: 1.5, comparableRepCount: 4,
@@ -66,6 +67,7 @@ export function analyzeSquat(input: AnalysisInput): SquatAnalysis {
   const sampleRate = finite(input.sampleRate) && input.sampleRate > 0 ? input.sampleRate : 10;
   const maxGap = Math.max(0.35, Math.min(0.6, 2.5 / sampleRate));
   let side: Side | null = null, smoothed: number | null = null, segmentTime: number | null = null;
+  const angleFilter = new OneEuroFilter();
   let previousTime: number | null = null, firstValidSeen = false, partialStart = false, openingConfirmed = false, interruptedCycle = false;
   let topSince: number | null = null, lastTop: Top | null = null, armed = false, cycle: Cycle | null = null;
   let validCount = 0, trackedSeconds = 0, gaps = 0, segment = 0, rejectedCycles = 0;
@@ -73,6 +75,7 @@ export function analyzeSquat(input: AnalysisInput): SquatAnalysis {
   const reset = () => {
     if (cycle && (cycle.bent || cycle.start.angle - cycle.minAngle >= 20)) interruptedCycle = true;
     side = null; smoothed = null; segmentTime = null; topSince = null; lastTop = null; armed = false; cycle = null; segment++;
+    angleFilter.reset();
   };
   const invalid = (frame: AnalyzedFrame, reason: string) => {
     frame.reason = reason; frames.push(frame); problemCounts.set(reason, (problemCounts.get(reason) ?? 0) + 1); reset();
@@ -80,7 +83,7 @@ export function analyzeSquat(input: AnalysisInput): SquatAnalysis {
 
   for (const source of input.frames) {
     const pose = source.poses.length === 1 ? source.poses[0] : [];
-    const frame: AnalyzedFrame = { time: source.time, landmarks: pose.map(point => ({ ...point })), valid: false, angle: null };
+    const frame: AnalyzedFrame = { time: source.time, landmarks: pose.map(point => ({ ...point })), worldLandmarks: source.poses.length===1?source.worldLandmarks?.[0]?.map(point=>({...point})):undefined, valid: false, angle: null };
     if (!finite(source.time) || source.time < 0 || source.time > duration + 0.001 || (previousTime !== null && source.time <= previousTime)) {
       invalid(frame, 'A frame had an invalid, repeated, or out-of-order timestamp.'); continue;
     }
@@ -94,7 +97,7 @@ export function analyzeSquat(input: AnalysisInput): SquatAnalysis {
 
     const dt = segmentTime === null ? 0 : time - segmentTime;
     if (segmentTime !== null) trackedSeconds += dt;
-    smoothed = smoothed === null ? result.angle : smoothed + (1 - Math.exp(-dt / SQUAT_LIMITS.smoothingSeconds)) * (result.angle - smoothed);
+    smoothed = angleFilter.filter(result.angle, time);
     segmentTime = time; side = result.side;
     frame.valid = true; frame.angle = round(result.angle, 3); frames.push(frame); validCount++;
     if (!firstValidSeen) { firstValidSeen = true; partialStart = smoothed < SQUAT_LIMITS.uprightAngle; }

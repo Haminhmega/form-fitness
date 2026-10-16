@@ -1,4 +1,9 @@
 .form-feedback{margin:24px 0;color:#eef2e8}
+.feedback-phase{display:inline-flex;padding:5px 10px;border:1px solid var(--accent);border-radius:999px;color:var(--accent);font-size:12px;margin:0 0 12px}
+.feedback-cue{border-left:3px solid var(--accent);background:color-mix(in srgb,var(--accent) 8%,transparent);padding:12px 15px;margin:0 0 14px;border-radius:0 10px 10px 0}
+.feedback-cue strong{font-size:12px;color:var(--accent)}
+.feedback-cue p{font-size:16px;line-height:1.5;margin:5px 0 0}
+.feedback-review-caption{color:#ffb46b;font-size:14px;line-height:1.6;border-left:3px solid #ffb46b;padding:8px 12px}
 .form-feedback-heading{display:flex;gap:13px;align-items:center}
 .form-feedback-icon{display:grid;place-items:center;flex-shrink:0;width:48px;height:48px;border:1px solid #50643c;background:#29371f;border-radius:14px;color:var(--accent)}
 .form-feedback-heading .eyebrow{margin:0 0 6px;color:var(--accent)}

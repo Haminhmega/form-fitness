@@ -58,8 +58,8 @@ export function makeFeedbackFixture({exerciseId='curl',metric='elbow',ranges=[10
 }
 
 async function run(){
-  const compiled=await build({stdin:{contents:"export * from './src/ai/form-feedback.ts'; export {priorityProfiles} from './src/ai/priority-profiles.ts';",resolveDir:process.cwd()},bundle:true,format:'esm',platform:'node',write:false});
-  const {buildFormFeedback,priorityProfiles}=await import('data:text/javascript;base64,'+Buffer.from(compiled.outputFiles[0].text).toString('base64'));
+  const compiled=await build({stdin:{contents:"export * from './src/ai/form-feedback.ts'; export {priorityProfiles} from './src/ai/priority-profiles.ts'; export * from './src/ai/feedback-kinematics.ts'; export * from './src/ai/one-euro.ts'; export * from './src/ai/pose-signal.ts'; export {analyzeGenericMotion} from './src/ai/generic-motion.ts'; export {analyzeSpecificMovement} from './src/ai/specific-movements.ts'; export {analyzeSquat} from './src/ai/squat.ts';",resolveDir:process.cwd()},bundle:true,format:'esm',platform:'node',write:false});
+  const {buildFormFeedback,priorityProfiles,extractKinematics,eccentricHalf,OneEuroFilter,smoothPoseInput,analyzeGenericMotion,analyzeSpecificMovement,analyzeSquat}=await import('data:text/javascript;base64,'+Buffer.from(compiled.outputFiles[0].text).toString('base64'));
   const feedback=fixture=>buildFormFeedback(fixture.exerciseId,fixture.result,fixture.dimensions);
   const changed=fixture=>feedback(fixture).cards.filter(card=>card.kind==='technique'||card.kind==='consistency');
   const clone=fixture=>structuredClone(fixture);
@@ -179,7 +179,137 @@ async function run(){
     assert.ok(practice,`${family} has a clearly labelled practice cue when no change is observed`);
     assert.match(practice.action,pattern);
   }
-  console.log('Form feedback checks passed: quality/geometry gates, persistent posture, robust range/tempo, same-side uninterrupted segments, timestamps, holds, family cues, abstention and no input mutation. Synthetic checks do not validate real-video accuracy.');
+  // Direction is independent of which way the lifter faces, and never inferred
+  // from the old unsigned body-line observation.
+  const has=(fixture,id)=>feedback(fixture).cards.find(card=>card.id===id);
+  for(const source of [pushup,plank])for(const mirror of [false,true]){
+    const sag=clone(source),pike=clone(source);
+    for(const f of pike.result.frames)for(const id of [23,24])f.landmarks[id].y=.8-f.landmarks[id].y;
+    if(mirror)for(const fixture of [sag,pike])for(const f of fixture.result.frames)for(const p of f.landmarks)p.x=1-p.x;
+    assert.match(has(sag,'hip-sag-change')?.observed||'',/below.*sag/);
+    assert.match(has(pike,'hip-pike-change')?.observed||'',/above.*pike/);
+    assert.notEqual(has(sag,'hip-sag-change').cue,has(pike,'hip-pike-change').cue);
+    assert.ok(!has(sag,'hip-pike-change')&&!has(pike,'hip-sag-change'));
+  }
+  const phaseAt=(fixture,time)=>{const r=fixture.result.reps.find(r=>time>=r.start&&time<=r.end)||fixture.result.reps.at(-1);return (time-r.start)/(r.end-r.start);};
+  const rotateArm=(fixture,drift,extension=false)=>{
+    for(const frame of fixture.result.frames){
+      const phase=phaseAt(fixture,frame.time),bend=Math.sin(Math.PI*phase)**2;
+      for(const o of [0,1]){
+        const p=frame.landmarks,s=p[11+o],e=p[13+o];
+        if(extension){const a=(70+100*bend)*Math.PI/180;p[15+o]={...p[15+o],x:e.x+Math.sin(a)*100/600,y:e.y-Math.cos(a)*100/800};}
+        const theta=drift*bend*Math.PI/180;
+        for(const id of [13+o,15+o]){const v=p[id],x=(v.x-s.x)*600,y=(v.y-s.y)*800;p[id]={...v,x:s.x+(x*Math.cos(theta)+y*Math.sin(theta))/600,y:s.y+(-x*Math.sin(theta)+y*Math.cos(theta))/800};}
+      }
+    }
+    return fixture;
+  };
+  for(const id of ['curl',exerciseFor('pushdown')]){
+    const stable=rotateArm(makeFeedbackFixture({exerciseId:id}),0,id!=='curl');
+    const drift=rotateArm(makeFeedbackFixture({exerciseId:id}),45,id!=='curl');
+    assert.ok(!has(stable,'elbow-drift-change'));
+    assert.ok(has(drift,'elbow-drift-change'),`${id} spatial drift is detected even with unchanged elbow excursion`);
+    assert.deepEqual(drift.result.reps.map(r=>r.rangeDegrees),stable.result.reps.map(r=>r.rangeDegrees));
+    const hidden=clone(drift);for(const frame of hidden.result.frames)for(const j of [13,14])if(phaseAt(hidden,frame.time)>.18&&phaseAt(hidden,frame.time)<.9)frame.landmarks[j].visibility=.2;
+    assert.ok(!has(hidden,'elbow-drift-change'),'Occluded elbows do not generate drift corrections');
+  }
+  const retime=(fixture,first,second)=>{
+    const old=clone(fixture.result.reps);let end=0;
+    const mapped=old.map((r,i)=>{const a=Array.isArray(first)?first[i]:first,b=Array.isArray(second)?second[i]:second;const n={...r,start:end,bottom:end+a,end:end+a+b,descentSeconds:a,ascentSeconds:b};end=n.end;return n;});
+    fixture.result.frames.forEach(frame=>{const i=old.findIndex(r=>frame.time>=r.start-1e-7&&frame.time<=r.end+1e-7),r=old[i],n=mapped[i];frame.time=frame.time<=r.bottom?n.start+(frame.time-r.start)/(r.bottom-r.start)*(n.bottom-n.start):n.bottom+(frame.time-r.bottom)/(r.end-r.bottom)*(n.end-n.bottom);});
+    fixture.result.reps=mapped;fixture.result.duration=end;return fixture;
+  };
+  const fastSquat=retime(makeFeedbackFixture({exerciseId:'squat',metric:'knee'}),.55,1.8);
+  assert.ok(has(fastSquat,'tempo-eccentric-control'));
+  assert.match(has(fastSquat,'tempo-eccentric-control').observed,/0.55 s.*1.80 s/);
+  const fastCurl=retime(makeFeedbackFixture(),1.8,.55);
+  assert.ok(has(fastCurl,'tempo-eccentric-control'),'Curl lowering is the SECOND phase');
+  assert.ok(!has(retime(makeFeedbackFixture(),.55,1.8),'tempo-eccentric-control'),'Fast curl concentric is not labelled rushed eccentric');
+  assert.equal(eccentricHalf(['Pulling down','Returning overhead']),1);
+  assert.equal(eccentricHalf(['First phase','Return phase']),undefined,'Unknown generic cycles do not invent muscle-action phases');
+  const slowLift=retime(makeFeedbackFixture(),[1,1,1.8,1.8],1);
+  assert.ok(has(slowLift,'concentric-slowing'));
+  assert.ok(!has(retime(makeFeedbackFixture(),1,[1,1,1.8,1.8]),'concentric-slowing'),'Slow lowering alone is not a concentric grind');
+
+  const hipShoot=makeFeedbackFixture({exerciseId:'squat',metric:'knee'});
+  for(const f of hipShoot.result.frames){
+    const phase=phaseAt(hipShoot,f.time),rise=phase>.5?Math.min(1,(phase-.5)/.07,(1-phase)/.15):0;
+    const lean=(10+32*Math.max(0,rise))*Math.PI/180;
+    for(const o of [0,1]){const h=f.landmarks[23+o];f.landmarks[11+o]={...f.landmarks[11+o],x:h.x+Math.sin(lean)*160/600,y:h.y-Math.cos(lean)*160/800};}
+  }
+  assert.ok(has(hipShoot,'hip-shoot-change'),'Early ascent lean at matched knee angles detects hip shoot');
+  const symmetricLean=clone(hipShoot);
+  for(const f of symmetricLean.result.frames){const phase=phaseAt(symmetricLean,f.time),lean=(10+25*Math.sin(Math.PI*phase)**2)*Math.PI/180;for(const o of [0,1]){const h=f.landmarks[23+o];f.landmarks[11+o]={...f.landmarks[11+o],x:h.x+Math.sin(lean)*160/600,y:h.y-Math.cos(lean)*160/800};}}
+  assert.ok(!has(symmetricLean,'hip-shoot-change'),'Normal matched descent/ascent torso motion is not hip shoot');
+
+  const heelRise=makeFeedbackFixture({exerciseId:'squat',metric:'knee'});
+  for(const f of heelRise.result.frames)for(const o of [0,1]){
+    const a=f.landmarks[27+o],lift=.12*Math.sin(Math.PI*phaseAt(heelRise,f.time))**2;
+    f.landmarks[29+o]={...a,x:a.x-.035,y:a.y-lift*160/800};f.landmarks[31+o]={...a,x:a.x+.035};
+  }
+  assert.ok(has(heelRise,'heel-rise-change'));
+  const hiddenHeel=clone(heelRise);for(const f of hiddenHeel.result.frames)for(const j of [29,30])f.landmarks[j].visibility=.5;
+  assert.ok(!has(hiddenHeel,'heel-rise-change'),'Hidden optional foot points abstain independently');
+
+  const handDrift=makeFeedbackFixture({exerciseId:'rdl',metric:'hip'});
+  for(const f of handDrift.result.frames)for(const o of [0,1]){const k=f.landmarks[25+o],amount=.35*Math.sin(Math.PI*phaseAt(handDrift,f.time))**2;f.landmarks[15+o]={...k,x:k.x+amount*200/600};}
+  assert.ok(has(handDrift,'hinge-hand-drift'));
+  assert.match(has(handDrift,'hinge-hand-drift').observed,/not tracked/);
+  const shrug=makeFeedbackFixture({exerciseId:exerciseFor('frontRaise'),metric:'shoulder'});
+  for(const f of shrug.result.frames)for(const o of [0,1]){const s=f.landmarks[11+o],compression=.5*Math.sin(Math.PI*phaseAt(shrug,f.time))**2;f.landmarks[7+o]={...s,y:s.y-.18*(1-compression)};}
+  assert.ok(has(shrug,'shoulder-shrug-change'));
+  assert.match(has(shrug,'shoulder-shrug-change').action,/normal.*upward rotation/);
+  const hiddenHead=clone(shrug);for(const f of hiddenHead.result.frames)for(const j of [7,8])f.landmarks[j].visibility=.1;
+  assert.ok(!has(hiddenHead,'shoulder-shrug-change'));
+
+  const cut=clone(hipShoot);for(const frame of cut.result.frames)if(frame.time>=3)for(const p of frame.landmarks)p.x+=.18;
+  assert.equal(feedback(cut).status,'retake','Coherent camera/person jumps withhold movement corrections');
+  const interrupted=clone(hipShoot);for(const f of interrupted.result.frames)if([.6,2.6,4.6,6.6].some(t=>Math.abs(t-f.time)<.01))f.valid=false;
+  assert.ok(!has(interrupted,'hip-shoot-change'),'No hip-shoot claim across per-rep tracking gaps');
+  const mixed=clone(hipShoot);mixed.result.reps.forEach((r,i)=>r.side=i%2?'right':'left');
+  assert.ok(!has(mixed,'hip-shoot-change'),'No repeated compensation assembled across switching sides');
+  for(const fixture of [hipShoot,heelRise,handDrift,shrug,fastCurl,plank]){
+    const f=feedback(fixture);assert.ok(f.cards.length<=3);
+    const order={capture:0,technique:1,consistency:2,practice:3};assert.deepEqual(f.cards.map(c=>order[c.kind]),f.cards.map(c=>order[c.kind]).sort());
+    for(const card of f.cards.filter(c=>c.highlight)){assert.ok(card.time>=0&&card.time<=fixture.result.duration);assert.ok(card.highlight.joints.length>=2);}
+  }
+  const limited=clone(hipShoot);limited.result.validFraction=.75;assert.equal(feedback(limited).cards[0].kind,'capture');
+  assert.match(steady.cards[0].observed,/Median lowering\/lifting.*rep-range spread.*torso-angle variance/);
+
+  // Pixel units and torso normalization preserve spatial metrics when the same
+  // projected body is embedded in a different video aspect ratio or distance.
+  const original=pushup.result.frames[10].landmarks,kin=extractKinematics(original,'left',pushup.dimensions);
+  const resized=original.map(p=>({...p,x:p.x*600/1200,y:p.y*800/1000}));
+  const scaled=original.map(p=>({...p,x:.2+p.x*.6,y:.2+p.y*.6}));
+  assert.ok(Math.abs(extractKinematics(resized,'left',{width:1200,height:1000}).hipOffset-kin.hipOffset)<1e-10);
+  assert.ok(Math.abs(extractKinematics(scaled,'left',pushup.dimensions).hipOffset-kin.hipOffset)<1e-10);
+
+  const filter=new OneEuroFilter(),same=new OneEuroFilter(),signal=Array.from({length:40},(_,i)=>100+(i%2?1:-1));
+  const output=signal.map((v,i)=>filter.filter(v,i/10));
+  assert.deepEqual(output,signal.map((v,i)=>same.filter(v,i/10)),'One Euro is deterministic');
+  assert.ok(Math.max(...output.slice(10))-Math.min(...output.slice(10))<1.2,'Stationary jitter is attenuated');
+  assert.equal(filter.filter(5,10),5,'Long gaps reset filter history');
+  assert.ok(Number.isNaN(filter.filter(NaN,10.1)));assert.equal(filter.filter(7,10.2),7,'Invalid input never bleeds into the next segment');
+  const adaptive=new OneEuroFilter(),fixed=new OneEuroFilter(1.2,0,1);
+  for(let i=0;i<10;i++){adaptive.filter(0,i/10);fixed.filter(0,i/10);}
+  assert.ok(adaptive.filter(90,1)>fixed.filter(90,1),'Fast movement raises cutoff to reduce lag');
+  const raw={...base.dimensions,duration:base.result.duration,sampleRate:10,frames:base.result.frames.map(f=>({time:f.time,poses:[f.landmarks],worldLandmarks:[f.landmarks.map(p=>({...p,x:p.x-.5,y:p.y-.5}))]}))};
+  const rawBefore=JSON.stringify(raw),filtered=smoothPoseInput(raw);
+  assert.equal(JSON.stringify(raw),rawBefore,'Landmark filtering does not mutate source data');
+  assert.deepEqual(filtered.frames[5].worldLandmarks,raw.frames[5].worldLandmarks);
+  const withOcclusion=clone(raw);withOcclusion.frames[8].poses[0][13].visibility=0;
+  assert.equal(smoothPoseInput(withOcclusion).frames[8].poses[0][13].visibility,0,'Filtering never raises missing-joint confidence');
+  for(const analyze of [input=>analyzeGenericMotion(input,'elbow','Curl'),input=>analyzeSpecificMovement(input,'curl'),analyzeSquat]){
+    const result=analyze(filtered);assert.deepEqual(result.frames[0].worldLandmarks,raw.frames[0].worldLandmarks[0],'Analyzers retain optional world landmarks');
+  }
+  const twoD=clone(raw);twoD.frames.forEach(f=>delete f.worldLandmarks);
+  assert.equal(analyzeGenericMotion(smoothPoseInput(twoD),'elbow','Curl').frames[0].worldLandmarks,undefined);
+  for(const [fixture,id] of [[pushup,'hip-sag-change'],[rotateArm(makeFeedbackFixture(),45),'elbow-drift-change'],[hipShoot,'hip-shoot-change']]){
+    const input=smoothPoseInput({...fixture.dimensions,duration:fixture.result.duration,sampleRate:10,frames:fixture.result.frames.map(f=>({time:f.time,poses:[f.landmarks]}))});
+    const measured=fixture.exerciseId==='squat'?analyzeSquat(input):analyzeSpecificMovement(input,fixture.exerciseId,fixture.exerciseId);
+    assert.ok(has({...fixture,result:measured},id),`${id} survives the live smoothing and rep-segmentation pipeline`);
+  }
+  console.log('Form feedback checks passed: legacy regressions plus signed body line, elbow drift, phase-aware tempo, hip shoot, heel/hand/head checks, persistence, cut/occlusion/side gates, scale invariance, deterministic adaptive filtering and optional world landmarks. Synthetic checks do not validate real-video accuracy.');
 }
 
 if(process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href)await run();

@@ -1,14 +1,17 @@
 import {getAnalyzer} from './registry';
 import {priorityProfiles} from './priority-profiles';
 import {priorityRules} from './priority-motion';
+import {specificConfigs, type SpecificMovement} from './specific-movements';
+import {extractKinematics,kinematicCards,executionHighlights,type Kinematics,type FeedbackPhase} from './feedback-kinematics';
+import {poseDiscontinuity} from './pose-signal';
 import type {AnalyzedFrame,PosePoint,SquatAnalysis,SquatRep} from './types';
 
-export type FormFeedbackCard={id:string;kind:'technique'|'consistency'|'capture'|'practice';title:string;observed:string;action:string;why:string;time?:number;repIndexes:number[]};
+export type FormFeedbackCard={id:string;kind:'technique'|'consistency'|'capture'|'practice';title:string;observed:string;action:string;why:string;time?:number;repIndexes:number[];biomechanics?:string;cue?:string;phase?:FeedbackPhase;highlight?:{side:'left'|'right';joints:number[]}};
 export type FormFeedback={status:'ready'|'limited'|'retake';summary:string;cards:FormFeedbackCard[];limitations:string[]};
 type Dimensions={width:number;height:number};
 type Side='left'|'right';
 type Metric='knee'|'hip'|'elbow'|'shoulder'|'ankle'|'body';
-type Sample={time:number;metric:number;torso:number|null;body:number|null;side:Side;segment:number};
+type Sample={time:number;metric:number;torso:number|null;body:number|null;side:Side;segment:number;kinematics:Kinematics};
 type RepData={rep:SquatRep;samples:Sample[];range:number;seconds:number;segment:number};
 type Guide={family:string;metric:Metric;practice:string;why:string;orientation?:'upright'|'horizontal';bodyLine?:boolean;torso?:boolean};
 
@@ -77,7 +80,7 @@ function sampleFrame(frame:AnalyzedFrame,side:Side,guide:Guide,d:Dimensions):Omi
   if(metric===null||!finite(metric))return;
   const body=guide.bodyLine?angle(p,[11+offset,23+offset,27+offset],d):null;
   if(guide.bodyLine&&body===null)return;
-  return {time:frame.time,metric,torso,body,side};
+  return {time:frame.time,metric,torso,body,side,kinematics:extractKinematics(p,side,d)};
 }
 
 function segmentFrames(frames:AnalyzedFrame[],guide:Guide,d:Dimensions,duration:number,maxGap:number){
@@ -160,6 +163,7 @@ export function buildFormFeedback(exerciseId:string,result:SquatAnalysis,dimensi
   if(result.status==='unable'||!Array.isArray(result.frames)||result.frames.length<LIMITS.minimumFrames)return capture('There is not enough reliable tracked footage to make a movement suggestion.');
   if([...result.issues,...result.frames.map(frame=>frame.reason||'')].some(reason=>/more than one person|multiple (?:people|persons|person)|crowd/i.test(reason)))return capture('More than one person was reported in the clip, so the tracked movement cannot be assigned reliably.');
   if(result.frames.some(frame=>!frame.landmarks.length&&/One person with the required joints/.test(frame.reason||'')))return capture('Some hold frames did not resolve one visible person reliably.');
+  if(result.frames.some((frame,index)=>index>0&&frame.valid&&result.frames[index-1].valid&&poseDiscontinuity(result.frames[index-1].landmarks,frame.landmarks,dimensions.width,dimensions.height)))return capture('A sudden body-position or scale change could be a camera cut or tracking discontinuity. Record one continuous set with a fixed camera.');
   const intervals=result.frames.slice(1).flatMap((frame,index)=>{const gap=frame.time-result.frames[index].time;return finite(gap)&&gap>0&&gap<1?[gap]:[];});
   const step=median(intervals);
   if(!step||step>.225)return capture('The sampled footage is too sparse for reliable movement comparisons.');
@@ -179,6 +183,9 @@ export function buildFormFeedback(exerciseId:string,result:SquatAnalysis,dimensi
   const groups=comparableGroups(reps),group=groups[0]||[];
   const hold=guide.family==='plank'&&finite(result.holdSeconds)&&result.holdSeconds!>=2&&longest.at(-1)!.time-longest[0].time>=2;
   if(!hold&&!reps.length)return capture('No complete repetition could be independently matched to a continuous, visible working side.');
+  const priority=priorityProfiles.find(profile=>profile.id===exerciseId);
+  const phases=priority?priorityRules[priority.family].phases:exerciseId==='squat'?['Lowering','Standing'] as [string,string]:specificConfigs[exerciseId as SpecificMovement]?.phases??result.phaseLabels;
+  cards.push(...kinematicCards(guide.family,group,hold?longest:[],phases));
   if(coverage<LIMITS.readyCoverage){cards.push({id:'capture-limited',kind:'capture',title:'Improve the camera view',observed:'Part of the clip could not be used consistently. Only uninterrupted visible movement is considered below.',action:setup+' Keep the camera fixed and record one working side at a time.',why:'Clearer landmarks make within-set comparisons more useful.',repIndexes:[]});limitations.push('Tracking coverage was limited; suggestions use only the reliable portions.');}
   if(hold){
     const values=smooth(longest,sample=>sample.body!),baseline=median(values.filter(sample=>sample.time<=values[0].time+.8).map(sample=>sample.value));
@@ -199,7 +206,16 @@ export function buildFormFeedback(exerciseId:string,result:SquatAnalysis,dimensi
     }else limitations.push(`Only ${group.length} complete ${group.length===1?'rep was':'reps were'} comparable on one uninterrupted side. At least three are needed for range or timing comparisons.`);
     if(groups.length>1)limitations.push('Repetitions from different sides or interrupted segments were not compared with each other.');
   }
-  if(cards.filter(card=>card.kind==='technique'||card.kind==='consistency').length===0)cards.push({id:'general-practice',kind:'practice',title:'A cue to practice next set',observed:'General practice cue — this is not a fault detected in your clip.',action:guide.practice,why:guide.why,repIndexes:[]});
   const ready=coverage>=LIMITS.readyCoverage&&(hold||group.length>=3);
+  if(cards.filter(card=>card.kind==='technique'||card.kind==='consistency').length===0)cards.push({id:'general-practice',kind:'practice',title:ready?'Your measured set, and one cue to practice':'A cue to practice next set',observed:`General practice cue — this is not a fault detected in your clip.${ready?' '+executionHighlights(group,hold?longest:[],phases):''}`,action:guide.practice,why:guide.why,cue:guide.practice.split('. ')[0]+'.',phase:hold?'hold':'setup',repIndexes:[]});
+  const order={capture:0,technique:1,consistency:2,practice:3};
+  cards.sort((a,b)=>order[a.kind]-order[b.kind]);
+  // Legacy posture/range cards also carry a replay target. Never highlight the
+  // opposite side just because its landmark confidence happens to be higher.
+  for(const card of cards)if(card.time!==undefined&&!card.highlight){
+    const side=result.reps.find(rep=>rep.index===card.repIndexes[0])?.side??longest[0]?.side;
+    const ids=/body-line/.test(card.id)?[11,23,27]:/torso/.test(card.id)?[11,23]:guide.metric==='knee'?[23,25,27]:guide.metric==='hip'?[11,23,25]:guide.metric==='ankle'?[25,27,31]:guide.metric==='shoulder'?[13,11,23]:[11,13,15];
+    if(side)card.highlight={side,joints:ids.map(id=>id+(side==='right'?1:0))};
+  }
   return {status:ready?'ready':'limited',summary:cards.some(card=>card.kind==='technique'||card.kind==='consistency')?'Review these moments, then choose one change to try on your next set.':ready?'No repeated change met these limited checks. This does not establish that your form is correct.':'The visible footage supports only limited feedback. Use the setup and practice cue before recording again.',cards:cards.slice(0,3),limitations};
 }
