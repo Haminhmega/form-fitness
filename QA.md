@@ -96,3 +96,13 @@ These checks are not a complete accessibility certification. A manual screen-rea
 This is the initial visual baseline. Regression comparison is **inconclusive** because no earlier approved screenshots exist. Screenshots were inspected directly for layout, text fit, and control placement. Core Web Vitals were not measured as representative production metrics; no LCP/CLS/INP pass is claimed.
 
 Evidence and browser scripts remain in the workspace’s work/ directory. DESIGN.md documents the contract and README.md documents operation, mock boundaries and next milestones.
+
+## Familiar workout and illustration update — October 16, 2026
+
+- Planner: familiar staples are preferred within the same role; explicit training styles, equipment, movement exclusions, experience and athletic goals remain effective. Tests cover reversed catalog order and introductory-drill fallback.
+- Existing coaching suites passed: 700 goal/equipment/time combinations, 508 repeating weekly schedules and 3,381 duration plans. The experienced six-day, 75-minute gym fixture remains 61–68 estimated minutes with 5–6 exercises per day.
+- Demonstrations: 31 named variants, with fixed-length limbs, smooth motion, stationary isolation pivots and bench contact points checked. Bench presses, shoulder presses, hammer curls, cable pushdowns and seated leg movements have distinct references.
+- Browser checks: keyboard slider and position buttons, pause/play, pause off-screen, reduced motion, custom-exercise fallback, 44px control heights, no overflow at 375/390/1440px, and no scoped axe A/AA violations. Demonstration fixtures made zero external requests.
+- Existing workout/library UI smoke passed, including collapsible instructions, preserved sets/rest timer after reopening, library sorting/filtering and recording deep links. Account, workout and recovery suites passed.
+- Production build passed, including the PWA and Worker. The existing large-bundle warning remains; this update does not claim a production performance improvement.
+- Illustrations remain schematic, and machine geometry varies. These checks do not validate individual training outcomes, biomechanical accuracy or AI video-analysis accuracy. The visual contract and selection rationale are in [workout-demonstration-design.md](docs/workout-demonstration-design.md).

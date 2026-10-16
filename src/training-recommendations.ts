@@ -2,6 +2,7 @@ import type {Exercise,Preferences,Routine,RoutineExercise,TrainingDay} from './t
 import {isTimedExercise} from './exercise-logging';
 import {getCoaching} from '../shared/coaching';
 import {coachingMovement,coachingRole,type CoachingMovement,type MovementPattern} from './coaching-exercises';
+import {familiarExerciseScore} from './exercise-popularity';
 export {coachingExercises} from './coaching-exercises';
 
 export type WarmupMove={name:string;dose:string;target:string;cue:string;seconds:number};
@@ -191,15 +192,17 @@ function selectionScore(preferences:Preferences,exercise:Exercise,day:number,use
   const meta=coachingMovement[exercise.id];
   const equipment=equipmentKey(exercise.equipment);
   const goal=goalType(preferences);
-  let score=0;
+  let score=familiarExerciseScore(exercise.id);
   if(coaching.trainingStyles.includes('Machines')&&equipment==='Machines')score+=24;
   if(coaching.trainingStyles.includes('Free weights')&&['Dumbbells','Barbell'].includes(equipment))score+=24;
   if(coaching.trainingStyles.includes('Bodyweight')&&equipment==='Bodyweight')score+=24;
   if(beginner(preferences)){
-    if(['squat','glute-bridge','coach-wall-pushup','coach-standing-hip-hinge','coach-standing-march'].includes(exercise.id))score+=12;
+    if(['squat','glute-bridge'].includes(exercise.id))score+=6;
+    if(exercise.id==='gym-961-incline-push-up')score+=8;
     if(exercise.id==='pushup')score-=8;
   }else if(equipment!=='Bodyweight')score+=10;
   if(goal==='strength'&&meta.compound)score+=5;
+  if(goal==='strength'&&equipment==='Barbell')score+=5;
   if(goal==='glutes'&&exercise.id==='glute-bridge'&&beginner(preferences))score+=8;
   if(goal==='athletic'&&meta.balance)score+=14;
   if(goal==='athletic'&&coaching.sportFocus==='Court and field sports'&&meta.unilateral)score+=4;
@@ -372,7 +375,7 @@ export function buildRecommendedPlan(preferences:Preferences,exercises:Exercise[
       if(selected.length>=maxExercises)break;
       const cluster=clusterFor(pattern);
       if(!remaining[cluster])continue;
-      const candidates=pool.filter(exercise=>coachingMovement[exercise.id].pattern===pattern&&!selected.some(item=>coachingRole(item.id)===coachingRole(exercise.id))&&(roleUsed.get(coachingRole(exercise.id))||0)<roleLimit()&&roomFor(exercise.id)>0).sort((a,b)=>roleRank(pattern,a.id,index)-roleRank(pattern,b.id,index)||selectionScore(effectivePreferences,b,index,used)-selectionScore(effectivePreferences,a,index,used));
+      const candidates=pool.filter(exercise=>coachingMovement[exercise.id].pattern===pattern&&!selected.some(item=>coachingRole(item.id)===coachingRole(exercise.id))&&(roleUsed.get(coachingRole(exercise.id))||0)<roleLimit()&&roomFor(exercise.id)>0).sort((a,b)=>roleRank(pattern,a.id,index)-roleRank(pattern,b.id,index)||selectionScore(effectivePreferences,b,index,used)-selectionScore(effectivePreferences,a,index,used)||a.id.localeCompare(b.id,'en'));
       let choice:Exercise|undefined;
       let prescription:RoutineExercise|undefined;
       for(const exercise of candidates){
@@ -443,7 +446,7 @@ export function buildRecommendedPlan(preferences:Preferences,exercises:Exercise[
     });
     if(!nearbyLoadedTorso)return;
     const original=routine.exercises[rowIndex];
-    const alternatives=pool.filter(exercise=>coachingMovement[exercise.id].pattern==='pull'&&!erectorLoadedIds.has(exercise.id)&&!routine.exercises.some(item=>item.exerciseId!==unsupportedRowId&&coachingRole(item.exerciseId)===coachingRole(exercise.id))).sort((a,b)=>selectionScore(effectivePreferences,b,index,used)-selectionScore(effectivePreferences,a,index,used));
+    const alternatives=pool.filter(exercise=>coachingMovement[exercise.id].pattern==='pull'&&!erectorLoadedIds.has(exercise.id)&&!routine.exercises.some(item=>item.exerciseId!==unsupportedRowId&&coachingRole(item.exerciseId)===coachingRole(exercise.id))).sort((a,b)=>selectionScore(effectivePreferences,b,index,used)-selectionScore(effectivePreferences,a,index,used)||a.id.localeCompare(b.id,'en'));
     let replacement:RoutineExercise|undefined;
     for(const exercise of alternatives){
       const item=recommendedPrescription(effectivePreferences,exercise);

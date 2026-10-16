@@ -38,6 +38,22 @@ export const popularExerciseIds = [
 const rank = new Map<string, number>(popularExerciseIds.map((id, index) => [id, index]));
 const byName = new Intl.Collator('en', {sensitivity: 'base', numeric: true});
 
+// Planner variants keep their own identities and equipment requirements.
+// These are editorial familiarity preferences, not usage statistics.
+const familiarPlannerVariants = new Set([
+  'coach-dumbbell-goblet-squat','coach-leg-extension','coach-hammer-curl',
+  'coach-cable-pushdown','coach-incline-dumbbell-press','coach-barbell-rdl',
+  'coach-machine-hip-abduction','gym-909-standing-calf-raise',
+  'gym-961-incline-push-up','gym-1942-dumbbell-split-squat',
+]);
+const accessibleStaples = new Set([
+  'coach-dumbbell-goblet-squat','gym-1105-dumbbell-bench-press','row','rdl',
+  'press','plank','curl','gym-1473-lat-pull-down','gym-2067-leg-press',
+]);
+export function familiarExerciseScore(id:string):number {
+  return accessibleStaples.has(id)?12:rank.has(id)||familiarPlannerVariants.has(id)?10:0;
+}
+
 export function sortExercises(exercises: readonly Exercise[], sort: ExerciseSort): Exercise[] {
   return [...exercises].sort((a, b) => {
     if (sort === 'popular') {

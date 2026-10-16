@@ -12,9 +12,9 @@ assert.ok(catalog.some(item=>item.name.toLowerCase().includes('bench press')));
 assert.ok(catalog.some(item=>item.equipment==='Cable'));
 assert.ok(catalog.some(item=>item.category==='Powerlifting'));
 
-const result=await build({stdin:{contents:"export {sortExercises,popularExerciseIds} from './src/exercise-popularity.ts'; export {initialExercises} from './src/data.ts'; export {demonstrationKey,demonstrationPose} from './src/ExerciseDemo.tsx';",resolveDir:process.cwd()},bundle:true,format:'esm',platform:'node',write:false,jsx:'automatic',loader:{'.css':'empty'}});
-const {sortExercises,popularExerciseIds,initialExercises,demonstrationKey,demonstrationPose}=await import('data:text/javascript;base64,'+Buffer.from(result.outputFiles[0].text).toString('base64'));
-const allExercises=[...initialExercises,...catalog];
+const result=await build({stdin:{contents:"export {sortExercises,popularExerciseIds} from './src/exercise-popularity.ts'; export {initialExercises} from './src/data.ts'; export {coachingExercises} from './src/coaching-exercises.ts'; export {demonstrationKey,demonstrationPose,demos} from './src/exercise-demonstrations.ts';",resolveDir:process.cwd()},bundle:true,format:'esm',platform:'node',write:false});
+const {sortExercises,popularExerciseIds,initialExercises,coachingExercises,demonstrationKey,demonstrationPose,demos}=await import('data:text/javascript;base64,'+Buffer.from(result.outputFiles[0].text).toString('base64'));
+const allExercises=[...initialExercises,...catalog,...coachingExercises.filter(item=>!catalog.some(entry=>entry.id===item.id))];
 const byId=new Map(allExercises.map(exercise=>[exercise.id,exercise]));
 assert.equal(new Set(popularExerciseIds).size,popularExerciseIds.length,'The curated ranking contains no duplicates');
 assert.ok(popularExerciseIds.every(id=>byId.has(id)),'Every popular pick resolves to a real exercise');
@@ -32,7 +32,9 @@ const firstPages=[...allPopular.slice(0,60),...allPopular.slice(60,120)];
 assert.equal(new Set(firstPages.map(exercise=>exercise.id)).size,120,'Pagination preserves unique stable results');
 
 const boneLength=(pose,a,b)=>Math.hypot(pose[a][0]-pose[b][0],pose[a][1]-pose[b][1]);
-for(const exercise of initialExercises){
+const demonstrated=allExercises.filter(exercise=>demonstrationKey(exercise));
+assert.equal(new Set(demonstrated.map(demonstrationKey)).size,Object.keys(demos).length,'Every authored demonstration resolves to an exercise');
+for(const exercise of demonstrated){
   assert.ok(demonstrationKey(exercise),`${exercise.name} has its own demonstration`);
   const start=demonstrationPose(exercise,0);
   for(const phase of [.1,.25,.5,.75,.9,1]){
@@ -58,5 +60,20 @@ assert.equal(demonstrationKey(byId.get('gym-1669-one-arm-dumbbell-row')),'row');
 assert.equal(demonstrationKey(byId.get('gym-2534-seated-dumbbell-shoulder-press')),'press');
 assert.equal(demonstrationKey({...row,custom:true}),undefined,'Custom exercises never receive a guessed animation');
 assert.equal(demonstrationKey({...row,equipment:'Cable'}),undefined,'Equipment mismatch never substitutes a dumbbell demonstration');
-assert.equal(demonstrationKey(byId.get('gym-928-barbell-bench-press-medium-grip')),undefined,'An unrelated press is not mapped to shoulder press');
-console.log(`Exercise catalog checks passed: ${catalog.length} unique movements, ${popularExerciseIds.length} curated popular picks, stable sorting, filter/pagination support and ten articulated movement demonstrations.`);
+assert.equal(demonstrationKey(byId.get('gym-928-barbell-bench-press-medium-grip')),'bench-barbell','A bench press receives its own horizontal demonstration');
+for(const id of ['coach-leg-extension','gym-1351-seated-leg-curl']){
+ const exercise=byId.get(id),start=demonstrationPose(exercise,0);
+ for(const phase of [.25,.5,.75,1])assert.deepEqual(demonstrationPose(exercise,phase).knee,start.knee,'Seated knee movements keep the machine pivot stationary');
+}
+for(const id of ['curl','coach-hammer-curl','coach-cable-pushdown']){
+ const exercise=byId.get(id),start=demonstrationPose(exercise,0);
+ for(const phase of [.25,.5,.75,1])assert.deepEqual(demonstrationPose(exercise,phase).elbow,start.elbow,'Elbow isolation movements keep the upper arm stationary');
+}
+for(const id of ['gym-1105-dumbbell-bench-press','gym-928-barbell-bench-press-medium-grip','coach-incline-dumbbell-press']){
+ const exercise=byId.get(id),start=demonstrationPose(exercise,0),finish=demonstrationPose(exercise,1);
+ for(const part of ['head','shoulder','hip','ankle'])assert.deepEqual(start[part],finish[part],'Bench-supported presses keep their contact points stationary');
+ assert.ok(finish.hand[1]<start.hand[1]-50,'Bench presses move upward from the chest');
+}
+assert.notEqual(demonstrationKey(byId.get('coach-hammer-curl')),demonstrationKey(byId.get('curl')),'Neutral-grip curls have a distinct grip illustration');
+for(const exercise of demonstrated)assert.equal(demonstrationKey({...exercise,equipment:'Unknown'}),undefined,'Equipment mismatch never receives a demonstration');
+console.log(`Exercise catalog checks passed: ${catalog.length} unique movements, ${popularExerciseIds.length} curated popular picks, stable sorting and ${Object.keys(demos).length} articulated demonstrations with movement/contact-point checks.`);

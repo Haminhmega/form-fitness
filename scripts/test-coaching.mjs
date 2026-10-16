@@ -71,6 +71,21 @@ assert.ok(items(novice).every(item=>item.sets>=1&&item.sets<=2),'Beginners recei
 assert.ok(items(novice).every(item=>!coachingMovement[item.exerciseId].experienced));
 assert.match(novice.rationale[1],/More reps are not automatically better/);
 
+// Familiar staples win within a role; preferences and constraints still decide
+// which of those staples are available to the person.
+const staplePlan=make({}, {sessionMinutes:60});
+for(const id of ['coach-dumbbell-goblet-squat','gym-1105-dumbbell-bench-press','row','rdl','gym-1473-lat-pull-down']){
+ assert.ok(items(staplePlan).some(item=>item.exerciseId===id),`Balanced gym plans include familiar staple ${id}`);
+}
+assert.deepEqual(buildRecommendedPlan(prefs({}, {sessionMinutes:60}),[...exercises].reverse()),staplePlan,'Catalog ordering cannot change workout selection');
+const machinePlan=make({}, {trainingStyles:['Machines'],sessionMinutes:60});
+for(const id of ['gym-2067-leg-press','gym-1054-machine-chest-press','gym-1495-machine-seated-row'])assert.ok(items(machinePlan).some(item=>item.exerciseId===id),'Machine preference overrides a free-weight familiarity tie');
+const beginnerGym=make({experience:'Getting started'}, {sessionMinutes:60});
+assert.ok(items(beginnerGym).some(item=>item.exerciseId==='gym-961-incline-push-up'),'Beginners receive the scalable incline push-up');
+assert.ok(items(beginnerGym).every(item=>!['coach-wall-pushup','coach-standing-march','coach-standing-hip-hinge'].includes(item.exerciseId)),'Full gym plans avoid defaulting to introductory drills when familiar alternatives fit');
+const restricted=make({experience:'Getting started',equipment:['Bodyweight']}, {sessionMinutes:60,avoidMovements:['Floor exercises','Deep knee bends','Overhead pressing']});
+assert.ok(items(restricted).some(item=>item.exerciseId==='coach-standing-march'),'Standing options remain available when preferences exclude floor work');
+
 const week=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
 const allDays=make({experience:'Getting started',days:week});
 assert.equal(allDays.routines.length,7,'Every selected day remains in the plan');
