@@ -29,6 +29,7 @@ const hypertrophy=make();
 const glutes=make({goal:'Grow glutes'});
 const strength=make({goal:'Build strength'});
 const athletic=make({goal:'Improve athleticism'});
+const aesthetics=make({goal:'Build aesthetic physique'},{focusAreas:['Shoulders']});
 assert.notDeepEqual(ids(hypertrophy),ids(glutes),'Glute growth changes exercise selection, not just the title');
 assert.ok(patterns(glutes).includes('push')&&patterns(glutes).includes('pull'),'Glute plans retain both upper-body directions');
 assert.equal(coachingMovement[glutes.routines[0].exercises[0].exerciseId].pattern,'glute');
@@ -38,6 +39,8 @@ assert.ok(items(athletic).some(item=>coachingMovement[item.exerciseId].balance),
 assert.match(athletic.rationale[0],/general foundation/);
 assert.ok(items(strength).some(item=>item.rest===150&&item.reps==='5–8'));
 assert.ok(items(hypertrophy).some(item=>item.rest===120&&item.reps==='8–12'));
+assert.ok(items(aesthetics).some(item=>item.rest===120&&item.reps==='8–12'),'Aesthetic physique uses muscle-building prescriptions');
+assert.equal(coachingMovement[aesthetics.routines[0].exercises[0].exerciseId].pattern,'shoulder','Aesthetic physique uses the separately collected muscle priority');
 assert.ok(items(glutes).some(item=>!coachingMovement[item.exerciseId].compound&&item.rest===90&&item.reps==='10–15'),'Accessory work uses its own rep/rest range, not a compound prescription');
 assert.ok(items(hypertrophy).every(item=>item.notes.length>80),'Each prescription explains selection and effort/progression');
 assert.equal(JSON.stringify({base,exercises}),before,'Planner never mutates exercises or preferences');
@@ -88,7 +91,7 @@ assert.ok(buildRecommendedPlan(initialPreferences,exercises).routines.length>0,'
 const avoids=['Jumping','Overhead pressing','Deep knee bends','Floor exercises'];
 const timeLimits=[10,15,20,25,30,45,60,75,90,120];
 let checked=0;
-for(const goal of ['Learn the basics','Grow glutes','Build muscle','Build strength','Improve athleticism','Build upper body','Manage weight']){
+for(const goal of ['Build aesthetic physique','Build muscle','Build strength','Improve athleticism','Build consistency','Improve fitness','Lose weight']){
   for(const experience of ['Getting started','Experienced']){
     for(const equipment of [['Bodyweight'],['Bodyweight','Dumbbells'],['Bodyweight','Machines'],['Bodyweight','Barbell'],['Bodyweight','Bands']]){
       for(const sessionMinutes of timeLimits){

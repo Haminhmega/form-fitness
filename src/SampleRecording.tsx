@@ -36,7 +36,7 @@ function Movement({ exercise, progress = 0, skeleton = false, framing = false, s
     <rect width="440" height="370" fill="url(#form-grid)" />
     <ellipse cx="224" cy="337" rx="116" ry="9" fill="#080b08" opacity=".48" />
     <path d="M65 335 H375" stroke="#68735f" strokeWidth="1" />
-    {framing && <g stroke="#c6f36b" strokeWidth="2" fill="none" opacity=".75"><path d="M105 76 V52 H129 M311 52 H335 V76 M105 292 V316 H129 M311 316 H335 V292" /><path d="M55 164 L85 164 M70 154 L85 164 L70 174" strokeDasharray="3 3" /></g>}
+    {framing && <g stroke="var(--accent)" strokeWidth="2" fill="none" opacity=".75"><path d="M105 76 V52 H129 M311 52 H335 V76 M105 292 V316 H129 M311 316 H335 V292" /><path d="M55 164 L85 164 M70 154 L85 164 L70 174" strokeDasharray="3 3" /></g>}
     <g stroke="#4b5845" strokeWidth="24" strokeLinecap="round" strokeLinejoin="round" fill="none" opacity=".55" transform="translate(15 0)"><polyline points={`${p(hip)} ${p(knee)} ${p(ankle)}`} /></g>
     <polyline points={`${p(shoulder)} ${p(hip)}`} stroke="#96a889" strokeWidth="43" strokeLinecap="round" />
     <polyline points={`${p(hip)} ${p(knee)} ${p(ankle)}`} stroke="#394333" strokeWidth="26" strokeLinecap="round" strokeLinejoin="round" fill="none" />
@@ -46,7 +46,7 @@ function Movement({ exercise, progress = 0, skeleton = false, framing = false, s
     <path d={`M${head[0] - 18} ${head[1] - 3} Q${head[0] - 20} ${head[1] - 28} ${head[0] + 3} ${head[1] - 25} Q${head[0] + 20} ${head[1] - 25} ${head[0] + 19} ${head[1] - 12}`} fill="#424b39" />
     <polyline points={`${p(shoulder)} ${p(elbow)} ${p(hand)}`} stroke="#bdc6b3" strokeWidth="15" strokeLinecap="round" strokeLinejoin="round" fill="none" />
     {curl && <g stroke="#87927d" strokeWidth="7"><path d={`M${hand[0] - 17} ${hand[1]} h34`} /><path d={`M${hand[0] - 16} ${hand[1] - 10} v20 M${hand[0] + 16} ${hand[1] - 10} v20`} /></g>}
-    {skeleton && <g stroke="#c6f36b" strokeWidth="2" fill="#182013"><polyline points={`${p(head)} ${p(shoulder)} ${p(hip)} ${p(knee)} ${p(ankle)}`} fill="none" /><polyline points={`${p(shoulder)} ${p(elbow)} ${p(hand)}`} fill="none" />{[head, shoulder, hip, knee, ankle, elbow, hand].map((point, i) => <circle key={i} cx={point[0]} cy={point[1]} r="4.5" />)}</g>}
+    {skeleton && <g stroke="var(--accent)" strokeWidth="2" fill="#182013"><polyline points={`${p(head)} ${p(shoulder)} ${p(hip)} ${p(knee)} ${p(ankle)}`} fill="none" /><polyline points={`${p(shoulder)} ${p(elbow)} ${p(hand)}`} fill="none" />{[head, shoulder, hip, knee, ankle, elbow, hand].map((point, i) => <circle key={i} cx={point[0]} cy={point[1]} r="4.5" />)}</g>}
     {framing && <><text x="354" y="65" fill="#a6aea0" fontSize="10" letterSpacing="1">{curl ? '3/4' : 'SIDE'}</text><text x="354" y="80" fill="#a6aea0" fontSize="10" letterSpacing="1">VIEW</text><text x="219" y="360" fill="#a6aea0" fontSize="10" textAnchor="middle" letterSpacing="1">KEEP YOUR WHOLE BODY VISIBLE</text></>}
   </svg>;
 }

@@ -23,7 +23,7 @@ function goalType(preferences:Preferences){
   if(/athleti/.test(goal))return 'athletic';
   if(/strength/.test(goal))return 'strength';
   if(/upper body/.test(goal))return 'upper';
-  if(/muscle|hypertrophy/.test(goal))return 'muscle';
+  if(/muscle|hypertrophy|aesthetic/.test(goal))return 'muscle';
   if(/learn|basic/.test(goal))return 'basics';
   return 'fitness';
 }

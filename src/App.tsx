@@ -6,7 +6,8 @@ import StrengthCheck from './StrengthCheck';
 import RecoveryWorkout from './RecoveryWorkout';
 import {strengthCheckId} from './strength-check';
 import Today from './Today';import Workout from './Workout';import Train from './Train';import Recording from './Recording';import Progress from './Progress';import Profile from './Profile';import Onboarding from './Onboarding';
-import {initialExercises,initialRoutines,initialPreferences,initialHistory} from './data';
+import {initialExercises,initialRoutines,initialPreferences,initialHistory,currentTrainingGoal} from './data';
+import {applyAppearance} from './appearance';
 import {type Exercise,type Routine,type Session,type Preferences} from './types';
 import {createHistoryEntry,createWorkoutSession,selectNextRoutine} from './domain/workout';
 import {getExerciseSupportLevel} from './ai/registry';
@@ -46,6 +47,8 @@ export default function App(){
  const [resultOnly,setResultOnly]=useState(()=>initialRecordingState.resultOnly===true);
  const [recordChoice,setRecordChoice]=useState(()=>initialRecordingState.recordChoice??linkedView()==='Recording');
  const [onboarding,setOnboarding]=useState(false);const [notification,setNotification]=useState<{message:string;undo?:()=>void}|null>(null);const [online,setOnline]=useState(navigator.onLine);const [pendingRoutine,setPendingRoutine]=useState<Routine|null>(null);const switchDialog=useRef<HTMLDialogElement>(null);const main=useRef<HTMLElement>(null);const toastTimer=useRef<ReturnType<typeof setTimeout>|null>(null);
+ useEffect(()=>{applyAppearance(preferences.accentColor,preferences.logoColor)},[preferences.accentColor,preferences.logoColor]);
+ useEffect(()=>{const goal=currentTrainingGoal(preferences.goal);if(goal!==preferences.goal)setPreferences({...preferences,goal})},[preferences.goal]);
  function toast(message:string,undo?:()=>void){setNotification({message,undo});if(toastTimer.current)clearTimeout(toastTimer.current);toastTimer.current=setTimeout(()=>setNotification(null),undo?10000:6000)}
  function navigate(next:View,replace=false,recording:RecordingRouteState={}){if(next===view)return;const target=next==='Recording'?'#form-test'+(recording.exerciseId?'?exercise='+encodeURIComponent(recording.exerciseId):''):window.location.pathname+window.location.search;window.history[replace?'replaceState':'pushState']({...window.history.state,formView:next,...recording},'',target);setView(next);window.scrollTo({top:0});setTimeout(()=>main.current?.focus(),0)}
  useEffect(()=>{const handler=()=>setOnline(navigator.onLine);window.addEventListener('online',handler);window.addEventListener('offline',handler);return()=>{window.removeEventListener('online',handler);window.removeEventListener('offline',handler)}},[]);

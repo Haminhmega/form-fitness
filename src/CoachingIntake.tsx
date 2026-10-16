@@ -15,14 +15,12 @@ export const coachingSteps=[
 
 const goalCopy:Record<string,{label:string;description:string}>={
   'Build muscle':{label:'Muscle growth · hypertrophy',description:'Build muscle with repeatable sets and gradual progression.'},
-  'Grow glutes':{label:'Grow my glutes',description:'Make glute development a priority within a balanced plan.'},
+  'Build aesthetic physique':{label:'Build aesthetic physique',description:'Build balanced muscle, then use muscle priorities to shape the emphasis.'},
   'Build strength':{label:'Get stronger',description:'Practice the main lifts with more rest between working sets.'},
   'Improve athleticism':{label:'Improve athleticism',description:'Build a strength base that supports movement and sport.'},
-  'Learn the basics':{label:'Learn good technique',description:'Start with approachable movements and time to practice.'},
-  'Build upper body':{label:'Build my upper body',description:'Give pushing, pulling, shoulders, and arms extra attention.'},
   'Build consistency':{label:'Build a lasting habit',description:'Keep sessions manageable and easier to repeat.'},
   'Improve fitness':{label:'Improve overall fitness',description:'Train the whole body with a steady, practical routine.'},
-  'Manage weight':{label:'Support weight management',description:'Build a regular training habit. Scale changes aren’t promised.'},
+  'Lose weight':{label:'Lose weight',description:'Build a regular training habit that supports your goal. Scale changes aren’t promised.'},
 };
 const experienceCopy:Record<string,string>={
   'Getting started':'I’m new, returning after a long break, or still learning the movements.',

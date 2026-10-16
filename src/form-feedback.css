@@ -1,7 +1,7 @@
 .form-feedback{margin:24px 0;color:#eef2e8}
 .form-feedback-heading{display:flex;gap:13px;align-items:center}
-.form-feedback-icon{display:grid;place-items:center;flex-shrink:0;width:48px;height:48px;border:1px solid #50643c;background:#29371f;border-radius:14px;color:#c6f36b}
-.form-feedback-heading .eyebrow{margin:0 0 6px;color:#c6f36b}
+.form-feedback-icon{display:grid;place-items:center;flex-shrink:0;width:48px;height:48px;border:1px solid #50643c;background:#29371f;border-radius:14px;color:var(--accent)}
+.form-feedback-heading .eyebrow{margin:0 0 6px;color:var(--accent)}
 .form-feedback-heading h3{font-size:22px;line-height:1.25;letter-spacing:-.45px;margin:0}
 .form-feedback-summary{font-size:14px;line-height:1.65;color:#c0cbb6;margin:16px 0 20px}
 .form-feedback-cards{display:grid;gap:14px}
@@ -13,8 +13,8 @@
 .form-feedback-card-label strong{font-weight:500}
 .form-feedback-card h4{font-size:19px;line-height:1.35;letter-spacing:-.2px;margin:13px 0 10px}
 .feedback-observed{color:#bbc8ae;font-size:13px;line-height:1.7;margin:0 0 16px}
-.feedback-action{padding:14px 15px;background:#2c3b20;border-radius:10px;border-left:3px solid #c6f36b}
-.feedback-action>span{display:block;font-size:11px;font-weight:600;color:#c6f36b;margin-bottom:6px}
+.feedback-action{padding:14px 15px;background:#2c3b20;border-radius:10px;border-left:3px solid var(--accent)}
+.feedback-action>span{display:block;font-size:11px;font-weight:600;color:var(--accent);margin-bottom:6px}
 .feedback-action p{font-size:14px;line-height:1.7;margin:0;color:#e4eddc}
 .feedback-why summary,.feedback-limits summary{min-height:48px;display:list-item;padding:14px 0;cursor:pointer;font-size:12px;line-height:1.6;color:#c4d3b5}
 .feedback-why p,.feedback-limits p,.feedback-limits li{font-size:12px;line-height:1.8;color:#b8c5ab;margin:0 0 12px}
@@ -24,5 +24,5 @@
 .feedback-review{width:100%;display:flex;align-items:center;justify-content:center;gap:9px;min-height:46px;font-size:12px}
 .feedback-review svg:last-child{margin-left:auto}
 .feedback-review svg:first-child{margin-right:auto}
-.form-feedback summary:focus-visible,.form-feedback a:focus-visible{outline:2px solid #c6f36b;outline-offset:4px;border-radius:4px}
+.form-feedback summary:focus-visible,.form-feedback a:focus-visible{outline:2px solid var(--accent);outline-offset:4px;border-radius:4px}
 @media(max-width:600px){.form-feedback{margin:20px 0}.form-feedback-heading h3{font-size:23px}.form-feedback-summary,.feedback-observed{font-size:14px;line-height:1.7}.form-feedback-card{padding:18px;border-radius:16px}.form-feedback-card h4{font-size:20px}.form-feedback-card-label{font-size:10px;letter-spacing:.5px}.feedback-action p{font-size:15px}.feedback-action>span{font-size:12px}.feedback-why summary,.feedback-limits summary{font-size:14px}.feedback-why p,.feedback-limits p,.feedback-limits li,.feedback-limits a{font-size:14px}.feedback-review{min-height:48px;font-size:14px!important}}

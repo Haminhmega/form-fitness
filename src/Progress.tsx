@@ -24,7 +24,7 @@ function SampleRecording({ label, set, rep, onRep }: { label: string; set: strin
         <circle cx="171" cy="68" r="18" fill="#a9b0a1" />
         <path d="M162 94L139 139L180 165L164 206M146 139L104 167L129 208M162 95L193 120L222 115" stroke="#67705e" strokeWidth="23" strokeLinecap="round" strokeLinejoin="round" fill="none" />
         <path d="M127 213L143 215M163 213L184 216" stroke="#afb6a6" strokeWidth="12" strokeLinecap="round" />
-        {overlay && <g stroke="#c6f36b" fill="#c6f36b" strokeWidth="2.2"><path d="M169 71L162 96L142 139L180 165L166 208M142 139L104 167L129 208M162 96L192 119L220 115" fill="none" />{[[169,71],[162,96],[142,139],[180,165],[166,208],[104,167],[129,208],[192,119],[220,115]].map(([x,y]) => <circle key={`${x}-${y}`} cx={x} cy={y} r="3" />)}</g>}
+        {overlay && <g stroke="var(--accent)" fill="var(--accent)" strokeWidth="2.2"><path d="M169 71L162 96L142 139L180 165L166 208M142 139L104 167L129 208M162 96L192 119L220 115" fill="none" />{[[169,71],[162,96],[142,139],[180,165],[166,208],[104,167],[129,208],[192,119],[220,115]].map(([x,y]) => <circle key={`${x}-${y}`} cx={x} cy={y} r="3" />)}</g>}
       </svg>
       <span className="rep-indicator">Rep {rep} of 8</span>
       <button className="overlay-button" aria-pressed={overlay} onClick={() => setOverlay(!overlay)}>{overlay ? 'Hide' : 'Show'} overlay</button>
