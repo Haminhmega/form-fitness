@@ -12,3 +12,25 @@ test-results/
 .netlify/
 .wrangler/
 .sites-runtime/
+
+# Research inputs and derived per-clip data remain outside version control.
+/datasets/
+/research/data/
+/research/datasets/
+/research/landmarks/
+/research/cache/
+/research/runs/
+/research/private/
+/research/**/*.zip
+/research/**/*.tar
+/research/**/*.tar.gz
+/research/**/*.tgz
+/research/**/*.7z
+*.[mM][pP]4
+*.[mM][oO][vV]
+*.[mM]4[vV]
+*.[wW][eE][bB][mM]
+*.[aA][vV][iI]
+*.[mM][kK][vV]
+*.[mM][pP][eE][gG]
+*.[mM][pP][gG]
