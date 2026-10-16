@@ -19,7 +19,7 @@ const env={
 };
 const doc={profile:{name:'Test Person',age:null,heightCm:175,weightKg:72,targetWeightKg:null,activity:'Lightly active'},training:{preferences:initialPreferences,routines:initialRoutines,exercises:initialExercises,history:[]}};
 const localHistory=[{id:'local-workout',name:'Preserved workout',date:'2026-10-14',duration:35,sets:1,volume:500,feedback:false,exercises:[{name:'Squat',sets:[{id:'set-1',weight:50,reps:10,done:true}]}]},{id:'sample-workout',name:'Sample workout',date:'2026-10-13',duration:20,sets:1,volume:100,feedback:false,exercises:[],sample:true}];
-const localPreferences={...initialPreferences,notifications:true,goal:'Build consistency',accentColor:'#ff9acb',backgroundColor:'#211019',appIconColor:'#86c4ff'};
+const localPreferences={...initialPreferences,notifications:true,goal:'Build consistency',accentColor:'#ff9acb',backgroundColor:'#211019',appIconColor:'#86c4ff',appIconStyle:'cat'};
 const localValues=new Map([
   ['form-user:a:form-routines-v1',JSON.stringify(initialRoutines)],
   ['form-user:a:form-exercises-v1',JSON.stringify(initialExercises)],
@@ -34,6 +34,7 @@ assert.equal(migrated.training.preferences.notifications,true);
 assert.equal(migrated.training.preferences.accentColor,'#ff9acb');
 assert.equal(migrated.training.preferences.backgroundColor,'#211019');
 assert.equal(migrated.training.preferences.appIconColor,'#86c4ff');
+assert.equal(migrated.training.preferences.appIconStyle,'cat');
 assert.equal(migrated.training.preferences.goal,'Build muscle');
 assert.equal(migrated.training.preferences.firstTime,true);
 assert.equal(migrated.training.preferences.onboarded,true);
