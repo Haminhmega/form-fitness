@@ -2,7 +2,43 @@
 
 Reviewed: 2026-10-16. Status: **BLOCKED AT STEP 1 — no dataset evaluation performed.**
 
-The user explicitly requires stopping for unresolved license, access or label-mapping questions. Only this note and `.gitignore` were changed. No video was fetched, stored, uploaded or committed for this task. No app behavior, thresholds, observation IDs or network behavior were changed.
+The user explicitly requires stopping for unresolved license, access or label-mapping questions. Only this note and `.gitignore` have been changed across the eligibility reviews. No video was fetched, stored, uploaded or committed for this task. No app behavior, thresholds, observation IDs or network behavior were changed.
+
+## User-supplied candidate: Zenodo Squat Dataset, record 17558630
+
+### Permission and access
+
+Attribution: Christopher Teng (2025), *Squat Dataset*, Zenodo, [doi:10.5281/zenodo.17558630](https://doi.org/10.5281/zenodo.17558630). The [record API](https://zenodo.org/api/records/17558630) identifies open access and **CC BY 4.0**. The [actual license](https://creativecommons.org/licenses/by/4.0/legalcode.en), Sections 2–3, permits reuse and adaptation, including commercial use, with attribution and the applicable notices/change disclosures. It does not grant all third-party privacy/personality rights. No non-commercial restriction was found in the record; there is no separate license file in the archive listing.
+
+The API and official archive range endpoint were accessible without authentication. The ordinary web reader failed, so metadata was read directly from the public API. No access controls were bypassed.
+
+### Archive inspection — metadata only, no inference
+
+The record advertises `Dataset.zip`: 824,064,094 bytes; publisher-provided MD5 `cebeb32ac04dab34d4abe9686a9fc5d3`. This checksum was **not independently verified**, because the full archive was not downloaded. Two HTTP range requests read its ZIP footer and central directory into memory. The directory is 380,475 bytes and lists 3,814 entries: eight directories and **3,806 JPG images**, with no other file types. No image entries were extracted, displayed or analyzed; no archive was saved.
+
+| Folder label (original spelling) | Supplied train images | Supplied test images |
+| --- | ---: | ---: |
+| Bad Back / Bad back | 984 | 338 |
+| Bad Heel / Bad heel | 852 | 321 |
+| Good | 1,001 | 310 |
+| Total | 2,837 | 969 |
+
+These are file counts, not counts of independent people or squat repetitions. Paths use a class name plus an integer, for example `test/Bad Back/Bad Back (1).jpg`. No subject/recording manifest, timestamp file, annotation guide or provenance document is listed. Embedded JPEG metadata has not been inspected. The record describes square side-view images; actual dimensions and any original image reshaping remain unverified.
+
+### Label mapping and protocol compatibility
+
+The three names above are dataset labels, not proposed app verdicts. The record describes the back category as “spinal misalignment” and the heel category as “improper foot positioning,” but supplies no operational annotation criteria, measurement cutoffs, annotator agreement or ambiguity policy.
+
+- **Back:** shoulder-to-hip inclination is measurable, but it is not a measurement of spinal curvature and cannot be assumed equivalent to this label. No accepted mapping.
+- **Heel:** visible heel/forefoot geometry might support an image study, but the supplied description does not establish whether the category means heel elevation, rotation or another position. Do not substitute an invented heel-rise definition.
+- **Reference category:** this is a dataset class, not proof that every candidate measurement lacks a deviation. No general form verdict follows from it.
+- No explicit depth label is supplied. Still images cannot establish movement phases, rep minima, range changes, tempo, tracking interruptions or complete squat cycles. Repeating one image or assigning artificial timestamps would not create that evidence.
+
+The supplied train/test folder names do not establish person separation. Numeric file suffixes are not subject IDs. No reliable alternative grouping has been established, so the folders cannot currently serve as the requested held-out person-based evaluation. The collection origin is also unspecified in the record, so compliance with the earlier no-scraped-video requirement remains unverified.
+
+**Decision: permission/access checks passed at the published-record level; measurement mapping and evaluation eligibility remain blocked.** No thresholds were tuned, no test predictions were made and no fault passed a release bar. This dataset might support an explicitly exploratory still-image landmark study, but that is a different scope from the requested video evaluation. Asked the user to choose that limited scope or continue seeking an eligible video dataset. Do not change production thresholds on the basis of this metadata review.
+
+Verification for this follow-up: archive-entry counts and file types inspected; existing dataset exclusions and documentation diff checked. App tests and build were not rerun for this documentation-only eligibility review. The model was not run and its digest was not reverified in this follow-up.
 
 ## Fitness-AQA / BackSquat
 
