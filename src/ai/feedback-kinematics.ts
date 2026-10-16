@@ -4,7 +4,7 @@ import {reliablePoint} from './pose-signal';
 
 type Side = 'left'|'right';
 export type FeedbackPhase = 'setup'|'eccentric'|'bottom'|'concentric'|'hold';
-export type Kinematics = Partial<Record<'hipOffset'|'elbowX'|'elbowY'|'upperArm'|'lean'|'hipAngle'|'heel'|'handShin'|'earGap'|'headTilt',number>>;
+export type Kinematics = Partial<Record<'hipOffset'|'elbowX'|'elbowY'|'upperArm'|'lean'|'hipAngle'|'thighTilt'|'heel'|'handShin'|'earGap'|'headTilt',number>>;
 export type KinematicSample = {time:number;metric:number;side:Side;kinematics:Kinematics};
 export type KinematicRep = {rep:SquatRep;samples:KinematicSample[];range:number};
 const median = (v:number[]) => {const a=[...v].sort((a,b)=>a-b),i=Math.floor(a.length/2);return a.length?(a.length%2?a[i]:(a[i-1]+a[i])/2):NaN;};
@@ -36,7 +36,10 @@ export function extractKinematics(points:PosePoint[],side:Side,d:{width:number;h
     out.elbowX=(e.x-s.x)/torso;out.elbowY=(e.y-s.y)/torso;
     out.upperArm=degrees(subtract(e,s),subtract(h,s));
   }
-  if(k&&length(subtract(k,h))>torso*.15)out.hipAngle=degrees(subtract(s,h),subtract(k,h));
+  if(k&&length(subtract(k,h))>torso*.15){
+    out.hipAngle=degrees(subtract(s,h),subtract(k,h));
+    out.thighTilt=Math.abs(Math.atan2(k.x-h.x,k.y-h.y)*180/Math.PI);
+  }
   if(a&&heel&&toe&&length(subtract(toe,heel))>torso*.08)out.heel=(toe.y-heel.y)/torso;
   if(w&&k&&a&&Math.abs(a.y-k.y)>torso*.15){
     const t=Math.max(0,Math.min(1,(w.y-k.y)/(a.y-k.y))),shinX=k.x+(a.x-k.x)*t;

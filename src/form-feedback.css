@@ -26,6 +26,7 @@
 .feedback-action{padding:14px 15px;background:#2c3b20;border-radius:10px;border-left:3px solid var(--accent)}
 .feedback-action>span{display:block;font-size:11px;font-weight:600;color:var(--accent);margin-bottom:6px}
 .feedback-action p{font-size:14px;line-height:1.7;margin:0;color:#e4eddc}
+.feedback-steps{padding-left:23px;font-size:14px;line-height:1.7;color:#e4eddc}.feedback-steps li{padding:5px 0 5px 4px}
 .feedback-why summary,.feedback-limits summary{min-height:48px;display:list-item;padding:14px 0;cursor:pointer;font-size:12px;line-height:1.6;color:#c4d3b5}
 .feedback-why p,.feedback-limits p,.feedback-limits li{font-size:12px;line-height:1.8;color:#b8c5ab;margin:0 0 12px}
 .feedback-limits{margin-top:16px;border-top:1px solid #3e4a34}

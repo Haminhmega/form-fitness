@@ -66,8 +66,9 @@ async function run(){
   const base=makeFeedbackFixture(),before=JSON.stringify(base),steady=feedback(base);
   assert.equal(steady.status,'ready');
   assert.equal(steady.cards[0].kind,'practice');
-  assert.match(steady.cards[0].observed,/not a fault detected/);
-  assert.match(steady.summary,/does not establish that your form is correct/);
+  assert.equal(steady.positive,true);
+  assert.match(steady.cards[0].observed,/stayed|No repeated/);
+  assert.match(steady.summary,/Nice work.*movement checks/);
   assert.equal(JSON.stringify(base),before,'The analysis input is never mutated');
 
   const torso=makeFeedbackFixture({torsoChange:true});
@@ -297,7 +298,9 @@ async function run(){
     for(const card of f.cards.filter(c=>c.highlight)){assert.ok(card.time>=0&&card.time<=fixture.result.duration);assert.ok(card.highlight.joints.length>=2);}
   }
   const limited=clone(hipShoot);limited.result.validFraction=.75;assert.equal(feedback(limited).cards[0].kind,'capture');
-  assert.match(steady.cards[0].observed,/Median lowering\/lifting.*rep-range spread.*torso-angle variance/);
+  assert.equal(steady.cards[0].title,'What went well');
+  assert.match(steady.checks.find(c=>c.id==='tempo-eccentric-control').detail,/median lowering.*lifting/,'Measurements remain available behind the plain-language positive feedback');
+  assert.match(steady.checks.find(c=>c.id==='range-change').detail,/Measured projected/);
 
   // Pixel units and torso normalization preserve spatial metrics when the same
   // projected body is embedded in a different video aspect ratio or distance.
