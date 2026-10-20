@@ -21,7 +21,9 @@
     "test:ui": "node scripts/smoke-review-update.mjs",
     "db:generate": "drizzle-kit generate",
     "preview:server": "wrangler dev --config dist/server/wrangler.json --local --persist-to .wrangler/state --ip 127.0.0.1 --port 8787",
-    "test:accounts": "node scripts/test-accounts.mjs"
+    "test:accounts": "node scripts/test-accounts.mjs",
+    "test:rewards": "node scripts/test-rewards.mjs",
+    "test:rewards-ui": "node scripts/test-rewards-ui.mjs"
   },
   "dependencies": {
     "@mediapipe/tasks-vision": "0.10.35",

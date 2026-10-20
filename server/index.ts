@@ -3,6 +3,7 @@ import {json,sameOrigin,type Env} from './contracts';
 import {identityResult,googleAuth,clearSessionCookie,authErrorRedirect,hasSessionCookie,hasPlatformSession} from './google-auth';
 import {rateLimit} from './rate-limit';
 import {passwordAuth} from './password-auth';
+import {handleRewards,reconcileSavedRewards} from './rewards';
 const handleAuth=googleAuth();
 const handlePasswordAuth=passwordAuth();
 async function readJson(request:Request){
@@ -29,6 +30,7 @@ export default {async fetch(request:Request,env:Env):Promise<Response>{
     const asset=env.ASSETS?await env.ASSETS.fetch(request):new Response('Not found',{status:404});
     const response=new Response(asset.body,asset);response.headers.set('Referrer-Policy','no-referrer');response.headers.set('X-Content-Type-Options','nosniff');response.headers.set('Content-Security-Policy',"default-src 'self' blob: data:; script-src 'self' blob: 'wasm-unsafe-eval'; worker-src 'self' blob:; connect-src 'self' blob: data:; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; media-src 'self' blob: data:; object-src 'none'; base-uri 'self'; frame-ancestors 'none'");return response;
   }
+  if(url.pathname==='/api/rewards')return await handleRewards(request,env);
   if(url.pathname!=='/api/account')return json({error:'Not found'},404);
   if(!env.DB)return json({error:'Account storage is temporarily unavailable. Please retry.'},503);
   const ipLimited=await rateLimit(env,'account-ip:'+(request.headers.get('CF-Connecting-IP')||'local'),180);if(ipLimited)return ipLimited;
@@ -49,6 +51,7 @@ export default {async fetch(request:Request,env:Env):Promise<Response>{
       // Retain only the owner key/revision, with all profile data removed. A
       // stale offline device must not overwrite a subsequently recreated account.
       await env.DB.prepare("UPDATE form_accounts SET document = 'null', revision = revision + 1, updated_at = ? WHERE user_id = ?").bind(new Date().toISOString(),user.id).run();
+      await env.DB.prepare('DELETE FROM form_rewards WHERE user_id=?').bind(user.id).run();
       await env.DB.prepare('DELETE FROM form_sessions WHERE user_id=?').bind(user.id).run();
       await env.DB.prepare('DELETE FROM form_oauth_states WHERE link_user_id=?').bind(user.id).run();
       await env.DB.prepare('DELETE FROM form_google_identities WHERE user_id=?').bind(user.id).run();
@@ -65,6 +68,9 @@ export default {async fetch(request:Request,env:Env):Promise<Response>{
       ?await env.DB.prepare("INSERT INTO form_accounts (user_id,document,revision,updated_at) VALUES (?,?,1,?) ON CONFLICT(user_id) DO UPDATE SET document=excluded.document,revision=form_accounts.revision+1,updated_at=excluded.updated_at WHERE form_accounts.document='null' RETURNING document,revision,updated_at").bind(user.id,JSON.stringify(document),updatedAt).first()
       :await env.DB.prepare("UPDATE form_accounts SET document = ?, revision = revision + 1, updated_at = ? WHERE user_id = ? AND revision = ? AND document != 'null' RETURNING document,revision,updated_at").bind(JSON.stringify(document),updatedAt,user.id,revision).first();
     if(!saved)return json({error:'Another device saved changes. Refresh before saving again.'},409);
+    // The account is already saved; a rewards retry must not report that save
+    // as failed or cause another device to overwrite the confirmed revision.
+    try{await reconcileSavedRewards(env,user.id);}catch{console.error(JSON.stringify({event:'rewards_sync_deferred'}));}
     return json({record:{document:JSON.parse(saved.document),revision:saved.revision,updatedAt:saved.updated_at}});
   }catch(error){
     const operation=url.pathname==='/api/auth/register'?'register':url.pathname==='/api/auth/login'?'login':url.pathname==='/api/account'?'account':'auth';

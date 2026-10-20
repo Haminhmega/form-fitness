@@ -33,6 +33,10 @@ Videos and detailed results stay in memory, are never uploaded or cached, and ar
 
 ## Accounts and offline use
 
+### Goal rewards
+
+Today shows weekly goal points and credits; **Progress → Rewards & shop** contains monthly comparisons and a two-item potion shop. A five-day target earns 20 base points and 10 credits per qualifying day, up to 100 base points/week. Streaks follow weekly goals, with optional freezes (60 credits) and next-day point boosts (30 credits). Credits come from synced workouts; ads are not connected. Points, bonus points and spendable credits remain separate. Rewards begin at enrollment and use a server-owned, replay-protected ledger. See [rules, calendar behavior and limits](docs/rewards.md). Run `npm run test:rewards` and `npm run test:rewards-ui` for the accounting/API and browser checks.
+
 Email/password accounts, optional Google sign-in, profile stats, routines, preferences and completed-workout sync are real. Expired sessions retain unsynced local edits and request sign-in before syncing. Skipping initial profile setup is remembered per account. Password authentication has per-email and per-IP throttling and rotates the browser session.
 
 Active workouts remain on the device until completed. Rest timers are scoped to the account and workout. Browser storage can be cleared by the user or OS, so it is not a backup. The installed PWA keeps its current version during training and offers an update when available. Finish the active workout and sync before updating. See ACCOUNTS.md and IPHONE.md.

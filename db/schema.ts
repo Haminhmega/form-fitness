@@ -20,3 +20,9 @@ export const oauthStates=sqliteTable('form_oauth_states',{
 export const rateLimits=sqliteTable('form_rate_limits',{
   bucket:text('bucket').primaryKey(),hits:integer('hits').notNull(),expiresAt:integer('expires_at').notNull(),
 },t=>[index('rate_expiry').on(t.expiresAt)]);
+export const rewards=sqliteTable('form_rewards',{
+  userId:text('user_id').primaryKey(),
+  document:text('document').notNull(),
+  revision:integer('revision').notNull(),
+  updatedAt:text('updated_at').notNull(),
+});

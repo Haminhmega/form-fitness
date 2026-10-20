@@ -7,7 +7,7 @@ import {localWorkoutDate,updateHistorySet} from './domain/workout';
 import {isTimedExercise} from './exercise-logging';
 import './progress-profile.css';
 
-type Props = { history: HistoryEntry[]; exercises:Exercise[]; units: 'kg' | 'lb'; onFeedback: (exerciseId?: string, resultOnly?:boolean) => void; onUpdateHistory: (entry: HistoryEntry) => void; onDeleteHistory: (id: string) => void; toast: ToastFn; deviceContent?:ReactNode };
+type Props = { history: HistoryEntry[]; exercises:Exercise[]; units: 'kg' | 'lb'; onFeedback: (exerciseId?: string, resultOnly?:boolean) => void; onUpdateHistory: (entry: HistoryEntry) => void; onDeleteHistory: (id: string) => void; toast: ToastFn; deviceContent?:ReactNode; rewardsContent?:ReactNode; section?:'training'|'rewards'; onSection?:(section:'training'|'rewards')=>void };
 const dateLabel = (date: string, long = false) => new Date(`${date.slice(0, 10)}T12:00:00`).toLocaleDateString('en-US', { month: long ? 'long' : 'short', day: 'numeric' });
 const weightValue = (weight: number, units: 'kg' | 'lb') => Math.round(toDisplayWeight(weight,units) * 10) / 10;
 const number = (value: number) => value.toLocaleString('en-US', { maximumFractionDigits: 1 });
@@ -36,7 +36,7 @@ function SampleRecording({ label, set, rep, onRep }: { label: string; set: strin
   </section>;
 }
 
-export default function Progress({ history, exercises, units, onFeedback, onUpdateHistory, onDeleteHistory, toast, deviceContent }: Props) {
+export default function Progress({ history, exercises, units, onFeedback, onUpdateHistory, onDeleteHistory, toast, deviceContent, rewardsContent, section='training', onSection }: Props) {
   const [source, setSource] = useState('all');
   const [exerciseChoice, setExerciseChoice] = useState('');
   const [metric, setMetric] = useState('reps');
@@ -91,6 +91,8 @@ export default function Progress({ history, exercises, units, onFeedback, onUpda
   }
   return <div className="progress-page">
     <header className="page-heading"><div><p className="eyebrow">YOUR TRAINING, OVER TIME</p><h1>Keep showing up.</h1><p className="muted">The work adds up. See where you’ve been.</p></div><span className="badge"><CalendarDays size={14} aria-hidden="true" /> {today.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</span></header>
+    {rewardsContent&&<div className="source-segments progress-sections" role="group" aria-label="Progress section"><button aria-pressed={section==='training'} onClick={()=>onSection?.('training')}>Training history</button><button aria-pressed={section==='rewards'} onClick={()=>onSection?.('rewards')}>Rewards & shop</button></div>}
+    {section==='rewards'&&rewardsContent?rewardsContent:<>
     <div className="progress-source"><div className="source-segments" aria-label="Filter history source">{[['all', 'All sessions'], ['local', 'Your sessions'], ['sample', 'Sample data']].map(([value, label]) => <button key={value} aria-pressed={source === value} onClick={() => setSource(value)}>{label}</button>)}</div><span className="muted">{sampleCount > 0 ? `${sampleCount} sample · ${localCount} locally logged` : `${localCount} locally logged`}</span></div>
     {entries.length === 0 ? <section className="panel empty-state"><Dumbbell size={32} aria-hidden="true" /><h2>{source === 'sample' ? 'No sample sessions to show.' : 'Your next session is the start.'}</h2><p className="muted">Finish a workout in Today to see completed sets, history, and exercise trends here.</p>{source !== 'all' && <button className="btn secondary" onClick={() => setSource('all')}>Show all sessions</button>}</section> : <>
       <section className="progress-summary" aria-label="Training summary">
@@ -115,5 +117,6 @@ export default function Progress({ history, exercises, units, onFeedback, onUpda
       })}</div></section>
     </>}
     {deviceContent}<section className="panel compare-panel"><div className="compare-intro"><div className="comparison-icon"><Video size={23} aria-hidden="true" /></div><div><p className="eyebrow">A CLOSER LOOK</p><h2>Put two sets side by side.</h2><p className="muted">Compare the same exercise, one rep at a time.</p><span className="badge">Illustrative sample recordings</span></div><button className="btn secondary" aria-expanded={compare} aria-controls="recording-comparison" onClick={() => setCompare(!compare)}>{compare ? 'Close comparison' : 'Compare recordings'}<ArrowUpRight size={17} aria-hidden="true" /></button></div>{compare && <div id="recording-comparison"><div className="comparison-description"><h3>Bodyweight squat · side view</h3><p className="muted">Both panels use a static, illustrative pose. Selecting a rep demonstrates navigation; it does not show measured changes in movement or technique.</p></div><div className="comparison-grid"><SampleRecording label="October 7" set="Sample · Set 1" rep={repA} onRep={setRepA} /><SampleRecording label="October 12" set="Sample · Set 3" rep={repB} onRep={setRepB} /></div><p className="comparison-tip"><Info size={16} aria-hidden="true" />In a future video comparison, use a similar angle and load. No improvement claim can be made from these illustrations.</p><button className="btn ghost" onClick={() => onFeedback('squat')}><Play size={16} aria-hidden="true" />Explore sample coaching feedback</button></div>}</section>
+    </>}
   </div>;
 }

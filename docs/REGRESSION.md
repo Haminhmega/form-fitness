@@ -11,6 +11,7 @@ Scope is the changed working tree as well as any subsequent commit. Dependency e
 | Warm-up duration and shared instructions | Active workout, cold-launch recovery, exercise library | `npm run test:ui` with `FORM_TEST_URL` set to the local dev server |
 | Exercise familiarity and demonstrations | Planner, library, Workout instructions, Recording and AIRecording references | `npm run test:catalog`; `node scripts/test-exercise-demo-ui.mjs`; planner and shared-instructions rows above |
 | All changed TypeScript/UI | Client, PWA and Worker build | `npm run build` |
+| Goal rewards, account-scoped ledger and shop | Today, Progress, workout completion, account sync and deletion | `npm run test:rewards`; `npm run test:rewards-ui`; `npm run test:accounts`; `npm run test:account-recovery`; `npm run test:workout`; `npm run test:recovery` |
 
 Propagation: externally visible changes require all listed downstream checks. No exemptions in this release. Commands execute in the form-prototype checkout using installed dependencies; they use local fixtures, in-memory account storage or a local preview and do not write production accounts. Browser tools use the installed Edge runtime. Production build and Sites publication follow these checks.
 

@@ -25,6 +25,7 @@ jobs:
       - run: npm run test:ai
       - run: npm run test:camera
       - run: npm run test:accounts
+      - run: npm run test:rewards
       - run: npm run test:workout
       - run: npm run test:coaching
       - run: npm run test:measurements
@@ -33,6 +34,7 @@ jobs:
       - run: npm run test:recovery
       - run: npx playwright install --with-deps chromium
       - run: npm run test:account-recovery
+      - run: npm run test:rewards-ui
       - run: |
           npm run dev -- --port 5192 &
           node scripts/wait-preview.mjs

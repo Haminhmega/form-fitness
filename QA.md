@@ -1,3 +1,12 @@
+# Goal rewards update — October 20, 2026
+
+- `npm run test:rewards`: 16 passing scenario groups for goal-normalized points, daily caps, immutable awards, time zones/DST, grace boundaries, freezes/boosts, month comparisons, authentication, SQLite concurrent writes, goal changes, and deletion races.
+- `npm run test:rewards-ui`: passed using the actual App, account provider, rewards hook and Worker with isolated in-memory SQLite. Covered two completed workouts on one day, repeated Save clicks, delete/undo, previous-month selection, stale-balance rejection, purchase confirmation/cancel keyboard focus, lost-response → 401 → same-ID retry after reload, inventory/balance, offline and 503 recovery, account switching, and guest sign-in entry.
+- Three rewards accessibility/layout audits passed at 375×844, 390×844 and 1440×900, with no detected axe WCAG A/AA violations, horizontal overflow or measured controls smaller than 44 pixels. Rendered screenshots were reviewed. Local evidence: `../form-rewards-evidence/report.json` and its screenshots. The ECC evidence checker passed.
+- `npm run test:accounts`, `npm run test:account-recovery`, `npm run test:workout`, `npm run test:recovery`, `npm run test:ui`, `npm run test:ai`, and `npm run build` passed. The build retains its existing bundle-size advisory.
+- All four D1 migrations applied to an isolated local database. `node scripts/smoke-rewards-runtime.mjs` passed against workerd + D1: enrollment, automatic reward after account save, duplicate sync, insufficient-credit rejection, account deletion and cleanup.
+- Rewards tests use synthetic logged sessions, never real users' workouts or production writes. Ads remain disconnected. This is browser phone-size emulation, not testing on a physical iPhone. No movement-analysis thresholds or datasets changed in this release. Older QA entries below are historical, not a claim that every past suite was rerun.
+
 # Form — prototype verification
 
 ## Account update — October 13, 2026
