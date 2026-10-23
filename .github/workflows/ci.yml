@@ -43,4 +43,5 @@ jobs:
           node scripts/wait-preview.mjs
           npm run test:ui
           npm run test:cancel-session
+          npm run test:mobile
       - run: npm run build

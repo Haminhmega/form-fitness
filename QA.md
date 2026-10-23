@@ -1,3 +1,10 @@
+# Mobile layout update — October 23, 2026
+
+- `npm run test:mobile` runs the actual App with local guest fixtures: 12 states at 320, 390, 430, 768 and 1440 pixels (60 checks). Covers welcome, Today, routines, library, exercise detail, Progress, Profile, appearance, warm-up, active workout, rest and cancellation. No horizontal overflow; measured visible phone controls are at least 44×44 pixels and editable text fields at least 16px. Five axe WCAG A/AA audits cover Today, Progress, Profile, workout and cancellation at 390px.
+- Verifies collapsed settings, theme selection, installation instructions, collapsible workout instructions, fixed logging controls, skipping rest, completing another set, navigating away/resuming and preserving entered reps. Browser screenshots were visually reviewed; evidence is written outside the repository to `../form-mobile-evidence/after/`.
+- Shared instructions/cold-launch recovery (`test:ui`), session cancellation, account recovery, rewards UI and coaching UI checks passed. The production build passed with the existing large-chunk advisory. Account recovery uses installed Edge through `PLAYWRIGHT_CHROMIUM_EXECUTABLE` on this Windows computer.
+- This is browser viewport testing, not a physical iPhone/Safari keyboard or notch test. Safe-area padding is implemented but requires device confirmation. Camera analysis and account/server contracts are unchanged.
+
 # Session navigation â€” October 23, 2026
 
 Offline PyTorch project: 28 Python tests and both synthetic smoke pipelines passed on CPU. The developer-only landmark exporter, existing AI checks and production build passed; no research/model/export strings appear in the production client bundle. The short anomaly smoke did not separate the generated unusual examples (see research/squat_ml/ANOMALY_PROTOCOL.md). No real dataset or validated detection result exists. Research checkpoints/data remain ignored. GPU and physical-phone ML integration were not tested; no learned model is installed in the app.

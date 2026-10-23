@@ -4,6 +4,7 @@ import App from './App';
 import {AccountProvider} from './Account';
 import './styles.css';
 import './pwa.css';
+import './mobile.css';
 import {startOfflineApp} from './pwa';
 createRoot(document.getElementById('root')!).render(<React.StrictMode><AccountProvider><App/></AccountProvider></React.StrictMode>);
 void startOfflineApp();

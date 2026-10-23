@@ -1,5 +1,7 @@
 # Regression dependency ledger
 
+October 23 mobile layout: `test:mobile` covers five widths, 60 screen states, touch targets, readable fields, five accessibility audits, theme/settings disclosures and workout dock/navigation behavior. Required downstream checks: `test:ui`, `test:cancel-session`, `test:account-recovery`, `test:rewards-ui`, coaching UI and production build. Planner math, AI geometry and server contracts are unchanged, so their unit suites are not required for this presentation change.
+
 October 23 session navigation: `test:cancel-session` covers confirmation, keeping a session, Escape/focus, guest and account storage, warm-up/lifting/recovery/unavailable-exercise paths, timer removal and reload. `test:ui`, coaching UI, workout/recovery and rewards checks cover downstream session behavior. Account recovery asserts the ChatGPT login link and unused divider are absent. Existing provider sessions are preserved. Production build also applies.
 
 Audit baseline: `4af800f773a6e1db9c77cb7c7472462f56359368` (deployed version 22).

@@ -20,6 +20,7 @@
     "test:cancel-session": "node scripts/test-cancel-session.mjs",
     "test:research-export": "node scripts/test-squat-research-export.mjs",
     "test:account-recovery": "node scripts/test-account-recovery.mjs",
+    "test:mobile": "node scripts/test-mobile-ui.mjs",
     "test:ui": "node scripts/smoke-review-update.mjs",
     "db:generate": "drizzle-kit generate",
     "preview:server": "wrangler dev --config dist/server/wrangler.json --local --persist-to .wrangler/state --ip 127.0.0.1 --port 8787",
