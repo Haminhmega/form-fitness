@@ -58,6 +58,8 @@ async function scenario({cache=cachedA,user=null,record=null,loginAs='a',seed={}
 async function login(page){
   await page.getByRole('link',{name:'Sign in again',exact:true}).click();
   await expect(page.getByRole('button',{name:'Log in to Form',exact:true})).toBeVisible();
+  await expect(page.getByRole('link',{name:/ChatGPT/})).toHaveCount(0);
+  await expect(page.locator('.account-auth-divider')).toHaveCount(0);
   await page.getByLabel('Email',{exact:true}).fill('tester@example.test');
   await page.getByLabel('Password',{exact:true}).fill('test password long enough');
   await page.getByRole('button',{name:'Log in to Form',exact:true}).click();

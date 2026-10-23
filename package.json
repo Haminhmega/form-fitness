@@ -17,6 +17,7 @@
     "test:measurements": "node scripts/test-measurements.mjs",
     "test:anatomy": "node scripts/test-anatomy.mjs",
     "test:recovery": "node scripts/test-recovery.mjs",
+    "test:cancel-session": "node scripts/test-cancel-session.mjs",
     "test:account-recovery": "node scripts/test-account-recovery.mjs",
     "test:ui": "node scripts/smoke-review-update.mjs",
     "db:generate": "drizzle-kit generate",

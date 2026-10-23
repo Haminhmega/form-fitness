@@ -1,3 +1,7 @@
+# Session navigation — October 23, 2026
+
+Cancel session is available during warm-up, lifting and recovery, including an unavailable exercise. Confirmation discards the active session and its timers without saving history; Back to Today preserves it for resuming. Automated fixtures cover guest/account ownership, keeping the session, Escape/focus, phone-width layout and reload. Sign-in offers email and, when configured, Google; the ChatGPT entry and orphan separator are removed. Existing signed-in sessions remain supported. These checks use fictional local accounts, not production account writes or a physical iPhone.
+
 # Goal rewards update — October 20, 2026
 
 - `npm run test:rewards`: 16 passing scenario groups for goal-normalized points, daily caps, immutable awards, time zones/DST, grace boundaries, freezes/boosts, month comparisons, authentication, SQLite concurrent writes, goal changes, and deletion races.

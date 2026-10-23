@@ -41,4 +41,5 @@ jobs:
           npm run dev -- --port 5192 &
           node scripts/wait-preview.mjs
           npm run test:ui
+          npm run test:cancel-session
       - run: npm run build

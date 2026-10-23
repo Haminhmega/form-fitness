@@ -1,0 +1,4 @@
+.session-navigation{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:20px;flex-wrap:wrap}
+.session-navigation .back-button{margin-bottom:0}
+.session-navigation .dialog p{line-height:1.6}
+@media(max-width:480px){.session-navigation>.btn{padding:10px 8px;font-size:12px;min-height:44px}.session-navigation .dialog-actions{flex-wrap:wrap}.session-navigation .dialog-actions>.btn{flex:1;min-height:44px}}

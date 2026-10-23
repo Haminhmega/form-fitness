@@ -1,5 +1,7 @@
 # Regression dependency ledger
 
+October 23 session navigation: `test:cancel-session` covers confirmation, keeping a session, Escape/focus, guest and account storage, warm-up/lifting/recovery/unavailable-exercise paths, timer removal and reload. `test:ui`, coaching UI, workout/recovery and rewards checks cover downstream session behavior. Account recovery asserts the ChatGPT login link and unused divider are absent. Existing provider sessions are preserved. Production build also applies.
+
 Audit baseline: `4af800f773a6e1db9c77cb7c7472462f56359368` (deployed version 22).
 
 Scope is the changed working tree as well as any subsequent commit. Dependency evidence can be reproduced with `rg -n 'training-recommendations|coaching-plan|buildWarmup|buildFormFeedback|FormFeedbackPanel' src shared scripts`.
