@@ -1,3 +1,11 @@
+# Mobile glass navigation lens - October 23, 2026
+
+Mobile navigation now uses one shared selector with press expansion, horizontal drag preview, clipped icon/text magnification, highlighted edges and a damped spring when settling. A page changes once on release; outside release, vertical gesture cancellation, pointer cancellation and Escape preserve the current page. Taps and keyboard activation remain available. Optional haptics fire on committed navigation only. Resizing and browser-back navigation realign the lens. The decorative copies are hidden from accessibility APIs and have no pointer targets. Reduced Motion removes magnification/spring motion; higher contrast and reduced transparency use the ordinary selected-button treatment.
+
+This is a web approximation of the supplied Bevel reference. It does not implement native optical displacement of arbitrary underlying content. No video or reference frames were added to the repo. Desktop navigation, account logic and workout data are unchanged.
+
+Validation: `test:navigation` passed at 320/390/430px with drag preview, single route/haptic commit, cancellation, keyboard Enter/Space, touch taps, rapid navigation, browser back, resizing, reduced motion and contrast fallbacks. Pressing the bar preserves page scroll. Existing 60-state mobile checks (including floating-control spacing and five accessibility audits), haptic checks and shared workout/library/recovery UI checks passed. The production build passed with the existing large-chunk advisory. Screenshots were inspected in `../form-lens-evidence/`. Physical iPhone Safari interaction and frame rate were not measured.
+
 # Phone spacing and expandable explanations - October 23, 2026
 
 Usage reporting keeps a brief description and its sharing switch visible. The detailed collection explanation, owner-access instructions, report methodology and account-sync details use keyboard-accessible More info disclosures. No reporting preference, authentication rule or server behavior changed. Account buttons stack on phones with 12px gaps. Long emails, headings and button labels can wrap.

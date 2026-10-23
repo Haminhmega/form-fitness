@@ -1,6 +1,7 @@
 import {useEffect,useMemo,useRef,useState,useSyncExternalStore} from 'react';
 import {House,Dumbbell,ChartNoAxesCombined,UserRound,ArrowUpRight,ArrowRight,Flame,Check,X,WifiOff,ShieldCheck,Play} from 'lucide-react';
 import {useAccount} from './Account';
+import MobileNavigation from './MobileNavigation';
 import {useFloatingClearance} from './useFloatingClearance';
 import {BetaUsageNotice} from './Usage';
 import {useRewards} from './useRewards';
@@ -96,7 +97,7 @@ export default function App(){
  {view==='Progress'&&<Progress section={progressSection} onSection={setProgressSection} rewardsContent={<RewardsPanel rewards={rewards} onSignIn={()=>navigate('Profile')} onTrain={()=>navigate('Train')}/>} history={visibleHistory} exercises={exercises} units={preferences.units} onFeedback={(id,resultOnly=true)=>record(exercises.find(e=>e.id===(id||'squat'))||exercises[0],resultOnly)} onUpdateHistory={updateHistoryEntry} onDeleteHistory={deleteHistoryEntry} toast={toast}/>}
  {view==='Profile'&&<Profile workoutActive={!!session} preferences={preferences} setPreferences={setPreferences} onOnboarding={()=>setOnboarding(true)} toast={toast}/>}
  <footer className="page-footer"><span className="footer-wordmark">form.</span><span>Built around your next rep.</span><span>Sample training data · Local motion tracking</span></footer></main>
- </div><nav className={`mobile-nav${view==='Workout'?' session-nav':''}`} aria-label="Mobile navigation">{nav.map(n=><button key={n.name} className={view===n.name?'active':''} aria-current={view===n.name?'page':undefined} onClick={()=>navigate(n.name)}><n.icon size={20}/><span>{n.name}</span></button>)}</nav>
+ </div><MobileNavigation view={view} onNavigate={navigate}/>
  {session&&view!=='Workout'&&view!=='Today'&&<div className="resume-bar"><span className="pulse-dot"/><span><strong>{session.name}</strong><small>{session.kind==='recovery'?'Recovery in progress':`${Object.values(session.logs).flat().filter(s=>s.done).length} sets completed`} · saved locally</small></span><button className="btn primary" onClick={()=>navigate('Workout')}><Play size={15} fill="currentColor"/>Resume</button></div>}
  {notification&&<div className={view==='Workout'?'toast workout-toast':'toast'} role="status"><Check size={19}/><span>{notification.message}</span>{notification.undo&&<button className="btn ghost" onClick={()=>{notification.undo?.();setNotification(null)}}>Undo</button>}<button className="icon-button" aria-label="Dismiss notification" onClick={()=>setNotification(null)}><X size={17}/></button></div>}
  {onboarding&&<Onboarding age={account.document?.profile.age} preferences={preferences} onClose={()=>{setPreferences({...preferences,onboarded:true});setOnboarding(false)}} onSave={p=>{setPreferences(p);useRecommendation(p);setOnboarding(false);navigate('Today');toast('Your weekly plan is ready. Make it your own anytime.')}}/>}

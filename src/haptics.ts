@@ -23,7 +23,7 @@ export function startInteractionHaptics() {
   const onClick = (event: MouseEvent) => {
     if (!event.isTrusted || !(event.target instanceof Element)) return;
     const target = event.target.closest<HTMLButtonElement>('button');
-    if (!target || target.disabled || target.getAttribute('aria-disabled') === 'true' || target.closest('[data-haptics-settings]')) return;
+    if (!target || target.disabled || target.getAttribute('aria-disabled') === 'true' || target.closest('[data-haptics-settings], [data-managed-haptics]')) return;
     if (target.matches('.mobile-nav .active, [aria-selected="true"], .set-check[aria-pressed="true"]')) return;
     if (target.matches('.set-check, [data-haptic="complete"]')) pulseHaptic('complete');
     else if (target.matches('.btn.primary, .btn.secondary, .mobile-nav button, .train-tabs button, .setting-switch, .color-swatch, .source-segments button')) pulseHaptic();
