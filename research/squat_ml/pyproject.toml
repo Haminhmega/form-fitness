@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "form-squat-ml"
+version = "0.1.0"
+description = "Experimental offline squat landmark training and evaluation"
+requires-python = ">=3.11"
+dependencies = ["torch==2.14.1", "numpy>=2.2,<3"]
+
+[project.scripts]
+form-squat-ml = "squat_ml.cli:main"
+form-squat-anomaly = "squat_ml.anomaly:main"
+form-squat-prepare = "squat_ml.prepare:main"
+
+[tool.setuptools]
+packages = ["squat_ml"]

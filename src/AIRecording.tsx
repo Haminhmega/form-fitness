@@ -8,6 +8,7 @@ import {ExerciseDemo} from './ExerciseDemo';
 import {buildFormFeedback,type FormFeedbackCard} from './ai/form-feedback';
 import {FormFeedbackPanel} from './FormFeedbackPanel';
 import {CameraRecorder,type CameraRecorderHandle} from './CameraRecorder';
+import {downloadSquatResearchRecord} from './ai/squat-research-export';
 import './recording.css';
 import './ai-recording.css';
 
@@ -137,6 +138,15 @@ export default function AIRecording({ exercise, standalone, onClose, onComplete,
     if(card&&result){setReview({card,result});setOverlay(true);}
     player.current?.scrollIntoView({behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth',block:'center'});
   }
+  function exportResearchLandmarks(){
+    if(!result||!metadata||exercise.id!=='squat')return;
+    const participantId=window.prompt('Enter a study pseudonym. Do not enter a name, email, or account ID.')?.trim();
+    if(!participantId)return;
+    try{
+      downloadSquatResearchRecord({participantId,consentConfirmed:false,dimensions:{duration:metadata.duration,width:metadata.width,height:metadata.height,sampleRate:10},result,feedback});
+      setNotice('Landmark JSON downloaded. It contains no video or human labels; store it only in the approved research area.');
+    }catch(cause){setError(cause instanceof Error?cause.message:'The landmark export could not be created.');}
+  }
   const current = result ? frameAt(result.frames, position) : undefined;
   const activeReview=review&&review.result===result&&review.card.time!==undefined&&Math.abs(position-review.card.time)<=.25&&current?.valid?review.card:null;
   const highlighted=new Set(activeReview?.highlight?.joints??[]);
@@ -175,6 +185,7 @@ export default function AIRecording({ exercise, standalone, onClose, onComplete,
             {result.issues.length>0&&<div className="ai-quality-notes"><h3><CircleAlert size={17}/>What limited this assessment</h3><ul>{result.issues.map((issue,i)=><li key={i}>{issue}</li>)}</ul></div>}
           </details>
           <div className="ai-result-actions"><button className="btn secondary" onClick={openCamera}><Camera size={17}/>Record a new clip</button><button className="btn secondary" onClick={()=>{setResult(null);setNotice('');setSelectedRep(null);}}><RotateCcw size={16}/>Analyze again</button><button className="btn secondary" onClick={()=>fileInput.current?.click()}><Upload size={16}/>Choose another video</button><button className="btn primary" onClick={onComplete}>{standalone?'Back to Today':'Back to workout'}<ArrowRight size={17}/></button></div>
+          {import.meta.env.DEV&&exercise.id==='squat'&&<button className="rec-text-button" onClick={exportResearchLandmarks}>Export research landmarks</button>}
         </>}
         {error && <div className="ai-error" role="alert"><CircleAlert size={19}/><p>{error}</p></div>}
         <p className="ai-status" role="status">{notice}</p>

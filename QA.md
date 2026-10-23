@@ -1,5 +1,7 @@
 # Session navigation — October 23, 2026
 
+Offline PyTorch project: 28 Python tests and both synthetic smoke pipelines passed on CPU. The developer-only landmark exporter, existing AI checks and production build passed; no research/model/export strings appear in the production client bundle. The short anomaly smoke did not separate the generated unusual examples (see research/squat_ml/ANOMALY_PROTOCOL.md). No real dataset or validated detection result exists. Research checkpoints/data remain ignored. GPU and physical-phone ML integration were not tested; no learned model is installed in the app.
+
 Cancel session is available during warm-up, lifting and recovery, including an unavailable exercise. Confirmation discards the active session and its timers without saving history; Back to Today preserves it for resuming. Automated fixtures cover guest/account ownership, keeping the session, Escape/focus, phone-width layout and reload. Sign-in offers email and, when configured, Google; the ChatGPT entry and orphan separator are removed. Existing signed-in sessions remain supported. These checks use fictional local accounts, not production account writes or a physical iPhone.
 
 # Goal rewards update — October 20, 2026

@@ -25,6 +25,8 @@ scripts/test-account-recovery.mjs runs isolated browser account fixtures; script
 
 ## Motion checks
 
+An independent [offline PyTorch research project](research/squat_ml/README.md) provides squat-reference anomaly training, evaluation and prediction from landmark JSON, plus a supervised observation baseline. It has synthetic pipeline checks only and no trained production model. Research code/data are not bundled into the PWA. The local development build can explicitly export squat landmarks for annotation; production recording behavior is unchanged.
+
 Choose Check my form or open /#form-test. Select the exercise, follow its camera setup, film in the app or choose a playable 2–60 second clip (maximum 100 MB), and confirm the person and movement. The app runs MediaPipe pose estimation locally and measures visible joint cycles, tempo, range comparisons or hold duration. Catalog recording links preserve the selected exercise on reload.
 
 All movement rules are experimental, including squats. Synthetic tests check rule behavior; there is no held-out real-video accuracy benchmark or physical-iPhone validation. The app does not identify the exercise automatically, infer load or grip, grade technique, or predict safety. It reports partial/unable results when the view is insufficient.

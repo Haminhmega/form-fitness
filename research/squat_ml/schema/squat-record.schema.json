@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://formfitness.fit/schemas/squat-record-v1.json",
+  "title": "Form squat landmark research record",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "participant_id", "recording_id", "recorded_at", "exercise", "provenance", "video", "pose", "tracking_quality", "frames", "attempts", "labels", "heuristic_output"],
+  "properties": {
+    "capture": {"type": "object", "additionalProperties": false, "required": ["view", "unit", "protocol_id"], "properties": {"view": {"enum": ["side", "front", "unconfirmed"]}, "unit": {"const": "single_attempt"}, "protocol_id": {"type": "string", "minLength": 1}}},
+    "reference_review": {"type": "object", "additionalProperties": false, "required": ["status", "reviewer_id"], "properties": {"status": {"enum": ["reference", "unusual", "uncertain", "missing"]}, "reviewer_id": {"type": ["string", "null"]}}},
+    "schema_version": {"const": "form.squat.landmarks.v1"},
+    "participant_id": {"type": "string", "minLength": 1, "maxLength": 128, "description": "Study pseudonym; never a name/email/account ID."},
+    "recording_id": {"type": "string", "minLength": 1, "maxLength": 128},
+    "recorded_at": {"type": ["string", "null"], "format": "date-time"},
+    "exercise": {"const": "squat"},
+    "provenance": {
+      "type": "object", "additionalProperties": false, "required": ["synthetic", "purpose", "consent_state"],
+      "properties": {"synthetic": {"type": "boolean"}, "purpose": {"type": "string"}, "consent_state": {"enum": ["not_recorded", "confirmed", "withdrawn"]}}
+    },
+    "video": {
+      "type": "object", "additionalProperties": false, "required": ["duration_seconds", "width", "height", "sample_rate_hz"],
+      "properties": {"duration_seconds": {"type": "number", "exclusiveMinimum": 0}, "width": {"type": "integer", "minimum": 1}, "height": {"type": "integer", "minimum": 1}, "sample_rate_hz": {"type": "number", "exclusiveMinimum": 0}}
+    },
+    "pose": {
+      "type": "object", "additionalProperties": false, "required": ["model_name", "model_version", "model_sha256", "preprocessing_version"],
+      "properties": {"model_name": {"type": "string"}, "model_version": {"type": "string"}, "model_sha256": {"type": ["string", "null"]}, "preprocessing_version": {"const": "squat-landmarks-1.0.0"}}
+    },
+    "tracking_quality": {
+      "type": "object", "additionalProperties": false, "required": ["valid_fraction", "valid_frames", "total_frames", "withheld_reasons"],
+      "properties": {"valid_fraction": {"type": "number", "minimum": 0, "maximum": 1}, "valid_frames": {"type": "integer", "minimum": 0}, "total_frames": {"type": "integer", "minimum": 0}, "withheld_reasons": {"type": "object", "additionalProperties": {"type": "integer", "minimum": 1}}}
+    },
+    "frames": {
+      "type": "array", "minItems": 2,
+      "items": {"type": "object", "additionalProperties": false, "required": ["timestamp_seconds", "tracking", "landmarks", "world_landmarks"], "properties": {
+        "timestamp_seconds": {"type": "number", "minimum": 0},
+        "tracking": {"type": "object", "additionalProperties": false, "required": ["valid", "reason"], "properties": {"valid": {"type": "boolean"}, "reason": {"type": ["string", "null"]}}},
+        "landmarks": {"$ref": "#/$defs/landmarks"}, "world_landmarks": {"$ref": "#/$defs/landmarks"}
+      }}
+    },
+    "attempts": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["attempt_id", "rep_index", "start_seconds", "bottom_seconds", "end_seconds", "side"], "properties": {"attempt_id": {"type": "string"}, "rep_index": {"type": "integer", "minimum": 1}, "start_seconds": {"type": "number", "minimum": 0}, "bottom_seconds": {"type": "number", "minimum": 0}, "end_seconds": {"type": "number", "minimum": 0}, "side": {"enum": ["left", "right"]}}}},
+    "labels": {"$ref": "#/$defs/labels"},
+    "heuristic_output": {"type": "object", "additionalProperties": false, "required": ["version", "status", "observation_ids", "labels"], "properties": {"version": {"type": "string"}, "status": {"type": "string"}, "observation_ids": {"type": "array", "items": {"type": "string"}}, "labels": {"type": "object", "additionalProperties": false, "required": ["hip_fold_without_knee_bend", "torso_change", "range_change", "tempo_change"], "properties": {"hip_fold_without_knee_bend": {"$ref": "#/$defs/heuristicLabel"}, "torso_change": {"$ref": "#/$defs/heuristicLabel"}, "range_change": {"$ref": "#/$defs/heuristicLabel"}, "tempo_change": {"$ref": "#/$defs/heuristicLabel"}}}}}
+  },
+  "$defs": {
+    "landmark": {"type": "object", "additionalProperties": false, "required": ["id", "x", "y", "z", "visibility", "presence"], "properties": {"id": {"type": "integer", "minimum": 0, "maximum": 32}, "x": {"type": "number"}, "y": {"type": "number"}, "z": {"type": "number"}, "visibility": {"type": "number"}, "presence": {"type": ["number", "null"]}}},
+    "landmarks": {"type": "array", "items": {"$ref": "#/$defs/landmark"}, "maxItems": 33},
+    "label": {"type": "object", "additionalProperties": false, "required": ["value", "annotator_id", "annotated_at", "notes"], "properties": {"value": {"enum": ["positive", "negative", "uncertain", "missing"]}, "annotator_id": {"type": ["string", "null"]}, "annotated_at": {"type": ["string", "null"], "format": "date-time"}, "notes": {"type": ["string", "null"]}}},
+    "labels": {"type": "object", "additionalProperties": false, "required": ["hip_fold_without_knee_bend", "torso_change", "range_change", "tempo_change"], "properties": {"hip_fold_without_knee_bend": {"$ref": "#/$defs/label"}, "torso_change": {"$ref": "#/$defs/label"}, "range_change": {"$ref": "#/$defs/label"}, "tempo_change": {"$ref": "#/$defs/label"}}},
+    "heuristicLabel": {"enum": ["positive", "negative", "abstain"]}
+  }
+}

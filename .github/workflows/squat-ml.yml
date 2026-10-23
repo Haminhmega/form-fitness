@@ -1,0 +1,25 @@
+name: Offline squat research checks
+on:
+  push:
+    paths: ['research/squat_ml/**', '.github/workflows/squat-ml.yml']
+  pull_request:
+    paths: ['research/squat_ml/**', '.github/workflows/squat-ml.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  synthetic:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: research/squat_ml/requirements-cpu.txt
+      - run: python -m pip install -r research/squat_ml/requirements-cpu.txt
+      - run: python -m pip install --no-deps -e research/squat_ml
+      - run: python -m unittest discover -s research/squat_ml/tests -v
+      - run: python -m squat_ml.anomaly smoke --device cpu
+      - run: python -m squat_ml.cli smoke --device cpu
