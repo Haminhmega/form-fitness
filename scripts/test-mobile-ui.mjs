@@ -79,13 +79,27 @@ try{
     await page.getByRole('button',{name:'Complete set 1',exact:true}).click();
     await capture('rest');
     if(!baseline&&width<=430){
+      const spacing=await page.evaluate(()=>({padding:parseFloat(getComputedStyle(document.querySelector('main')).paddingBottom),dock:innerHeight-document.querySelector('.workout-dock').getBoundingClientRect().top}));
+      assert.ok(spacing.padding>spacing.dock,'Warm-up transition and growing rest dock reserve content space');
+    }
+    if(!baseline&&width<=430){
       await page.locator('.workout-dock').getByRole('button',{name:'Skip rest',exact:true}).click();
       await expect(page.locator('.workout-dock .dock-rest')).toHaveCount(0);
       await page.locator('.workout-dock').getByRole('button',{name:'Log set 2',exact:true}).click();
       await expect(page.getByRole('button',{name:'Undo completion of set 2',exact:true})).toBeVisible();
       await page.getByRole('button',{name:'Back to Today',exact:true}).click();
       await expect(page.getByRole('navigation',{name:'Mobile navigation'})).toBeVisible();
-      await page.getByRole('button',{name:'Resume session',exact:true}).click();
+      await nav('Profile');
+      await page.locator('.appearance-panel > summary').click();
+      await page.getByRole('button',{name:'Blue theme',exact:true}).click();
+      const floating=await page.locator('.mobile-nav, .resume-bar, .toast').evaluateAll(els=>els.filter(el=>el.getClientRects().length).map(el=>{const r=el.getBoundingClientRect();return {name:el.className,top:r.top,bottom:r.bottom,left:r.left,right:r.right}}));
+      for(let i=0;i<floating.length;i++)for(let j=i+1;j<floating.length;j++)assert.ok(floating[i].bottom+7<=floating[j].top||floating[j].bottom+7<=floating[i].top,`Floating controls need at least 8px separation: ${JSON.stringify(floating)}`);
+      await page.screenshot({path:`${output}/${width}-floating-spacing.png`});
+      await page.getByRole('button',{name:'Dismiss notification'}).click();
+      await page.evaluate(()=>scrollTo(0,document.documentElement.scrollHeight));
+      const clearance=await page.evaluate(()=>({space:parseFloat(getComputedStyle(document.querySelector('main')).paddingBottom),bars:Math.max(...[...document.querySelectorAll('.resume-bar,.mobile-nav')].map(el=>innerHeight-el.getBoundingClientRect().top))}));
+      assert.ok(clearance.space>clearance.bars,'Content reserves enough room for the floating controls');
+      await page.getByRole('button',{name:'Resume',exact:true}).click();
     }
     await page.getByRole('button',{name:'Cancel session',exact:true}).click();await capture('cancel');
     await page.getByRole('dialog',{name:'Cancel this session?'}).getByRole('button',{name:'Keep training',exact:true}).click();

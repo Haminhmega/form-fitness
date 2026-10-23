@@ -1,6 +1,7 @@
 import {useEffect,useMemo,useRef,useState,useSyncExternalStore} from 'react';
 import {House,Dumbbell,ChartNoAxesCombined,UserRound,ArrowUpRight,ArrowRight,Flame,Check,X,WifiOff,ShieldCheck,Play} from 'lucide-react';
 import {useAccount} from './Account';
+import {useFloatingClearance} from './useFloatingClearance';
 import {BetaUsageNotice} from './Usage';
 import {useRewards} from './useRewards';
 import {RewardsPanel,RewardsSummary} from './Rewards';
@@ -52,6 +53,7 @@ export default function App(){
  const [resultOnly,setResultOnly]=useState(()=>initialRecordingState.resultOnly===true);
  const [recordChoice,setRecordChoice]=useState(()=>initialRecordingState.recordChoice??linkedView()==='Recording');
  const [onboarding,setOnboarding]=useState(false);const [notification,setNotification]=useState<{message:string;undo?:()=>void}|null>(null);const [online,setOnline]=useState(navigator.onLine);const [pendingRoutine,setPendingRoutine]=useState<Routine|null>(null);const switchDialog=useRef<HTMLDialogElement>(null);const main=useRef<HTMLElement>(null);const toastTimer=useRef<ReturnType<typeof setTimeout>|null>(null);
+ useFloatingClearance(`${view}:${session?.id}:${session?.warmupComplete}:${session?.current}:${notification?.message||''}`);
  useEffect(()=>{applyAppearance(preferences.accentColor,preferences.backgroundColor,preferences.appIconColor||preferences.logoColor,preferences.appIconStyle)},[preferences.accentColor,preferences.backgroundColor,preferences.appIconColor,preferences.appIconStyle,preferences.logoColor]);
  useEffect(()=>{const goal=currentTrainingGoal(preferences.goal);if(goal!==preferences.goal)setPreferences({...preferences,goal})},[preferences.goal]);
  function toast(message:string,undo?:()=>void){setNotification({message,undo});if(toastTimer.current)clearTimeout(toastTimer.current);toastTimer.current=setTimeout(()=>setNotification(null),undo?10000:6000)}

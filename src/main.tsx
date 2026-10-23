@@ -6,6 +6,7 @@ import './styles.css';
 import './pwa.css';
 import './mobile.css';
 import './glass.css';
+import './spacing.css';
 import {startInteractionHaptics} from './haptics';
 import {startOfflineApp} from './pwa';
 const stopHaptics = startInteractionHaptics();

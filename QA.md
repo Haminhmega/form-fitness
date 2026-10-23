@@ -1,3 +1,11 @@
+# Phone spacing and expandable explanations - October 23, 2026
+
+Usage reporting keeps a brief description and its sharing switch visible. The detailed collection explanation, owner-access instructions, report methodology and account-sync details use keyboard-accessible More info disclosures. No reporting preference, authentication rule or server behavior changed. Account buttons stack on phones with 12px gaps. Long emails, headings and button labels can wrap.
+
+Floating navigation, the resume bar, workout/rest controls and notifications reserve space from their measured height. Notifications sit above the controls; scroll clearance follows changes in rest controls and wrapped text. Warm-up-to-workout transitions remeasure the new dock.
+
+Validation: mobile suite passed 60 states at 320/390/430/768/1440px, no horizontal overflow or undersized phone controls, and five accessibility audits. Added checks cover separation between simultaneous navigation/resume/notification bars and padding after the rest dock grows. Usage UI passed at 320/390/430/1440px, including four accessibility audits, expanding/collapsing details, owner-action spacing, enlarged text, report loading and unchanged reporting behavior. Three additional full signed-in Profile checks passed long-email wrapping, action spacing, sync disclosure and accessibility. Existing workout UI/recovery checks and the production build passed. Browser fixtures use fictional accounts; no physical iPhone/keyboard test was performed. Build retains its existing large-chunk advisory. Screenshots are outside git in `../form-usage-evidence/` and `../form-mobile-evidence/after/`.
+
 # Glass controls and touch feedback - October 23, 2026
 
 Floating mobile navigation and workout controls use theme-aware translucent surfaces with edge highlights, plus pill-shaped primary/secondary buttons. Blur is limited to the floating surfaces. Opaque, higher-contrast, forced-color and Reduced Motion fallbacks are included. The session selector and set controls follow the selected color theme.
