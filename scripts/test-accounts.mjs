@@ -1,12 +1,13 @@
 import assert from 'node:assert/strict';
 import {DatabaseSync} from 'node:sqlite';
-import {pbkdf2Sync} from 'node:crypto';
+import {pbkdf2Sync,createHmac,randomUUID} from 'node:crypto';
 import {readFile,readdir} from 'node:fs/promises';
 import {build} from 'esbuild';
 const result=await build({stdin:{contents:"export {default as worker} from './server/index.ts'; export {googleAuth} from './server/google-auth.ts'; export {rateLimit} from './server/rate-limit.ts'; export {derivePasswordHash,PASSWORD_ITERATIONS} from './server/password-hash.ts'; export {initialExercises,initialRoutines,initialPreferences} from './src/data.ts'; export {buildAccountDocumentFromLocal,clearAccountWorkoutState,clearMigratedTraining,hasLocalDemo,readCachedAccount,readLastCachedAccount,readLocalPreferences} from './src/account-storage.ts';",resolveDir:process.cwd()},bundle:true,format:'esm',platform:'node',write:false});
 const {worker,googleAuth,rateLimit,derivePasswordHash,PASSWORD_ITERATIONS,initialExercises,initialRoutines,initialPreferences,buildAccountDocumentFromLocal,clearAccountWorkoutState,clearMigratedTraining,hasLocalDemo,readCachedAccount,readLastCachedAccount,readLocalPreferences}=await import('data:text/javascript;base64,'+Buffer.from(result.outputFiles[0].text).toString('base64'));
 const db=new DatabaseSync(':memory:');for(const file of (await readdir(new URL('../drizzle/',import.meta.url))).filter(f=>f.endsWith('.sql')).sort())db.exec(await readFile(new URL('../drizzle/'+file,import.meta.url),'utf8'));
 const env={
+  RESEND_API_KEY:"test-only-key",EMAIL_FROM:"Form <noreply@example.test>",AUTH_CODE_SECRET:"fixture-secret-not-for-production-0123456789",
   DB:{prepare(sql){
     let args=[];
     return {
@@ -92,6 +93,14 @@ assert.equal((await worker.fetch(new Request('https://form.test/api/unknown'),en
 const row=db.prepare('SELECT document FROM form_accounts WHERE user_id=?').get('a');assert.equal(JSON.parse(row.document).profile.name,'Test Person');
 
 async function passwordRequest(path,body,headers={},targetEnv=env){
+  // These account regression fixtures start after email verification. Delivery,
+  // expiry, retry limits and replay are exercised in test-email-security.mjs.
+  if(path==='register'){
+    const id=randomUUID(),code='123456',email=body.email.toLowerCase();
+    db.prepare('INSERT INTO form_email_codes(id,email,purpose,code_hash,expires_at,attempts) VALUES(?,?,?,?,?,0)').run(id,email,'register',createHmac('sha256',env.AUTH_CODE_SECRET).update(JSON.stringify([id,email,'register',code])).digest('hex'),Date.now()+600000);
+    body={...body,challengeId:id,code};
+  }
+
   const response=await worker.fetch(new Request('https://form.test/api/auth/'+path,{method:'POST',headers:{Origin:'https://form.test','Content-Type':'application/json','X-Form-Client':'1','Sec-Fetch-Site':'same-origin','CF-Connecting-IP':'198.51.100.12',...headers},body:JSON.stringify(body)}),targetEnv);
   return {status:response.status,body:await response.json(),headers:response.headers};
 }

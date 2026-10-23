@@ -41,17 +41,17 @@ try{
  await page.screenshot({path:'../form-coaching-duration-mobile.png',fullPage:true});
  await page.getByRole('button',{name:'Preview weekly plan',exact:true}).click();
  await expect(page.locator('.coach-plan-day')).toHaveCount(6);
- await expect(page.locator('.coach-session-timing').first()).toContainText('68 min planned');
+ await expect(page.locator('.coach-session-timing').first()).toContainText(/About 7[0-5] min planned/);
  await expect(page.locator('.coach-session-timing').first()).toContainText('75 min target');
  await expect(page.locator('.coach-session-timing').first()).toContainText('warm-up');
  await page.screenshot({path:'../form-coaching-plan-mobile.png',fullPage:true});
  await page.getByRole('button',{name:'Use this plan',exact:true}).click();
  await expect(page.getByRole('heading',{name:'Warm up what you’ll train.',exact:true})).toBeVisible();
- await expect(page.getByText(/2 gradual warm-up sets/).first()).toBeVisible();
+ await expect(page.getByText(/3 gradual warm-up sets/).first()).toBeVisible();
  await page.getByRole('button',{name:'Skip warm-up',exact:true}).click();
  await expect(page.getByRole('heading',{name:'Dumbbell bench press',exact:true})).toBeVisible();
  await expect(page.locator('.session-exercise')).toHaveCount(5);
- await expect(page.getByRole('button',{name:'180s',exact:true})).toBeVisible();
+ await expect(page.getByRole('button',{name:'240s',exact:true})).toBeVisible();
  await page.getByRole('button',{name:'Complete set 1',exact:true}).click();
  await expect(page.locator('.rest-panel .tag')).toHaveText('RECOVER');
  for(const width of [375,390,1440]){await page.setViewportSize({width,height:900});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false,`No overflow at ${width}px`);}

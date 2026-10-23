@@ -32,7 +32,7 @@ assert.equal(initialPreferences.days.length,3);
 assert.equal(coachingDefaults().sessionMinutes,60);
 for(const oldGoal of ['Build muscle','Build aesthetic physique','Build strength','Grow glutes','Build upper body','Build aesthetics'])assert.equal(currentTrainingGoal(oldGoal),'Build muscle & strength');
 assert.equal(currentTrainingGoal('Improve athleticism'),'Improve athleticism');
-assert.deepEqual(items(make({goal:'Build muscle & strength'})),items(hypertrophy),'Combined goal keeps progressive muscle-building prescriptions');
+assert.ok(items(make({goal:'Build muscle & strength'})).some(item=>item.reps==='6–8'&&item.rest===240),'Combined goal includes strength-focused main lifts');
 const glutes=make({goal:'Grow glutes'});
 const strength=make({goal:'Build strength'});
 const athletic=make({goal:'Improve athleticism'});

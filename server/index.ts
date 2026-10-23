@@ -4,6 +4,9 @@ import {identityResult,googleAuth,clearSessionCookie,authErrorRedirect,hasSessio
 import {rateLimit} from './rate-limit';
 import {passwordAuth} from './password-auth';
 import {handleRewards,reconcileSavedRewards} from './rewards';
+import {emailCodeAuth} from './email-codes';
+import {accountEmail} from './account-email';
+import {usage,usageSubject} from './usage';
 const handleAuth=googleAuth();
 const handlePasswordAuth=passwordAuth();
 async function readJson(request:Request){
@@ -19,17 +22,18 @@ export default {async fetch(request:Request,env:Env):Promise<Response>{
   if(url.pathname.startsWith('/auth/')||url.pathname.startsWith('/api/auth/')){
     const browserAuth=url.pathname==='/auth/google'||url.pathname==='/auth/google/callback';
     if(!env.DB)return browserAuth?authErrorRedirect('unavailable'):json({error:'Sign-in is temporarily unavailable.'},503);
-    const passwordAuth=url.pathname==='/api/auth/login'||url.pathname==='/api/auth/register';
+    const passwordAuth=url.pathname.startsWith('/api/auth/')&&url.pathname!=='/api/auth/options';
     if(browserAuth||passwordAuth||url.pathname==='/api/auth/signout'){
       const limited=await rateLimit(env,'auth-ip:'+(request.headers.get('CF-Connecting-IP')||'local'),30);
       if(limited)return browserAuth?authErrorRedirect('rate_limited'):limited;
     }
-    return await handlePasswordAuth(request,env)||await handleAuth(request,env)||json({error:'Not found'},404);
+    return await accountEmail(request,env)||await emailCodeAuth(request,env)||await handlePasswordAuth(request,env)||await handleAuth(request,env)||json({error:'Not found'},404);
   }
   if(!url.pathname.startsWith('/api/')){
     const asset=env.ASSETS?await env.ASSETS.fetch(request):new Response('Not found',{status:404});
     const response=new Response(asset.body,asset);response.headers.set('Referrer-Policy','no-referrer');response.headers.set('X-Content-Type-Options','nosniff');response.headers.set('Content-Security-Policy',"default-src 'self' blob: data:; script-src 'self' blob: 'wasm-unsafe-eval'; worker-src 'self' blob:; connect-src 'self' blob: data:; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; media-src 'self' blob: data:; object-src 'none'; base-uri 'self'; frame-ancestors 'none'");return response;
   }
+  if(url.pathname.startsWith('/api/usage/'))return (await usage(request,env))!;
   if(url.pathname==='/api/rewards')return await handleRewards(request,env);
   if(url.pathname!=='/api/account')return json({error:'Not found'},404);
   if(!env.DB)return json({error:'Account storage is temporarily unavailable. Please retry.'},503);
@@ -51,10 +55,13 @@ export default {async fetch(request:Request,env:Env):Promise<Response>{
       // Retain only the owner key/revision, with all profile data removed. A
       // stale offline device must not overwrite a subsequently recreated account.
       await env.DB.prepare("UPDATE form_accounts SET document = 'null', revision = revision + 1, updated_at = ? WHERE user_id = ?").bind(new Date().toISOString(),user.id).run();
+      await env.DB.prepare('DELETE FROM form_analytics_consent WHERE user_id=?').bind(user.id).run();
+      await env.DB.prepare('DELETE FROM form_usage_events WHERE subject=?').bind(await usageSubject(user.id)).run();
       await env.DB.prepare('DELETE FROM form_rewards WHERE user_id=?').bind(user.id).run();
       await env.DB.prepare('DELETE FROM form_sessions WHERE user_id=?').bind(user.id).run();
       await env.DB.prepare('DELETE FROM form_oauth_states WHERE link_user_id=?').bind(user.id).run();
       await env.DB.prepare('DELETE FROM form_google_identities WHERE user_id=?').bind(user.id).run();
+      await env.DB.prepare('DELETE FROM form_email_codes WHERE email=?').bind(user.email.toLowerCase()).run();
       await env.DB.prepare('DELETE FROM form_password_identities WHERE user_id=?').bind(user.id).run();
       return json({deleted:true,hasPlatformSession:hasPlatformSession(request)},200,{'Set-Cookie':clearSessionCookie()});
     }

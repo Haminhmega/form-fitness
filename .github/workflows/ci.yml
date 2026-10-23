@@ -33,6 +33,8 @@ jobs:
       - run: npm run test:anatomy
       - run: npm run test:recovery
       - run: npx playwright install --with-deps chromium
+      - run: node scripts/test-email-ui.mjs
+      - run: node scripts/test-coaching-ui.mjs
       - run: npm run test:account-recovery
       - run: npm run test:rewards-ui
       - run: |

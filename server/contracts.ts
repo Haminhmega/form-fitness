@@ -2,6 +2,10 @@ export type Statement={bind:(...args:unknown[])=>Statement;first:()=>Promise<any
 export type Env={
   DB:{prepare:(sql:string)=>Statement};
   ASSETS?:{fetch:(request:Request)=>Promise<Response>};
+  RESEND_API_KEY?:string;
+  EMAIL_FROM?:string;
+  AUTH_CODE_SECRET?:string;
+  ANALYTICS_ADMIN_EMAIL?:string;
   GOOGLE_CLIENT_ID?:string;
   GOOGLE_CLIENT_SECRET?:string;
   AUTH_ORIGIN?:string;

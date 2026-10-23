@@ -1,5 +1,6 @@
 import {createRemoteJWKSet,jwtVerify,type JWTVerifyGetKey} from 'jose';
 import type {Env} from './contracts';
+import {emailReady} from './email-codes';
 import {json,sameOrigin} from './contracts';
 import type {AccountUser} from '../shared/account';
 
@@ -33,7 +34,7 @@ export async function identityResult(request:Request,env:Env):Promise<IdentityRe
   const raw=cookie(request,SESSION);
   if(raw!==null){
     if(tokenPattern.test(raw)){
-      const row=await env.DB.prepare("SELECT s.user_id,COALESCE(p.email,g.email) AS email,COALESCE(p.name,g.name) AS name,CASE WHEN p.user_id IS NOT NULL THEN 'password' ELSE 'google' END AS provider,g.google_sub FROM form_sessions s LEFT JOIN form_password_identities p ON p.user_id=s.user_id LEFT JOIN form_google_identities g ON g.user_id=s.user_id WHERE s.token_hash=? AND s.expires_at>? AND (p.user_id IS NOT NULL OR g.user_id IS NOT NULL)").bind(await hash(raw),Date.now()).first();
+      const row=await env.DB.prepare("SELECT s.user_id,COALESCE(p.email,g.email) AS email,COALESCE(p.name,g.name) AS name,CASE WHEN p.user_id IS NOT NULL THEN 'password' ELSE 'google' END AS provider,g.google_sub FROM form_sessions s LEFT JOIN form_password_identities p ON p.user_id=s.user_id LEFT JOIN form_google_identities g ON g.user_id=s.user_id WHERE s.token_hash=? AND s.expires_at>? AND (p.user_id IS NOT NULL OR g.user_id IS NOT NULL) AND s.credential_version=COALESCE(p.credential_version,0)").bind(await hash(raw),Date.now()).first();
       if(row)return {user:{id:row.user_id,email:row.email,name:row.name,provider:row.provider,googleLinked:!!row.google_sub},clearSession:false};
     }
     const platform=platformIdentity(request);
@@ -59,7 +60,7 @@ export function googleAuth(dependencies:Dependencies={}){
   const exchange=dependencies.exchange||fetch,verify=dependencies.verify||verifyGoogleToken;
   return async function(request:Request,env:Env):Promise<Response|null>{
     const url=new URL(request.url);
-    if(url.pathname==='/api/auth/options')return json({password:true,google:googleReady(env),chatgpt:true});
+    if(url.pathname==='/api/auth/options')return json({password:true,emailCodes:emailReady(env),google:googleReady(env),chatgpt:true});
     if(url.pathname==='/api/auth/signout'){
       if(request.method!=='POST')return json({error:'Method not allowed'},405);
       if(!sameOrigin(request))return json({error:'This request must come from Form.'},403);
@@ -126,7 +127,7 @@ export function googleAuth(dependencies:Dependencies={}){
       await env.DB.prepare('UPDATE form_google_identities SET email=?,name=? WHERE google_sub=?').bind(google.email,google.name,google.sub).run();
       // Rotation: an existing session is revoked before issuing a fresh token.
       await revokeSession(request,env);
-      const session=random();await env.DB.prepare('INSERT INTO form_sessions (token_hash,user_id,expires_at) VALUES (?,?,?)').bind(await hash(session),linked.user_id,Date.now()+SESSION_SECONDS*1000).run();
+      const session=random();await env.DB.prepare('INSERT INTO form_sessions (token_hash,user_id,expires_at,credential_version) VALUES (?,?,?,COALESCE((SELECT credential_version FROM form_password_identities WHERE user_id=?),0))').bind(await hash(session),linked.user_id,Date.now()+SESSION_SECONDS*1000,linked.user_id).run();
       return redirect('/?auth_success=google',[setCookie(STATE,'',0),setCookie(SESSION,session,SESSION_SECONDS)]);
     }catch{return fail('verification_failed')}
   };

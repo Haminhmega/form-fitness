@@ -84,18 +84,45 @@ Additional sources reviewed:
 | 65–90 min | Fuller strength sessions with progressive warm-up sets and complementary roles | Usually 5–8 movements depending on split; respect weekly workload ceilings. |
 | 95–120 min | Longer preparation or work where justified by the program | Never override dose/recovery bounds simply to fill two hours. Expose remaining time. |
 
-The UI suggests 60–90 minutes (quick choices: 60, 75, 90) and at least three training days per week. These are adjustable product suggestions, not evidence-based minimums or validated optima. New profiles start at 60 minutes and three days; existing saved availability is preserved. Shorter sessions and one- or two-day weeks remain available. Beginner/youth guidance emphasizes manageable work and full rests, and existing workload limits still apply. The combined muscle/strength/physique goal uses progressive muscle-building prescriptions; historical strength-specific prescriptions remain readable. No cardio is added to fill gaps.
+The UI suggests 60–90 minutes (quick choices: 60, 75, 90) and at least three training days per week. These are adjustable product suggestions, not evidence-based minimums or validated optima. New profiles start at 60 minutes and three days; existing saved availability is preserved. Shorter sessions and one- or two-day weeks remain available. Beginner/youth guidance emphasizes manageable work and full rests, and existing workload limits still apply. The combined muscle/strength/physique goal now pairs strength-focused main lifts with hypertrophy-oriented assistance; historical goal labels remain readable. No cardio is added to fill gaps.
 
 ### Session structure and dose accounting
 
 The calendar allocator still checks substantial overlap and Sunday-to-Monday recovery. Within a day, role templates distinguish horizontal/incline pressing, overhead pressing, lateral raises and triceps; rows, vertical pulls, rear-deltoid assistance and elbow flexors; squats, hinges, knee flexion/extension, hip work and calves. Equivalent alternatives cannot occupy two slots. Main compound lifts precede assistance. Useful lifts stay stable rather than changing equipment solely because they appeared earlier that week.
 
-The planner reserves weekly cluster, role and muscle budgets before selecting work. A full gym, experienced six-day muscle-building example at a 75-minute target has 5–6 exercises, 17–19 sets and estimated sessions of 61–68 minutes. This is a test fixture, not a prescription for every user. Novice two-set starts remain shorter, and the UI explicitly recommends reviewing the frequency/time combination. It does not conceal a 30-minute beginner split behind a 75-minute label.
+The planner reserves weekly cluster, role and muscle budgets before selecting work. A full gym, experienced six-day combined-goal example at a 75-minute target has 5–7 exercises, 16–20 work sets and estimated sessions of 69–72 minutes. This is a test fixture, not a prescription for every user. Novice programs with two-set assistance and three-set compounds can remain shorter, and the UI explicitly recommends reviewing the frequency/time combination. It does not conceal a 30-minute beginner split behind a 75-minute label.
 
 Approximate muscle accounting assigns full credit to principal muscles and half credit to selected supporting muscles. The default weekly ceiling is 12 credits for beginners and 18 for others, with a small explicit focus allowance and reduced one-day ceilings. Role and cluster ceilings also apply. These are engineering guardrails, **not validated individual stimulus estimates or weekly targets**. A ceiling is not a requirement to reach it. Equipment, exclusions, time and recovery can reduce delivered work.
 
-Time uses the actual displayed warm-up sequence, including progressive rehearsal sets for the first two eligible loaded compound targets, working-set duration, both sides of unilateral work, prescribed rest, and equipment setup. Estimates assume about three seconds per repetition and overlapping setup/rest where appropriate; they do not predict gym queues or the user's exact tempo. Warm-up seconds are shared by the estimator and the in-workout timer. A significant gap means at least 10 minutes and at least 20% of the target, and is shown for each affected resistance day.
+Time uses the actual displayed warm-up sequence, including progressive rehearsal sets for the first two eligible loaded compound targets, working-set duration, both sides of unilateral work, prescribed rest, and equipment setup. Estimates assume about three seconds per repetition and overlapping setup/rest where appropriate; they do not predict gym queues or the user's exact tempo. Warm-up seconds are shared by the estimator and the in-workout timer. A significant gap means at least 5 minutes and at least 10% of the target, and is shown for each affected resistance day.
 
 ### Regression observations
 
-`test-training-duration.mjs` covers all 23 slider values (10–120 by 5), seven goal variants, three experience levels, and one through seven selected days: 3,381 plans. Separate coaching tests cover 700 equipment/exclusion/time cases and 508 cyclic schedules. Assertions cover time upper bounds, role uniqueness, exercise order, weekly dose ceilings, per-day gap explanations, and a substantive six-day 75-minute example. These are software consistency checks, not evidence of physiological efficacy.
+`test-training-duration.mjs` covers all 23 slider values (10–120 by 5), eight goal variants, three experience levels, and one through seven selected days: 3,864 plans. Separate coaching tests cover 700 equipment/exclusion/time cases and 508 cyclic schedules. Assertions cover time upper bounds, role uniqueness, exercise order, weekly dose ceilings, per-day gap explanations, and a substantive six-day 75-minute example. These are software consistency checks, not evidence of physiological efficacy.
+
+
+### Combined muscle and strength programming — 22 October 2026
+
+Reviewed professional sources:
+- [ACSM 2026 resistance training update](https://acsm.org/resistance-training-guidelines-update-2026/): heavier work supports strength; weekly volume supports hypertrophy. Consistency, enjoyment and individual goals matter. This does not establish a 60–90-minute minimum.
+- [NSCA frequency guidance](https://www.nsca.com/education/articles/kinetic-select/determination-of-resistance-training-frequency/): training experience and recovery inform full-body versus split schedules. A six-day split is not a beginner default.
+- [NSCA Time-Efficient Training](https://www.nsca.com/education/articles/ptq/time-efficient-training): professional example programs combine presses, pulls, squat and hinge patterns. We use complementary roles, not a copied program or an assumption that every user should superset.
+- [NSCA programming considerations](https://www.nsca.com/contentassets/f921c5b3fe4142db964a943d3554b324/ptq-10.4.4-program-design-considerations-for-optimal-strength-hypertophy-glute-mucsles.pdf): compound and assistance roles, progression and rest requirements differ.
+
+App-specific starting rules (not a validated prescription): adults with experience receive up to two loaded main compounds at 6–8 reps and 240-second rests, then 8–12-rep compounds (180 seconds), 10–15-rep isolation (120 seconds), or timed holds. Begin with three work sets where time and weekly budgets permit; longer sessions can add complementary exercises or a fourth set. Beginners use 8–12-rep compounds with 150-second rests and two-set assistance; youth rules remain separate. The first two eligible main lifts include three gradual warm-up sets. Progression follows completed reps and repeatable effort, not a maximum-strength test.
+
+Full-gym experienced combined-goal fixtures, no extra focus priorities:
+
+| Weekly days | Requested | Estimated minutes by day | Exercises by day |
+|---|---|---|---|
+| 3 | 60 | 60, 57, 60 | 4, 4, 4 |
+| 3 | 75 | 74, 75, 75 | 6, 6, 6 |
+| 3 | 90 | 88, 88, 86 | 7, 7, 7 |
+| 4 | 60 | 60, 56, 60, 56 | 5, 4, 5, 4 |
+| 4 | 75 | 71, 75, 71, 75 | 6, 6, 6, 6 |
+| 4 | 90 | 86, 88, 86, 88 | 8, 7, 8, 7 |
+| 6 | 60 | 60, 55, 59, 60, 55, 59 | 5, 4, 5, 5, 4, 5 |
+| 6 | 75 | 71, 69, 69, 71, 69, 72 | 6, 5, 6, 6, 5, 7 |
+| 6 | 90 | 82, 73, 69, 82, 73, 72 | 7, 5, 6, 7, 5, 7 |
+
+Some six-day 90-minute plans remain shorter because of weekly workload limits. These gaps are disclosed rather than filled with arbitrary work or cardio. The UI separates warm-up, lifting, rest and setup estimates. Categories round independently, so displayed category minutes can differ slightly from their rounded total. Tests check the exact seconds before rounding. Beginners, restricted equipment and exclusions may produce shorter plans. Users explicitly review/apply new recommendations; manual routines and current workouts are preserved.

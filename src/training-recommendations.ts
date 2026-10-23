@@ -7,7 +7,8 @@ export {coachingExercises} from './coaching-exercises';
 
 export type WarmupMove={name:string;dose:string;target:string;cue:string;seconds:number};
 export type RecommendedPlan={routines:Routine[];rationale:string[];estimatedMinutes:number;targetMinutes:number;summary:string;warnings:string[]};
-export type PlanContext={age?:number|null};
+export type PlanContext={age?:number|null;mainLift?:boolean};
+const combinedGoal=(preferences:Preferences)=>preferences.goal==='Build muscle & strength';
 const beginner=(preferences:Preferences)=>preferences.experience==='Getting started';
 const goalKey=(goal:string)=>goal.toLowerCase();
 const weekdays=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
@@ -36,6 +37,11 @@ export function recommendedPrescription(preferences:Preferences,exercise:Exercis
   const isHold=isTimedExercise(exercise);
   const metadata=coachingMovement[exercise.id];
   const compound=metadata?!!metadata.compound:true;
+  if(combinedGoal(preferences)&&!youth){
+    if(beginner(preferences))return {exerciseId:exercise.id,sets:compound?3:2,reps:isHold?'20–30 sec':'8–12',rest:isHold?60:compound?150:90,notes:'Start with a manageable resistance and keep 3–4 reps available. Build repeatable reps before adding the smallest available resistance. Take longer rests if needed.'};
+    const main=compound&&context.mainLift!==false&&exercise.equipment!=='Bodyweight';
+    return {exerciseId:exercise.id,sets:3,reps:isHold?'20–40 sec':main?'6–8':compound?'8–12':'10–15',rest:isHold?60:main?240:compound?180:120,notes:main?'Strength emphasis: finish with 2–3 reps available. When every set reaches 8 controlled reps, add the smallest available resistance and return to 6 reps.':'Muscle-building assistance: finish with about 2 reps available. Reach the top of the rep range across all sets before adding the smallest available resistance.'};
+  }
   if(beginner(preferences)||youth)return {exerciseId:exercise.id,sets:2,reps:isHold?'20–30 sec':'10–15',rest:compound?90:60,notes:(youth?'Practice with qualified supervision. ':'')+'Use a light, controlled effort to learn the technique. Finish with 3–4 good reps still available; take longer rests whenever you need them.'};
   if(goal==='strength')return {exerciseId:exercise.id,sets:compound?4:3,reps:isHold?'20–40 sec':compound?'5–8':'10–15',rest:compound?180:90,notes:'Finish with 2–3 controlled reps still available. No maximal lifts: increase the smallest available load only after every set reaches the top of its range with repeatable technique.'};
   if(['muscle','glutes','upper'].includes(goal))return {exerciseId:exercise.id,sets:3,reps:isHold?'20–40 sec':compound?'8–12':'10–15',rest:isHold?60:compound?180:120,notes:'Finish with about 2 good reps still available. Build reps within this range first, then add the smallest available load when all sets feel controlled.'};
@@ -151,6 +157,7 @@ function plannedPatterns(preferences:Preferences,day:number,assignment:number,in
   // roles within a pattern (e.g. row + pulldown), never duplicate alternatives.
   if(assignment===7)patterns=[...new Set(patterns),'push','pull'];
   else if(assignment===LOWER)patterns=[...patterns,'hinge',goal==='glutes'||coaching.focusAreas.includes('Glutes')?'glute':'squat'];
+  if(combinedGoal(preferences)&&coaching.sessionMinutes>=60)patterns=[...patterns,'push','pull','shoulder','arms','squat','hinge','glute','calf'];
   return [...patterns,...(includeCore?['core' as const]:[])].filter(pattern=>pattern==='core'?includeCore:!!(assignment&clusterFor(pattern)));
 }
 
@@ -216,29 +223,24 @@ function selectionScore(preferences:Preferences,exercise:Exercise,day:number,use
   return score;
 }
 
-function timeFor(item:RoutineExercise,exercise:Exercise){
-  const meta=coachingMovement[exercise.id];
-  const numbers=item.reps.match(/\d+/g)?.map(Number)||[10];
-  const maximum=Math.max(...numbers);
-  const work=isTimedExercise(exercise)?maximum:maximum*3;
-  const perSet=work*(meta?.unilateral?2:1)+(meta?.unilateral?10:0);
-  return item.sets*perSet+Math.max(0,item.sets-1)*item.rest+75;
-}
-
-export function estimateRoutineMinutes(routine:Routine,exercises:Exercise[]){
-  if(routine.kind==='recovery')return routine.recovery?.minutes||0;
-  if(!routine.exercises.length)return 0;
+export function routineTiming(routine:Routine,exercises:Exercise[]){
+  if(routine.kind==='recovery')return {warmupSeconds:0,workSeconds:0,restSeconds:0,setupSeconds:0,totalMinutes:routine.recovery?.minutes||0,sets:0};
   const available=new Map(exercises.map(exercise=>[exercise.id,exercise]));
-  const warmupSeconds=buildWarmup(routine,exercises).reduce((sum,move)=>sum+move.seconds,0);
-  const seconds=warmupSeconds+routine.exercises.reduce((sum,item,index)=>{
-    const exercise=available.get(item.exerciseId);
-    // The rest timer also runs when moving to the next exercise. The 75-second
-    // setup allowance can overlap that recovery, but cannot replace a long rest.
-    const nextExerciseRest=index<routine.exercises.length-1?Math.max(0,item.rest-75):0;
-    return sum+(exercise?timeFor(item,exercise)+nextExerciseRest:0);
-  },0);
-  return Math.ceil(seconds/60);
+  const warmupSeconds=routine.exercises.length?buildWarmup(routine,exercises).reduce((sum,move)=>sum+move.seconds,0):0;
+  let workSeconds=0,restSeconds=0,setupSeconds=0,sets=0;
+  routine.exercises.forEach((item,index)=>{
+    const exercise=available.get(item.exerciseId);if(!exercise)return;
+    const maximum=Math.max(...(item.reps.match(/\d+/g)?.map(Number)||[10]));
+    const unilateral=coachingMovement[exercise.id]?.unilateral;
+    workSeconds+=item.sets*((isTimedExercise(exercise)?maximum:maximum*3)*(unilateral?2:1)+(unilateral?10:0));
+    restSeconds+=Math.max(0,item.sets-1)*item.rest;
+    // Between-exercise setup overlaps recovery; count only the remaining rest.
+    if(index<routine.exercises.length-1)restSeconds+=Math.max(0,item.rest-75);
+    setupSeconds+=75;sets+=item.sets;
+  });
+  return {warmupSeconds,workSeconds,restSeconds,setupSeconds,sets,totalMinutes:Math.ceil((warmupSeconds+workSeconds+restSeconds+setupSeconds)/60)};
 }
+export function estimateRoutineMinutes(routine:Routine,exercises:Exercise[]){return routineTiming(routine,exercises).totalMinutes;}
 
 function selectionReason(preferences:Preferences,exercise:Exercise){
   const meta=coachingMovement[exercise.id];
@@ -345,7 +347,7 @@ export function buildRecommendedPlan(preferences:Preferences,exercises:Exercise[
     [PULL]:Math.round((novice?20:34)*weeklyScale),
   };
   const roleUsed=new Map<string,number>();
-  const roleLimit=()=>Math.ceil((novice?6:10)*weeklyScale);
+  const roleLimit=()=>Math.ceil((novice?(combinedGoal(preferences)?9:6):10)*weeklyScale);
   const muscleUsed:Record<string,number>={};
   const muscleCeiling=(muscle:string)=>Math.ceil((novice?12:18)*weeklyScale)+(coaching.focusAreas.includes(muscle as typeof coaching.focusAreas[number])?2:0);
   let dayMuscleLimit:Record<string,number>={},dayMuscleUsed:Record<string,number>={};
@@ -370,7 +372,7 @@ export function buildRecommendedPlan(preferences:Preferences,exercises:Exercise[
       for(const muscle of muscles)dayMuscleLimit[muscle]=Math.floor((muscleCeiling(muscle)-(muscleUsed[muscle]||0))/future*2)/2;
     }
     const selected:Exercise[]=[];
-    const maxExercises=coaching.sessionMinutes<=15?3:coaching.sessionMinutes<=25?4:coaching.sessionMinutes<=30?5:novice?6:assignment===7?8:6;
+    const maxExercises=coaching.sessionMinutes<=15?3:coaching.sessionMinutes<=25?4:coaching.sessionMinutes<=30?5:novice?6:combinedGoal(preferences)?(coaching.sessionMinutes>=75?8:6):assignment===7?8:6;
     const routine:Routine={id:index===0?'form-recommended':`form-recommended-${index+1}`,scheduledDay:weekdays.includes(day)?day as TrainingDay:undefined,name:'',description:'',exercises:[]};
     for(const pattern of patterns){
       if(selected.length>=maxExercises)break;
@@ -380,7 +382,8 @@ export function buildRecommendedPlan(preferences:Preferences,exercises:Exercise[
       let choice:Exercise|undefined;
       let prescription:RoutineExercise|undefined;
       for(const exercise of candidates){
-        const item=recommendedPrescription(effectivePreferences,exercise);
+        const mainLift=selected.filter(candidate=>coachingMovement[candidate.id].compound&&candidate.equipment!=='Bodyweight').length<2;
+        const item=recommendedPrescription(effectivePreferences,exercise,{age:context.age,mainLift});
         item.sets=Math.min(item.sets,remaining[cluster],roleLimit()-(roleUsed.get(coachingRole(exercise.id))||0),roomFor(exercise.id));
         // A priority accessory should not consume the entire cluster's budget
         // before its foundational movement (or the running goal's calf work).
@@ -416,7 +419,7 @@ export function buildRecommendedPlan(preferences:Preferences,exercises:Exercise[
         changed=false;
         for(const item of routine.exercises){
           const role=coachingRole(item.exerciseId),cluster=clusterFor(coachingMovement[item.exerciseId].pattern);
-          const cap=coachingMovement[item.exerciseId].compound?4:3;
+          const cap=coachingMovement[item.exerciseId].compound||combinedGoal(preferences)?4:3;
           if(item.sets>=cap||remaining[cluster]<1||(roleUsed.get(role)||0)>=roleLimit()||roomFor(item.exerciseId)<1)continue;
           item.sets++;
           if(estimateRoutineMinutes(routine,exercises)>coaching.sessionMinutes){item.sets--;continue;}
@@ -450,7 +453,7 @@ export function buildRecommendedPlan(preferences:Preferences,exercises:Exercise[
     const alternatives=pool.filter(exercise=>coachingMovement[exercise.id].pattern==='pull'&&!erectorLoadedIds.has(exercise.id)&&!routine.exercises.some(item=>item.exerciseId!==unsupportedRowId&&coachingRole(item.exerciseId)===coachingRole(exercise.id))).sort((a,b)=>selectionScore(effectivePreferences,b,index,used)-selectionScore(effectivePreferences,a,index,used)||a.id.localeCompare(b.id,'en'));
     let replacement:RoutineExercise|undefined;
     for(const exercise of alternatives){
-      const item=recommendedPrescription(effectivePreferences,exercise);
+      const item=recommendedPrescription(effectivePreferences,exercise,{age:context.age,mainLift:original.reps==='6–8'});
       item.sets=Math.min(original.sets,experiencedHypertrophy&&coachingMovement[exercise.id].compound?5:item.sets);
       item.notes=`${selectionReason(effectivePreferences,exercise)} This supported or upright alternative leaves more recovery for your loaded lower-back work. ${item.notes}`;
       const trial={...routine,exercises:routine.exercises.map((existing,itemIndex)=>itemIndex===rowIndex?item:existing)};
@@ -472,7 +475,7 @@ export function buildRecommendedPlan(preferences:Preferences,exercises:Exercise[
   routines.forEach(routine=>{
     if(routine.kind==='recovery')return;
     const minutes=estimateRoutineMinutes(routine,exercises);
-    if(coaching.sessionMinutes-minutes>=Math.max(10,coaching.sessionMinutes*.2)){
+    if(coaching.sessionMinutes-minutes>=Math.max(5,coaching.sessionMinutes*.1)){
       const reason=novice?'The beginner starting dose limits sets while you build tolerance.':routine.exercises.length<4?'Your available equipment, exclusions and recovery spacing limit complementary exercises.':'The weekly volume ceiling keeps extra work from accumulating just to fill the clock.';
       const note=`${routine.scheduledDay||'Your day'}: ${minutes} min planned / ${coaching.sessionMinutes} min requested. ${reason} Choose fewer, longer resistance days or adjust your equipment/preferences if you want a closer match.`;
       routine.description+=' '+note;
@@ -497,8 +500,8 @@ export function buildRecommendedPlan(preferences:Preferences,exercises:Exercise[
   if(weeklyPatterns.has('core'))athleticFeatures.push('trunk control');
   const athleticRationale=athleticFeatures.length?`Your ${coaching.sportFocus.toLowerCase()} plan includes ${athleticFeatures.join(', ')} within your available time and movement preferences. This is a general foundation, not a sport-specific performance program.`:'No suitable exercises currently fit your athletic goal and preferences. Review the limitations below before starting.';
   const rationale=[
-    goal==='glutes'?'Your plan gives glute work an early place in the week while retaining upper-body work; this goal is available to everyone.':goal==='athletic'?athleticRationale:goal==='muscle'?'Your muscle-building plan uses repeatable sets across major muscle groups, with gradual rep and load progression.':goal==='strength'?'Your strength plan prioritizes foundational lifts and longer recovery, scaled to your training experience.':goal==='upper'?'Upper-body pushing and pulling receive priority while lower-body work stays in the week.':'A manageable, repeatable routine builds skill and consistency before adding more work.',
-    coaching.sessionMinutes<=15?'These brief sessions use one controlled practice set per exercise. They provide limited training volume; build consistency here, then add time when you can.':beginner(effectivePreferences)?'Start with up to two controlled sets per exercise and a light effort. More reps are not automatically better: stop before technique changes; smaller sessions spread the weekly work without multiplying it.':'Work below failure and progress gradually; the listed rep ranges are starting points, not the only way to reach your goal.',
+    combinedGoal(preferences)?'Your combined goal pairs strength-focused main lifts with muscle-building assistance. Experienced trainees use 6–8 reps and 4-minute rests on up to two loaded main lifts, then 8–15 reps and 2–3-minute rests on assistance. Beginners start with controlled 8–12-rep practice; youth prescriptions remain supervised technique work.':goal==='glutes'?'Your plan gives glute work an early place in the week while retaining upper-body work; this goal is available to everyone.':goal==='athletic'?athleticRationale:goal==='muscle'?'Your muscle-building plan uses repeatable sets across major muscle groups, with gradual rep and load progression.':goal==='strength'?'Your strength plan prioritizes foundational lifts and longer recovery, scaled to your training experience.':goal==='upper'?'Upper-body pushing and pulling receive priority while lower-body work stays in the week.':'A manageable, repeatable routine builds skill and consistency before adding more work.',
+    coaching.sessionMinutes<=15?'These brief sessions use one controlled practice set per exercise. They provide limited training volume; build consistency here, then add time when you can.':beginner(effectivePreferences)&&combinedGoal(preferences)&&!youth?'Start with up to three controlled sets on compound movements and two on assistance. Weekly overlap and your time budget can reduce these; add resistance only after repeatable reps.':beginner(effectivePreferences)?'Start with up to two controlled sets per exercise and a light effort. More reps are not automatically better: stop before technique changes; smaller sessions spread the weekly work without multiplying it.':'Work below failure and progress gradually; the listed rep ranges are starting points, not the only way to reach your goal.',
     `${days.length||1} planned session${days.length<=1?'':'s'} · up to about ${estimatedMinutes} minutes each within your ${coaching.sessionMinutes}-minute preference. Estimates include warm-up, progressive warm-up sets, set rests, equipment setup and both sides of unilateral exercises; equipment waits can add time.`,
     styles.length===1&&styles[0]==='Balanced'?'Exercise choices use your available equipment and balance different movement patterns.':bodyweightOnly?'Your bodyweight preference uses only bodyweight exercises.':`Your selected styles (${styles.join(', ')}) shape the mix of exercises when your equipment and movement preferences allow.`,
   ];
@@ -511,7 +514,7 @@ export function buildRecommendedPlan(preferences:Preferences,exercises:Exercise[
   if(estimatedMinutes>0&&coaching.sessionMinutes-estimatedMinutes>=15)rationale.push(`Your ${coaching.sessionMinutes}-minute target could not be fully matched. Some days need less time because of the weekly dose, equipment, or recovery constraints. Each shorter day explains the gap; consider fewer, longer strength days if that fits your preference better.`);
   if(coaching.focusAreas.length)rationale.push(`Extra emphasis rotates across your priorities: ${coaching.focusAreas.join(', ')}. Other muscle groups remain part of the week.`);
   if(coaching.impact==='Low impact'||coaching.avoidMovements.length)rationale.push(`Your movement preferences are applied to every selected exercise${coaching.avoidMovements.length?`: no ${coaching.avoidMovements.join(', ').toLowerCase()}`:''}. There are no jumping drills in this starter plan.`);
-  return {routines,rationale,estimatedMinutes,targetMinutes:coaching.sessionMinutes,summary:`${titles[goal]} · ${strengthDays} resistance${recoveryDays?` + ${recoveryDays} recovery`:''} days · up to about ${estimatedMinutes} min`,warnings:[...new Set(warnings)]};
+  return {routines,rationale,estimatedMinutes,targetMinutes:coaching.sessionMinutes,summary:`${combinedGoal(preferences)?'Muscle & strength':titles[goal]} · ${strengthDays} resistance${recoveryDays?` + ${recoveryDays} recovery`:''} days · up to about ${estimatedMinutes} min`,warnings:[...new Set(warnings)]};
 }
 
 export function buildRecommendedRoutine(preferences:Preferences,exercises:Exercise[],context:PlanContext={}):Routine{
@@ -521,6 +524,7 @@ export function buildRecommendedRoutine(preferences:Preferences,exercises:Exerci
 export function recommendationSummary(preferences:Preferences,context:PlanContext={}){
   if(getCoaching(preferences).sessionMinutes<=15)return 'Brief practice · 1 controlled set per exercise · limited volume';
   if(typeof context.age==='number'&&context.age>=13&&context.age<18)return 'Supervised technique practice · 10–15 controlled reps · light effort';
+  if(combinedGoal(preferences))return beginner(preferences)?'Build your foundation · 8–12 controlled reps · 2–3 min rest on main lifts':'Muscle & strength · 6–8 reps on main lifts · 8–15 on assistance · 2–4 min rest';
   if(beginner(preferences))return 'Technique first · 2 controlled sets · 60–90 sec or longer to recover';
   const goal=goalType(preferences);
   if(goal==='strength')return 'Strength focus · 5–8 reps on main lifts · up to 3 min rest';
@@ -556,8 +560,9 @@ export function buildWarmup(routine:Routine,exercises:Exercise[]):WarmupMove[]{
     const loaded=exercise.equipment!=='Bodyweight'&&!!coachingMovement[exercise.id]?.compound&&loadedRehearsals<2;
     if(loaded)loadedRehearsals++;
     const brief=routine.exercises.reduce((sum,entry)=>sum+entry.sets,0)<=4;
-    const seconds=loaded&&!brief?180:45;
-    targeted.push({name:`Rehearse ${exercise.name.toLowerCase()}`,dose:loaded&&!brief?'2 gradual warm-up sets · about 3 min':hold?'10–15 easy seconds':`5–8 easy reps${side}`,seconds,target,cue:`Use ${exercise.equipment==='Bodyweight'?'an easy version and a comfortable range':'a much lighter load or resistance than your working sets'}. ${loaded&&!brief?'Begin light, then use a slightly heavier rehearsal set while staying well below fatigue. Allow a short rest and set up your working load. ':''}Follow the same setup shown in the exercise guide; stop if the movement hurts.`});
+    const strengthPreparation=loaded&&item.reps==='6–8'&&!brief;
+    const seconds=strengthPreparation?240:loaded&&!brief?180:45;
+    targeted.push({name:`Rehearse ${exercise.name.toLowerCase()}`,dose:strengthPreparation?'3 gradual warm-up sets · about 4 min':loaded&&!brief?'2 gradual warm-up sets · about 3 min':hold?'10–15 easy seconds':`5–8 easy reps${side}`,seconds,target,cue:`Use ${exercise.equipment==='Bodyweight'?'an easy version and a comfortable range':'a much lighter load or resistance than your working sets'}. ${loaded&&!brief?'Begin light, then use a slightly heavier rehearsal set while staying well below fatigue. Allow a short rest and set up your working load. ':''}Follow the same setup shown in the exercise guide; stop if the movement hurts.`});
   });
   return [{name:'Raise your temperature',dose:'2 minutes',seconds:120,target:'Whole body',cue:'Walk or cycle at an easy pace, then gradually increase the pace if comfortable.'},...targeted.slice(0,3)];
 }

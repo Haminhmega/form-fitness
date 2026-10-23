@@ -115,3 +115,7 @@ Evidence and browser scripts remain in the workspace’s work/ directory. DESIGN
 - Existing workout/library UI smoke passed, including collapsible instructions, preserved sets/rest timer after reopening, library sorting/filtering and recording deep links. Account, workout and recovery suites passed.
 - Production build passed, including the PWA and Worker. The existing large-bundle warning remains; this update does not claim a production performance improvement.
 - Illustrations remain schematic, and machine geometry varies. These checks do not validate individual training outcomes, biomechanical accuracy or AI video-analysis accuracy. The visual contract and selection rationale are in [workout-demonstration-design.md](docs/workout-demonstration-design.md).
+
+## Email and usage regression (22 October 2026)
+
+Run `npm run test:accounts` (includes email security and usage tests), `node scripts/test-email-ui.mjs`, and `npm run test:account-recovery`. Verify registration requires the received code, reset invalidates prior sessions, changing email requires the current password and new-address code, and provider users preserve the same workout owner ID when adding password sign-in. Check missing mail configuration fails closed; no test sends real email. Usage is off by default, its dashboard is owner-only, client timestamps and arbitrary data are rejected, repeated event IDs deduplicate, and opt-out erases events. Delivery/DNS must also be checked against Resend before calling email production-ready.
