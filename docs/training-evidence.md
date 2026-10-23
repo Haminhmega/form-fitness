@@ -80,11 +80,11 @@ Additional sources reviewed:
 | --- | --- | --- |
 | 10–20 min | Brief main-movement practice, usually 1–3 exercises | Keep recovery and explain limited coverage; no claim that this is useless. |
 | 25–40 min | Main lifts first, generally 2–4 complementary movements | Reduce sets/accessories before rushing rest. |
-| 45–60 min | Main lifts and assistance, typically 4–6 exercises where equipment permits | Suggested general starting range in the intake; **not a minimum effective duration**. |
+| 45–60 min | Main lifts and assistance, typically 4–6 exercises where equipment permits | Available time budget; shorter than the general intake suggestion, not inherently ineffective. |
 | 65–90 min | Fuller strength sessions with progressive warm-up sets and complementary roles | Usually 5–8 movements depending on split; respect weekly workload ceilings. |
 | 95–120 min | Longer preparation or work where justified by the program | Never override dose/recovery bounds simply to fill two hours. Expose remaining time. |
 
-The UI suggests 30–45 minutes for new/youth trainees, 60–90 for non-novice strength goals, and 45–60 for other adult starting plans. These are adjustable product suggestions. The user's selected time is preserved. No cardio is added to fill gaps.
+The UI suggests 60–90 minutes (quick choices: 60, 75, 90) and at least three training days per week. These are adjustable product suggestions, not evidence-based minimums or validated optima. New profiles start at 60 minutes and three days; existing saved availability is preserved. Shorter sessions and one- or two-day weeks remain available. Beginner/youth guidance emphasizes manageable work and full rests, and existing workload limits still apply. The combined muscle/strength/physique goal uses progressive muscle-building prescriptions; historical strength-specific prescriptions remain readable. No cardio is added to fill gaps.
 
 ### Session structure and dose accounting
 

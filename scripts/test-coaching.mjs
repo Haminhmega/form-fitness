@@ -1,11 +1,11 @@
 import assert from 'node:assert/strict';
 import {build} from 'esbuild';
 
-const compiled=await build({stdin:{contents:"export * from './src/training-recommendations.ts'; export * from './src/coaching-exercises.ts'; export {initialExercises,initialPreferences} from './src/data.ts'; export * from './shared/coaching.ts';",resolveDir:process.cwd()},bundle:true,format:'esm',platform:'node',write:false});
-const {buildRecommendedPlan,recommendedPrescription,buildRecommendedRoutine,estimateRoutineMinutes,recommendedMuscleGroups,recommendationSummary,buildWarmup,coachingExercises,coachingMovement,coachingRole,weeklyTrainingDose,initialExercises,initialPreferences,coachingDefaults}=await import('data:text/javascript;base64,'+Buffer.from(compiled.outputFiles[0].text).toString('base64'));
+const compiled=await build({stdin:{contents:"export * from './src/training-recommendations.ts'; export * from './src/coaching-exercises.ts'; export {initialExercises,initialPreferences,trainingGoals,currentTrainingGoal} from './src/data.ts'; export * from './shared/coaching.ts';",resolveDir:process.cwd()},bundle:true,format:'esm',platform:'node',write:false});
+const {buildRecommendedPlan,recommendedPrescription,buildRecommendedRoutine,estimateRoutineMinutes,recommendedMuscleGroups,recommendationSummary,buildWarmup,coachingExercises,coachingMovement,coachingRole,weeklyTrainingDose,initialExercises,initialPreferences,trainingGoals,currentTrainingGoal,coachingDefaults}=await import('data:text/javascript;base64,'+Buffer.from(compiled.outputFiles[0].text).toString('base64'));
 const exercises=[...initialExercises,...coachingExercises];
 const byId=new Map(exercises.map(exercise=>[exercise.id,exercise]));
-const base={...initialPreferences,goal:'Build muscle',experience:'Some experience',equipment:['Bodyweight','Dumbbells','Machines','Barbell','Bands'],days:['Mon','Wed','Fri'],coaching:coachingDefaults()};
+const base={...initialPreferences,goal:'Build muscle',experience:'Some experience',equipment:['Bodyweight','Dumbbells','Machines','Barbell','Bands'],days:['Mon','Wed','Fri'],coaching:{...coachingDefaults(),sessionMinutes:45}};
 const prefs=(changes={},coaching={})=>({...base,...changes,coaching:{...base.coaching,...coaching}});
 const items=plan=>plan.routines.flatMap(routine=>routine.exercises);
 const patterns=plan=>items(plan).map(item=>coachingMovement[item.exerciseId].pattern);
@@ -26,6 +26,13 @@ function checkSessionName(routine){
 
 const before=JSON.stringify({base,exercises});
 const hypertrophy=make();
+assert.equal(trainingGoals.filter(goal=>/muscle|strength|aesthetic/i.test(goal)).length,1);
+assert.equal(initialPreferences.goal,'Build muscle & strength');
+assert.equal(initialPreferences.days.length,3);
+assert.equal(coachingDefaults().sessionMinutes,60);
+for(const oldGoal of ['Build muscle','Build aesthetic physique','Build strength','Grow glutes','Build upper body','Build aesthetics'])assert.equal(currentTrainingGoal(oldGoal),'Build muscle & strength');
+assert.equal(currentTrainingGoal('Improve athleticism'),'Improve athleticism');
+assert.deepEqual(items(make({goal:'Build muscle & strength'})),items(hypertrophy),'Combined goal keeps progressive muscle-building prescriptions');
 const glutes=make({goal:'Grow glutes'});
 const strength=make({goal:'Build strength'});
 const athletic=make({goal:'Improve athleticism'});

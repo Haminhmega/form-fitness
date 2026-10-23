@@ -13,10 +13,10 @@ export const initialExercises:Exercise[] = [
 export const initialRoutines:Routine[] = [
 {id:'full-a',name:'Full body A',description:'Build a strong foundation.',exercises:[{exerciseId:'squat',sets:3,reps:'8–12',rest:90,notes:''},{exerciseId:'pushup',sets:3,reps:'8–12',rest:90,notes:''},{exerciseId:'row',sets:3,reps:'10–12',rest:60,notes:''},{exerciseId:'curl',sets:3,reps:'10–12',rest:60,notes:''}]},
 {id:'full-b',name:'Full body B',description:'A little variety. The same intention.',exercises:[{exerciseId:'rdl',sets:3,reps:'8–12',rest:90,notes:''},{exerciseId:'press',sets:3,reps:'8–10',rest:90,notes:''},{exerciseId:'plank',sets:3,reps:'30',rest:60,notes:'For plank, log seconds in the reps field.'}]}];
-export const initialPreferences:Preferences = {units:'kg',notifications:false,cloud:false,contribute:false,retention:'Keep until I delete',goal:'Build strength',experience:'Getting started',equipment:['Bodyweight','Dumbbells'],days:['Mon','Wed','Fri'],onboarded:false,firstTime:false};
-export const trainingGoals=['Build muscle','Build aesthetic physique','Build strength','Improve athleticism','Build consistency','Improve fitness','Lose weight'] as const;
+export const initialPreferences:Preferences = {units:'kg',notifications:false,cloud:false,contribute:false,retention:'Keep until I delete',goal:'Build muscle & strength',experience:'Getting started',equipment:['Bodyweight','Dumbbells'],days:['Mon','Wed','Fri'],onboarded:false,firstTime:false};
+export const trainingGoals=['Build muscle & strength','Improve athleticism','Build consistency','Improve fitness','Lose weight'] as const;
 export function currentTrainingGoal(goal:string){
-  if(goal==='Grow glutes'||goal==='Build upper body'||goal==='Build aesthetics')return 'Build aesthetic physique';
+  if(['Build muscle','Build aesthetic physique','Build strength','Grow glutes','Build upper body','Build aesthetics'].includes(goal))return 'Build muscle & strength';
   if(goal==='Learn the basics')return 'Build consistency';
   if(goal==='Manage weight')return 'Lose weight';
   return goal;

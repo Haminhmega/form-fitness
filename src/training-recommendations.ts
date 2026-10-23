@@ -22,6 +22,7 @@ function goalType(preferences:Preferences){
   const goal=goalKey(preferences.goal);
   if(/glute|butt/.test(goal))return 'glutes';
   if(/athleti/.test(goal))return 'athletic';
+  if(goal==='build muscle & strength')return 'muscle';
   if(/strength/.test(goal))return 'strength';
   if(/upper body/.test(goal))return 'upper';
   if(/muscle|hypertrophy|aesthetic/.test(goal))return 'muscle';

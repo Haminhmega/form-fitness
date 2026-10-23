@@ -7,8 +7,8 @@ const bundle=await build({stdin:{contents:`
  import CoachingIntake from './src/CoachingIntake';import CoachPlanOverview from './src/CoachPlanOverview';import Workout from './src/Workout';
  import {initialPreferences,initialExercises} from './src/data';import {coachingDefaults} from './shared/coaching';
  import {prepareCoachingPlan} from './src/coaching-plan';import {createWorkoutSession} from './src/domain/workout';import './src/styles.css';
- function Test(){const [preferences,setPreferences]=useState({...initialPreferences,goal:'Build aesthetic physique',experience:'Experienced',equipment:['Bodyweight','Dumbbells','Machines','Barbell','Bands'],days:['Mon','Tue','Wed','Thu','Fri','Sat'],coaching:{...coachingDefaults(),sessionMinutes:75}});const [review,setReview]=useState(false),[session,setSession]=useState(null);const prepared=prepareCoachingPlan(preferences,[],initialExercises);
- return <main style={{maxWidth:1000,margin:'auto',padding:16}}>{session?<Workout session={session} setSession={setSession} exercises={prepared.exercises} preferences={preferences} history={[]} onRecord={()=>{}} onFinish={()=>{}} onBack={()=>setSession(null)} toast={()=>{}}/>:review?<CoachPlanOverview plan={prepared.plan} exercises={prepared.exercises} onEdit={()=>setReview(false)} onUse={()=>setSession(createWorkoutSession(prepared.routines[1],prepared.exercises,[]))}/>:<><CoachingIntake step={2} preferences={preferences} onChange={setPreferences}/><button className="btn primary" onClick={()=>setReview(true)}>Preview weekly plan</button></>}</main>}
+ function Test(){const [preferences,setPreferences]=useState({...initialPreferences,goal:'Build aesthetic physique',experience:'Experienced',equipment:['Bodyweight','Dumbbells','Machines','Barbell','Bands'],days:['Mon','Tue','Wed','Thu','Fri','Sat'],coaching:{...coachingDefaults(),sessionMinutes:75}});const [review,setReview]=useState(false),[step,setStep]=useState(0),[session,setSession]=useState(null);const prepared=prepareCoachingPlan(preferences,[],initialExercises);
+ return <main style={{maxWidth:1000,margin:'auto',padding:16}}>{session?<Workout session={session} setSession={setSession} exercises={prepared.exercises} preferences={preferences} history={[]} onRecord={()=>{}} onFinish={()=>{}} onBack={()=>setSession(null)} toast={()=>{}}/>:review?<CoachPlanOverview plan={prepared.plan} exercises={prepared.exercises} onEdit={()=>setReview(false)} onUse={()=>setSession(createWorkoutSession(prepared.routines[1],prepared.exercises,[]))}/>:<><button onClick={()=>setStep(2)}>Choose schedule</button><CoachingIntake step={step} preferences={preferences} onChange={setPreferences}/><button className="btn primary" onClick={()=>setReview(true)}>Preview weekly plan</button></>}</main>}
  createRoot(document.getElementById('root')).render(<Test/>);
  `,resolveDir:process.cwd(),loader:'tsx'},bundle:true,format:'iife',write:false,outdir:'ui-test',plugins:[{name:'isolated-account',setup(build){build.onResolve({filter:/^\.\/Account$/},()=>({path:'account',namespace:'fixture'}));build.onLoad({filter:/.*/,namespace:'fixture'},()=>({contents:'export const useAccount=()=>({user:null});',loader:'js'}));}}]});
 const js=bundle.outputFiles.find(file=>file.path.endsWith('.js')).text,css=bundle.outputFiles.find(file=>file.path.endsWith('.css')).text;
@@ -18,12 +18,22 @@ try{
  page.on('pageerror',error=>errors.push(error.message));
  await page.route('**/*',route=>{const url=new URL(route.request().url());if(url.hostname!=='coaching.test')return route.abort();return route.fulfill({status:200,contentType:url.pathname==='/test.js'?'text/javascript':url.pathname==='/test.css'?'text/css':'text/html',body:url.pathname==='/test.js'?js:url.pathname==='/test.css'?css:'<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="/test.css"></head><body><div id="root"></div><script src="/test.js"></script></body></html>'});});
  await page.goto('https://coaching.test/');
- await expect(page.getByText('Suggested starting range: 45–60 minutes',{exact:true})).toBeVisible();
+ await expect(page.getByRole('button',{name:/^Build muscle & strength/})).toHaveAttribute('aria-pressed','true');
+ await expect(page.getByRole('button',{name:/^Get stronger|^Muscle growth · hypertrophy|^Build aesthetic physique/})).toHaveCount(0);
+ await page.getByRole('button',{name:/^Build muscle & strength/}).click();
+ await page.getByRole('button',{name:'Choose schedule',exact:true}).click();
+ await expect(page.getByText('Recommended: at least 3 days per week.',{exact:true})).toBeVisible();
+ await expect(page.getByText('Suggested starting range: 60–90 minutes',{exact:true})).toBeVisible();
  await expect(page.getByText(/Shorter workouts can be effective too/)).toBeVisible();
- await page.getByRole('button',{name:'Use 45 min',exact:true}).click();
+ for(const minutes of [60,75,90])await expect(page.getByRole('button',{name:`Use ${minutes} min`,exact:true})).toBeVisible();
+ for(const day of ['Tue','Thu','Fri','Sat'])await page.getByRole('button',{name:day,exact:true}).click();
+ await expect(page.locator('.coach-days button[aria-pressed="true"]')).toHaveCount(2);
+ for(const day of ['Tue','Thu','Fri','Sat'])await page.getByRole('button',{name:day,exact:true}).click();
+ await page.getByRole('button',{name:'Use 60 min',exact:true}).click();
  const slider=page.getByRole('slider',{name:'Time for a typical workout',exact:true});
- await expect(slider).toHaveValue('45');
- await slider.focus();await slider.press('End');await expect(slider).toHaveValue('120');
+ await expect(slider).toHaveValue('60');
+ await slider.focus();await slider.press('Home');await expect(slider).toHaveValue('10');
+ await slider.press('End');await expect(slider).toHaveValue('120');
  await expect(page.getByText(/A long session: useful for some experienced programs/)).toBeVisible();
  for(let i=0;i<9;i++)await slider.press('ArrowLeft');
  await expect(slider).toHaveValue('75');

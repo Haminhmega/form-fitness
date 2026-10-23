@@ -7,7 +7,7 @@ const schedules=[['Mon'],['Mon','Thu'],['Mon','Wed','Fri'],['Mon','Tue','Thu','F
 const preferences={...initialPreferences,equipment:['Bodyweight','Dumbbells','Machines','Barbell','Bands'],coaching:coachingDefaults()};
 let cases=0;
 const report=[];
-for(const goal of ['Build aesthetic physique','Grow glutes','Build strength','Improve athleticism','Build consistency','Improve fitness','Lose weight'])for(const experience of ['Getting started','Some experience','Experienced'])for(const days of schedules)for(let minutes=10;minutes<=120;minutes+=5){
+for(const goal of ['Build muscle & strength','Build aesthetic physique','Grow glutes','Build strength','Improve athleticism','Build consistency','Improve fitness','Lose weight'])for(const experience of ['Getting started','Some experience','Experienced'])for(const days of schedules)for(let minutes=10;minutes<=120;minutes+=5){
   const prefs={...preferences,goal,experience,days,coaching:{...preferences.coaching,sessionMinutes:minutes}};
   const plan=buildRecommendedPlan(prefs,exercises);
   assert.equal(plan.targetMinutes,minutes);
@@ -37,9 +37,9 @@ for(const goal of ['Build aesthetic physique','Grow glutes','Build strength','Im
   assert.ok(advice.selected.length>50);
   cases++;
 }
-assert.deepEqual(trainingDurationAdvice({...preferences,experience:'Getting started'}).range,[30,45]);
-assert.deepEqual(trainingDurationAdvice({...preferences,experience:'Experienced',goal:'Build strength'}).range,[60,90]);
-assert.deepEqual(trainingDurationAdvice({...preferences,experience:'Experienced',goal:'Build strength'},16).range,[30,45]);
-assert.deepEqual(trainingDurationAdvice({...preferences,experience:'Experienced',goal:'Build aesthetic physique'},70).range,[45,60],'Age alone does not downgrade experience');
-console.log(`Duration checks passed: ${cases} plans, all 23 slider values, one–seven days, seven goals and three experience levels.`);
+assert.deepEqual(trainingDurationAdvice({...preferences,experience:'Getting started'}).range,[60,75,90]);
+assert.deepEqual(trainingDurationAdvice({...preferences,experience:'Experienced',goal:'Build strength'}).range,[60,75,90]);
+assert.deepEqual(trainingDurationAdvice({...preferences,experience:'Experienced',goal:'Build strength'},16).range,[60,75,90]);
+assert.deepEqual(trainingDurationAdvice({...preferences,experience:'Experienced',goal:'Build aesthetic physique'},70).range,[60,75,90],'Age alone does not downgrade experience');
+console.log(`Duration checks passed: ${cases} plans, all 23 slider values, one–seven days, eight goals and three experience levels.`);
 console.log(JSON.stringify(report));

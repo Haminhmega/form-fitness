@@ -37,7 +37,7 @@ See [training-evidence.md](training-evidence.md) for the reviewed ACSM, AAP, NSC
 
 ## Current duration-aware structure (16 October 2026)
 
-The time selector includes a suggested 45–60-minute general starting range, individualized context, and quick choices. It explicitly recognizes that shorter sessions can be effective. Each plan card compares the requested target with its actual estimate and separates warm-up from working sets/rest/setup. Applying a new recommendation remains explicit: it replaces recommended routines while preserving manually built routines and active-session snapshots.
+The time selector includes a suggested 60–90-minute general starting range, individualized context, and quick choices. It explicitly recognizes that shorter sessions can be effective. Each plan card compares the requested target with its actual estimate and separates warm-up from working sets/rest/setup. Applying a new recommendation remains explicit: it replaces recommended routines while preserving manually built routines and active-session snapshots.
 
 Complementary role templates replace the old one-exercise-per-pattern ceiling. Weekly cluster, role and approximate muscle budgets constrain growth toward the time target. Compound lifts precede assistance. Available exercises are filtered by equipment and movement exclusions, and the actual recurring calendar controls recovery. The 75-minute experienced full-gym six-day fixture now returns 61–68 minute sessions with 5–6 movements, rather than two-exercise placeholders. Beginner and restricted-equipment exceptions are explained per day. No cardio filler is introduced.
 
