@@ -1,5 +1,7 @@
 # Regression dependency ledger
 
+October 23 automatic beta reporting: account/usage server changes require `test:accounts`; client telemetry and notice require `test:usage-ui`, email UI, account recovery and rewards UI plus the production build. Existing explicit opt-outs, no invented consent rows, owner/guest exclusion and deleted-account tombstones are regression points. AI, planner and workout contracts are unchanged.
+
 October 23 mobile layout: `test:mobile` covers five widths, 60 screen states, touch targets, readable fields, five accessibility audits, theme/settings disclosures and workout dock/navigation behavior. Required downstream checks: `test:ui`, `test:cancel-session`, `test:account-recovery`, `test:rewards-ui`, coaching UI and production build. Planner math, AI geometry and server contracts are unchanged, so their unit suites are not required for this presentation change.
 
 October 23 session navigation: `test:cancel-session` covers confirmation, keeping a session, Escape/focus, guest and account storage, warm-up/lifting/recovery/unavailable-exercise paths, timer removal and reload. `test:ui`, coaching UI, workout/recovery and rewards checks cover downstream session behavior. Account recovery asserts the ChatGPT login link and unused divider are absent. Existing provider sessions are preserved. Production build also applies.

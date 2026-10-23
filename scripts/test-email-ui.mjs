@@ -13,7 +13,7 @@ try{
       if(p==='/api/auth/request-code')body={challengeId:'fixture-code',message:'Check your email for a six-digit code.'};
       else if(p==='/api/auth/reset-password')body={reset:true};
       else if(p==='/api/auth/account-email')body=r.method()==='GET'?{email:'old@example.test',hasPassword:true,emailCodes:true}:r.postDataJSON().action==='request'?{challengeId:'change-code',message:'Check your email.'}:{updated:true,message:'Email confirmed. Log in again.'};
-      else if(p==='/api/usage/consent')body={enabled:r.method()==='POST'?r.postDataJSON().enabled:false,admin:false};
+      else if(p==='/api/usage/consent')body={enabled:r.method()==='POST'?r.postDataJSON().enabled:true,admin:false};
       else body={registered:true};
       return route.fulfill({contentType:'application/json',body:JSON.stringify(body)});
     }
@@ -27,9 +27,9 @@ try{
   await page.goto('https://email.test/');await page.getByRole('button',{name:'Forgot password?'}).click();await page.getByLabel('Email',{exact:true}).fill('new@example.test');await page.getByRole('button',{name:'Send confirmation code'}).click();await page.getByLabel('New password',{exact:true}).fill('another password fixture');await page.getByLabel('Confirm password',{exact:true}).fill('another password fixture');await page.getByLabel('Email confirmation code').fill('654321');await page.getByRole('button',{name:'Update password',exact:true}).click();await expect(page.getByText('Password updated. Log in with your new password.')).toBeVisible();
   await page.goto('https://email.test/profile');await page.getByText('Email & password',{exact:true}).click();await page.getByLabel('New email').fill('changed@example.test');await page.getByLabel('Current password').fill('password fixture');await page.getByRole('button',{name:'Send confirmation code'}).click();await page.getByLabel('Email confirmation code').fill('123456');await page.getByRole('button',{name:'Confirm email',exact:true}).click();await expect(page.getByRole('link',{name:'Log in again'})).toBeVisible();
   const update=requests.filter(r=>r.path.endsWith('account-email')&&r.body?.action==='confirm')[0];assert.equal(update.body.password,'password fixture');assert.equal(update.body.email,'changed@example.test');
-  await expect(page.getByLabel('Share basic usage activity')).not.toBeChecked();await page.getByLabel('Share basic usage activity').click();await expect.poll(()=>requests.some(r=>r.path.endsWith('/consent')&&r.body?.enabled===true)).toBe(true);
-  await expect(page.getByLabel('Share basic usage activity')).toBeChecked();
+  await expect(page.getByLabel('Share basic usage activity')).toBeChecked();await page.getByLabel('Share basic usage activity').click();await expect.poll(()=>requests.some(r=>r.path.endsWith('/consent')&&r.body?.enabled===false)).toBe(true);
+  await expect(page.getByLabel('Share basic usage activity')).not.toBeChecked();
   assert.equal(await page.evaluate(()=>Object.values(localStorage).some(v=>/password fixture|123456/.test(v))),false);
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);assert.deepEqual(errors,[]);
-  console.log('Mobile account UI passed: register code step, reset completion, password-protected email update, opt-in control, no credential storage and no horizontal overflow.');
+  console.log('Mobile account UI passed: register code step, reset completion, password-protected email update, beta default and opt-out control, no credential storage and no horizontal overflow.');
 }finally{await browser.close()}

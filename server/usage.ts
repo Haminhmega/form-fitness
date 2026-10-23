@@ -33,8 +33,8 @@ export async function usage(request:Request,env:Env):Promise<Response|null>{
     return json({generatedAt:new Date(now).toISOString(),windowStart:new Date(start).toISOString(),days:JSON.parse(rows.data).sort((a:{day:string},b:{day:string})=>a.day.localeCompare(b.day)),months:JSON.parse(months.data).sort((a:{month:string},b:{month:string})=>a.month.localeCompare(b.month)),weekly:counts.weekly,monthly:counts.monthly,firstEvent:counts.first_event});
   }
   if(path==='/api/usage/consent'&&request.method==='GET'){
-    const row=await env.DB.prepare('SELECT enabled FROM form_analytics_consent WHERE user_id=?').bind(user.id).first();
-    return json({enabled:row?.enabled===1,admin:await isAdmin(env,user)});
+    const row=await env.DB.prepare("SELECT COALESCE((SELECT enabled FROM form_analytics_consent WHERE user_id=?),1) AS enabled, EXISTS(SELECT 1 FROM form_accounts WHERE user_id=? AND document='null') AS deleted").bind(user.id,user.id).first();
+    return json({enabled:row.enabled===1&&row.deleted!==1,admin:await isAdmin(env,user)});
   }
   if(!['/api/usage/consent','/api/usage/event'].includes(path))return json({error:'Not found'},404);
   if(request.method!=='POST')return json({error:'Method not allowed'},405);
@@ -48,9 +48,10 @@ export async function usage(request:Request,env:Env):Promise<Response|null>{
     return json({enabled:body.enabled,admin:await isAdmin(env,user)});
   }
   if(!body||Object.keys(body).some(k=>!['id','kind'].includes(k))||!['open','active'].includes(body.kind)||typeof body.id!=='string'||!/^[0-9a-f-]{36}$/i.test(body.id))return json({error:'Invalid event.'},400);
-  // Only consented account activity enters this dataset; never accept client timestamps.
+  // Beta reporting defaults on; an explicit opt-out always blocks insertion.
+  // Never accept client timestamps or store a default as affirmative consent.
   if(user.email.toLowerCase()!==env.ANALYTICS_ADMIN_EMAIL?.toLowerCase()){
-    await env.DB.prepare('INSERT INTO form_usage_events(id,subject,kind,at) SELECT ?,?,?,? WHERE EXISTS(SELECT 1 FROM form_analytics_consent WHERE user_id=? AND enabled=1) ON CONFLICT DO NOTHING').bind(await hash(subject+':'+body.id),subject,body.kind,now,user.id).run();
+    await env.DB.prepare("INSERT INTO form_usage_events(id,subject,kind,at) SELECT ?,?,?,? WHERE NOT EXISTS(SELECT 1 FROM form_analytics_consent WHERE user_id=? AND enabled=0) AND NOT EXISTS(SELECT 1 FROM form_accounts WHERE user_id=? AND document='null') ON CONFLICT DO NOTHING").bind(await hash(subject+':'+body.id),subject,body.kind,now,user.id,user.id).run();
   }
   await env.DB.prepare('DELETE FROM form_usage_events WHERE at<?').bind(now-90*86400000).run();
   return json({accepted:true});

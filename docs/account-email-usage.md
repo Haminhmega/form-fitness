@@ -1,4 +1,4 @@
-# Account email and optional usage reports
+# Account email and beta usage reports
 
 ## Runtime configuration
 
@@ -16,15 +16,17 @@ Profile → Email & password changes the login email only after checking the cur
 
 Codes and passwords stay in component memory while editing, never local/session storage. UI completion clears them. No automatic marketing subscriptions, email tracking pixels or video uploads are added.
 
-## Optional usage reporting
+## Beta usage reporting
 
-Off by default. The user chooses Profile → Help improve Form → Share basic usage activity. Only signed-in, opted-in accounts generate events. Server-side consent is checked atomically at insertion; guests and opted-out requests produce no stored event. Turning off consent deletes stored events; account deletion removes consent and usage events too.
+On by default for signed-in beta accounts as of the October 23, 2026 beta-reporting release, at the owner’s request based on their stated beta participation consent. No settings click is required. A missing preference row means the beta default; an explicit `enabled=0` always blocks insertion, including old-client or other-device requests. Existing opt-outs are preserved. Reading the effective default never writes affirmative consent to the database. No backfill or schema migration is needed.
+
+The welcome screen, Profile and privacy page disclose collection. A non-blocking signed-in notice links to Profile and may be dismissed for the tab session; dismissal does not change tracking. Users can turn it off at Profile → Help improve Form → Share basic usage activity. Opt-out deletes stored events; account deletion removes preferences and events. Guests and the owner are excluded. Review this beta default before a broader launch; the app does not treat this setting as proof of individual legal consent.
 
 Events contain only a hashed event ID, pseudonymous account subject, kind (`open` or `active`) and server timestamp. No client-controlled timestamps, email, videos, body stats, exercise names, page paths, advertising identifiers or device fingerprint. Activity heartbeat: once per minute while visible and after interaction within the last five minutes. Open: initial load or return after at least a minute hidden. Multiple tabs/devices may produce additional opens; this is not unique-device reporting. Sessions are inferred from a 30-minute gap in observed account activity, across devices, not workout duration.
 
 The owner-only report requires an exact configured email and verified password identity or provider identity. Legacy unverified password accounts cannot gain access merely by claiming the owner's email. Owner activity is excluded. Reports provide UTC daily active accounts, opens, inferred sessions, rolling 7/30-day active accounts, monthly distinct accounts and accounts active on at least two dates, plus aggregate daily CSV.
 
-Retention is 90 days; old rows are removed on subsequent event/report requests. Current dates and earliest retained months can be incomplete. Opt-outs erase past events, so aggregates can decrease. Exported aggregate reports cannot be recalled. Figures describe participating signed-in accounts only, not all app users, unique people, revenue, or independently audited fundraising evidence. No historical traction is invented. Avoid comparing partial months without matching observation windows.
+Retention is 90 days; old rows are removed on subsequent event/report requests. Current dates and earliest retained months can be incomplete. Opt-outs erase past events, so aggregates can decrease. Exported aggregate reports cannot be recalled. Figures describe participating signed-in accounts only, not all app users, unique people, revenue, or independently audited fundraising evidence. No historical traction is invented. Earlier periods contain opt-in-only participation; later periods use the beta default. The dashboard discloses this change, so growth across the boundary must not be presented as organic growth without qualification. Average usage duration is not calculated by this release. Avoid comparing partial months without matching observation windows.
 
 ## Validation
 

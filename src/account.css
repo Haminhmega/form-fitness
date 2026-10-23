@@ -7,3 +7,7 @@
 @media(max-width:430px){.account-form-actions{gap:8px}.account-form-actions .btn{font-size:12px;padding-left:12px;padding-right:12px}.account-height>div{gap:6px}.account-height input{padding-left:8px;padding-right:8px}}
 
 .account-email,.account-usage{border-top:1px solid var(--border);padding:20px 0;margin-top:20px}.account-email summary,.account-usage summary{cursor:pointer;font-weight:600;padding:8px 0}.usage-table-scroll{max-width:100%;overflow-x:auto}.usage-table-scroll table{width:100%;text-align:left;border-collapse:collapse;margin:20px 0}.usage-table-scroll th,.usage-table-scroll td{padding:8px;border-bottom:1px solid var(--border)}.usage-table-scroll caption{text-align:left;margin-bottom:8px}
+
+.beta-usage-notice{display:flex;align-items:center;gap:12px;padding:16px 24px;background:var(--surface-soft);border-bottom:1px solid var(--border);color:var(--text)}
+.beta-usage-notice p{flex:1;font-size:13px;line-height:1.6;margin:0}.beta-usage-notice strong{display:block}.beta-usage-notice>.btn,.beta-usage-notice>.icon-button{flex-shrink:0;min-height:44px;min-width:44px}
+@media(max-width:600px){.beta-usage-notice{display:grid;grid-template-columns:minmax(0,1fr) 44px;padding:14px 16px;gap:8px 12px}.beta-usage-notice p{grid-column:1}.beta-usage-notice>.icon-button{grid-column:2;grid-row:1;align-self:start}.beta-usage-notice>.btn{grid-column:1;justify-self:start}}
