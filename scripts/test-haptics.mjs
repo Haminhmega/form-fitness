@@ -1,0 +1,60 @@
+import assert from 'node:assert/strict';
+import {build} from 'esbuild';
+import {chromium,expect} from '@playwright/test';
+
+const bundle=await build({stdin:{contents:`
+ import {createRoot} from 'react-dom/client';
+ import HapticSettings from './src/HapticSettings';
+ import {startInteractionHaptics} from './src/haptics';
+ startInteractionHaptics();
+ createRoot(document.getElementById('root')).render(<><HapticSettings/><button className="btn primary">Start</button><button className="btn secondary" disabled>Unavailable</button><button className="set-check" aria-pressed="false">Complete set</button><button className="set-check" aria-pressed="true">Undo set</button><button className="btn primary" data-haptic="complete">Log set</button><nav className="mobile-nav"><button className="active">Today</button><button>Train</button></nav></>);
+`,resolveDir:process.cwd(),loader:'tsx'},bundle:true,format:'iife',platform:'browser',jsx:'automatic',write:false});
+const browser=await chromium.launch({headless:true,...(process.env.CI?{}:{channel:'msedge'})});
+try{
+  const context=await browser.newContext();
+  await context.addInitScript(()=>{
+    window.pulses=[];
+    Object.defineProperty(navigator,'vibrate',{configurable:true,value:pattern=>{window.pulses.push(pattern);return true}});
+  });
+  const page=await context.newPage();
+  await page.route('**/*',route=>route.fulfill({contentType:'text/html',body:'<!doctype html><div id="root"></div><script>'+bundle.outputFiles[0].text+'</script>'}));
+  await page.goto('http://haptics.test/');
+  const pulseCount=()=>page.evaluate(()=>window.pulses.length);
+  const reset=async()=>{await page.waitForTimeout(90);await page.evaluate(()=>window.pulses=[])};
+  await page.getByRole('button',{name:'Start',exact:true}).click();
+  assert.equal(await pulseCount(),0,'Feedback starts off');
+  await page.getByRole('switch',{name:'Touch feedback'}).click();
+  assert.deepEqual(await page.evaluate(()=>window.pulses),[8]);
+  await page.reload();
+  await expect(page.getByRole('switch')).toBeChecked();
+  await reset();await page.getByRole('button',{name:'Start',exact:true}).click();
+  assert.deepEqual(await page.evaluate(()=>window.pulses),[8]);
+  await reset();await page.getByRole('button',{name:'Complete set',exact:true}).click();
+  assert.deepEqual(await page.evaluate(()=>window.pulses),[18]);
+  await reset();await page.getByRole('button',{name:'Log set',exact:true}).click();
+  assert.deepEqual(await page.evaluate(()=>window.pulses),[18]);
+  await reset();await page.getByRole('button',{name:'Undo set',exact:true}).click();await page.getByRole('button',{name:'Today',exact:true}).click();
+  assert.equal(await pulseCount(),0,'Undo and already-selected navigation stay silent');
+  await page.evaluate(()=>{document.querySelector('.btn.primary').click();document.querySelector('button:disabled').click()});
+  assert.equal(await pulseCount(),0,'Scripted and disabled clicks stay silent');
+  await reset();await page.getByRole('button',{name:'Train',exact:true}).click();
+  assert.equal(await pulseCount(),1);
+  await page.emulateMedia({reducedMotion:'reduce'});await reset();await page.getByRole('button',{name:'Start',exact:true}).click();
+  assert.equal(await pulseCount(),0,'Reduced Motion silences haptics');
+  await page.emulateMedia({reducedMotion:'no-preference'});await page.getByRole('switch').click();await reset();await page.getByRole('button',{name:'Start',exact:true}).click();
+  assert.equal(await pulseCount(),0,'Turning feedback off silences taps');
+  await page.evaluate(()=>{Object.defineProperty(navigator,'vibrate',{value:undefined})});
+  await page.getByRole('switch').click();await reset();await page.getByRole('button',{name:'Start',exact:true}).click();
+  assert.equal(await pulseCount(),0,'Missing vibration API is a no-op');
+  await context.close();
+  const unsupported=await browser.newContext();
+  await unsupported.addInitScript(()=>Object.defineProperty(navigator,'vibrate',{value:undefined}));
+  const fallback=await unsupported.newPage();
+  await fallback.route('**/*',route=>route.fulfill({contentType:'text/html',body:'<!doctype html><div id="root"></div><script>'+bundle.outputFiles[0].text+'</script>'}));
+  await fallback.goto('http://haptics.test/');
+  await expect(fallback.getByRole('switch')).toBeDisabled();
+  await expect(fallback.getByText(/Vibration is unavailable in this browser/)).toBeVisible();
+  await fallback.getByRole('button',{name:'Start',exact:true}).click();
+  await unsupported.close();
+  console.log('Haptic checks passed: opt-in, persistence, tap/completion pulses, selected/undo/disabled/scripted silence, Reduced Motion, opt-out and unsupported-browser fallback. Physical sensation requires device testing.');
+}finally{await browser.close()}

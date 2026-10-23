@@ -32,4 +32,9 @@ assert.equal(db.prepare('SELECT COUNT(*) AS n FROM form_usage_events').get().n,0
 // An unverified legacy password address cannot grant owner access.
 const token='p'.repeat(43);db.prepare('INSERT INTO form_password_identities(user_id,email,name,password_hash,salt,iterations,created_at) VALUES(?,?,?,?,?,?,?)').run('unverified','owner@example.test','Fake','hash','salt',600000,'today');db.prepare('INSERT INTO form_sessions(token_hash,user_id,expires_at) VALUES(?,?,?)').run(await hash(token),'unverified',Date.now()+60000);
 assert.equal((await call('report',null,undefined,{Cookie:'__Host-form-session='+token})).status,403);
+assert.equal((await call('consent',null,undefined,{Cookie:'__Host-form-session='+token})).data.dashboardAccess,'verify-email');
+assert.equal((await call('consent','a')).data.dashboardAccess,'private');
+db.prepare('UPDATE form_password_identities SET email_verified_at=? WHERE user_id=?').run(new Date().toISOString(),'unverified');
+assert.equal((await call('consent',null,undefined,{Cookie:'__Host-form-session='+token})).data.dashboardAccess,'available');
+assert.equal((await call('report',null,undefined,{Cookie:'__Host-form-session='+token})).status,200);
 console.log('Usage checks passed: automatic beta default, existing opt-out preservation, guest exclusion, no invented consent rows, owner-only access, verified-email gate, account isolation, payload allowlist, duplicate events, sessions, retention, owner exclusion and opt-out erasure.');db.close();

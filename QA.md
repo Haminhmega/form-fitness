@@ -1,3 +1,13 @@
+# Glass controls and touch feedback - October 23, 2026
+
+Floating mobile navigation and workout controls use theme-aware translucent surfaces with edge highlights, plus pill-shaped primary/secondary buttons. Blur is limited to the floating surfaces. Opaque, higher-contrast, forced-color and Reduced Motion fallbacks are included. The session selector and set controls follow the selected color theme.
+
+Touch feedback is optional and device-local under Profile > Theme & app icon. The Vibration API supplies short tap/completion pulses on supporting browsers. iPhone Safari has no standard Vibration API support; the setting explains the limitation and visual feedback remains. No hardware vibration or physical iPhone testing is claimed. No haptic preference or event is sent to a server. Reduced Motion, opt-out, unsupported browsers, disabled controls, programmatic clicks and undo-set controls remain silent. `npm run test:haptics` verifies these paths with a mocked hardware API.
+
+The private report now shows an email-verification explanation for the matching unverified owner account, plus an entry to the existing email-code password reset and an access retry. It does not bypass verification or change owner configuration. Usage server tests cover private, verification-required and verified access; responsive UI fixtures cover the blocked explanation and retry.
+
+Validation: 60 mobile/desktop states across 320/390/430/768/1440px, zero overflow or undersized phone controls, five accessibility audits, seven additional theme audits, haptic tests, account/email/usage security tests, usage UI and production build passed. Evidence is outside git in `../form-mobile-evidence/after/` and `../form-glass-evidence/`. Build retains the existing large-chunk advisory.
+
 # Automatic beta usage reporting - October 23, 2026
 
 Basic app opens/activity timestamps default on for signed-in beta accounts without a settings action or fabricated consent row. Explicit opt-outs still block events atomically. Deleted-account tombstones prevent a remaining provider session from restarting collection. Owner/guest activity stays excluded. A dismissible notice, signup text, Profile description, privacy page, report caveat and CSV note explain the beta default and collection-period change. No average-duration metric, retroactive events, videos, body stats or additional identifiers were added.

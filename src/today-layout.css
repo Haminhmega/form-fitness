@@ -8,7 +8,7 @@
 .today-organized .hero-meta{margin:19px 0 23px;font-size:12px;flex-wrap:wrap}
 .today-organized .start-button{width:230px;max-width:100%;min-height:50px;font-size:14px}
 .today-organized .training-art{width:39%;height:215px;top:42px;right:-12px;opacity:.85}
-.today-session-selector{display:flex;align-items:center;gap:18px;padding:17px 24px;border-top:1px solid #38452d;background:#1c2318}
+.today-session-selector{display:flex;align-items:center;gap:18px;padding:17px 24px;border-top:1px solid var(--border);background:var(--surface-deep)}
 .today-session-selector>label{font-size:12px;line-height:1.5;color:var(--muted);flex:1}
 .today-session-selector>select{width:60%;min-height:46px;font-size:13px}
 .today-disclosure>summary{display:flex;align-items:center;gap:14px;list-style:none;cursor:pointer;min-height:76px;padding:20px 24px}

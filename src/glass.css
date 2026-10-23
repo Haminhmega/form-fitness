@@ -1,0 +1,172 @@
+/* Web glass treatment: highlights on controls, blur only on floating toolbars. */
+:root {
+  --control-sheen: linear-gradient(180deg, #ffffff24 0%, #ffffff08 48%, #0000000a 100%);
+  --primary-sheen: linear-gradient(180deg, #ffffff52 0%, #ffffff0a 18%, transparent 35%, transparent 75%, #0000000a 100%);
+  --control-edge: inset 0 1px 0 #ffffff32, inset 0 -1px 0 #00000024;
+}
+
+.btn.primary,
+.btn.secondary,
+.set-check {
+  border-radius: 999px;
+  background-image: var(--control-sheen);
+  box-shadow: var(--control-edge), 0 3px 8px #00000026;
+  transition: transform 140ms ease, box-shadow 180ms ease, border-color 180ms ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.btn.primary,
+.set-done .set-check {
+  background-color: var(--accent);
+  color: var(--accent-ink);
+  border-color: #ffffff30;
+  background-image: var(--primary-sheen);
+  box-shadow: inset 0 1px 0 #ffffff80, inset 0 -1px 0 #0000001a, 0 4px 12px #00000030;
+  filter: none;
+}
+
+.btn.secondary {
+  background-color: var(--surface-raised);
+  color: var(--text);
+  border-color: var(--border);
+}
+
+.icon-button {
+  border-radius: 50%;
+  transition: background-color 140ms ease, transform 140ms ease;
+}
+
+.mobile-nav button.active,
+.train .train-tabs button[aria-selected=true],
+.source-segments button[aria-pressed=true],
+.account-auth-tabs button[aria-pressed=true],
+.account-units button[aria-pressed=true] {
+  background-color: var(--surface-soft);
+  background-image: var(--control-sheen);
+  box-shadow: inset 0 1px 0 #ffffff2b, 0 2px 5px #00000020;
+}
+
+.set-check { border-radius: 15px; background-color: var(--surface-raised); color: var(--accent); border-color: var(--border); }
+.setting-switch {
+  background-image: var(--control-sheen);
+  box-shadow: inset 0 1px 3px #00000038, inset 0 -1px 0 #ffffff24;
+}
+.setting-switch > span {
+  background-image: linear-gradient(155deg, #ffffff88, transparent 55%);
+  box-shadow: inset 0 1px 0 #ffffffaa, 0 2px 5px #00000040;
+}
+.haptic-settings { margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--border); }
+.haptic-settings .profile-setting { gap: 16px; }
+.haptic-settings .btn { margin-top: 12px; }
+
+@media (hover: hover) and (pointer: fine) {
+  .btn.primary:hover:not(:disabled),
+  .btn.secondary:hover:not(:disabled),
+  .set-check:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: inset 0 1px 0 #ffffff65, inset 0 -1px 0 #00000024, 0 6px 16px #00000035;
+    background-image: var(--control-sheen);
+    filter: none;
+  }
+  .btn.primary:hover:not(:disabled) { background-image: var(--primary-sheen); }
+}
+
+.btn.primary:active:not(:disabled),
+.btn.secondary:active:not(:disabled),
+.set-check:active:not(:disabled),
+.icon-button:active:not(:disabled) {
+  transform: translateY(1px) scale(.98);
+  box-shadow: inset 0 2px 5px #00000026, inset 0 1px 0 #ffffff25;
+}
+
+.btn.primary:focus-visible,
+.btn.secondary:focus-visible,
+.set-check:focus-visible,
+.mobile-nav button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
+}
+
+.btn.primary:disabled,
+.btn.secondary:disabled,
+.set-check:disabled {
+  background-image: none;
+  box-shadow: none;
+  transform: none;
+  filter: none;
+}
+
+@media (max-width: 760px) {
+  .mobile-nav {
+    left: max(12px, env(safe-area-inset-left));
+    right: max(12px, env(safe-area-inset-right));
+    bottom: calc(12px + env(safe-area-inset-bottom));
+    max-width: 520px;
+    margin-inline: auto;
+    min-height: 72px;
+    padding: 6px;
+    gap: 3px;
+    border: 1px solid #ffffff30;
+    border-radius: 40px;
+  }
+  .mobile-nav > button { border-radius: 32px; min-height: 58px; color: var(--text); }
+  .mobile-nav > button.active { color: var(--accent); }
+  .workout-page .workout-dock {
+    left: max(10px, env(safe-area-inset-left));
+    right: max(10px, env(safe-area-inset-right));
+    bottom: calc(10px + env(safe-area-inset-bottom));
+    border: 1px solid #ffffff30;
+    border-radius: 28px;
+    padding: 10px 14px;
+  }
+  .toast { bottom: calc(100px + env(safe-area-inset-bottom)); }
+  .resume-bar { bottom: calc(96px + env(safe-area-inset-bottom)); }
+  .mobile-nav,
+  .workout-page .workout-dock {
+    background-color: var(--surface-deep);
+    background-image: linear-gradient(145deg, #ffffff24, #ffffff05 35%, transparent 65%, #ffffff12);
+    box-shadow: inset 0 1px 0 #ffffff55, inset 0 -1px 0 #ffffff16, 0 8px 28px #00000050;
+  }
+
+  @supports ((backdrop-filter: blur(12px)) or (-webkit-backdrop-filter: blur(12px))) and (background: color-mix(in srgb, black 90%, transparent)) {
+    .mobile-nav,
+    .workout-page .workout-dock {
+      background-color: color-mix(in srgb, var(--surface-deep) 76%, transparent);
+      -webkit-backdrop-filter: blur(22px) saturate(145%);
+      backdrop-filter: blur(22px) saturate(145%);
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn.primary, .btn.secondary, .set-check, .icon-button {
+    transition: none;
+    transform: none !important;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+  .mobile-nav, .workout-page .workout-dock {
+    background: var(--surface-deep);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+  .btn.primary, .btn.secondary, .set-check {
+    background-image: none;
+    box-shadow: none;
+  }
+}
+
+@media (forced-colors: active) {
+  .btn.primary, .btn.secondary, .set-check {
+    border: 1px solid ButtonText;
+    background: ButtonFace;
+    color: ButtonText;
+    box-shadow: none;
+  }
+  .mobile-nav, .workout-page .workout-dock {
+    background: Canvas;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}

@@ -21,13 +21,13 @@ try{
   for(const width of [390,1440]){
     const context=await browser.newContext({viewport:{width,height:900}});
     const page=await context.newPage(),events=[],writes=[],errors=[];
-    let enabled=true,admin=false,unavailable=false;
+    let enabled=true,admin=false,unavailable=false,dashboardAccess='private';
     page.on('pageerror',e=>errors.push(e.message));await page.clock.install();
     await page.route('**/*',async route=>{
       const request=route.request(),path=new URL(request.url()).pathname;
       if(path==='/api/usage/consent'){
         if(request.method()==='POST'){writes.push(request.postDataJSON());enabled=request.postDataJSON().enabled}
-        return route.fulfill({status:unavailable?503:200,contentType:'application/json',body:JSON.stringify(unavailable?{error:'Fixture unavailable'}:{enabled,admin})});
+        return route.fulfill({status:unavailable?503:200,contentType:'application/json',body:JSON.stringify(unavailable?{error:'Fixture unavailable'}:{enabled,admin,dashboardAccess})});
       }
       if(path==='/api/usage/event'){events.push(request.postDataJSON());return route.fulfill({contentType:'application/json',body:'{"accepted":true}'})}
       return route.fulfill({contentType:path==='/app.js'?'text/javascript':path==='/app.css'?'text/css':'text/html',body:path==='/app.js'?js:path==='/app.css'?css:'<!doctype html><html lang="en"><head><title>Beta usage fixture</title><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="/app.css"></head><body><div id="root"></div><script src="/app.js"></script></body></html>'});
@@ -55,7 +55,14 @@ try{
     await page.getByLabel('Share basic usage activity').click();
     await expect.poll(()=>events.length).toBeGreaterThan(stopped);
     for(const event of events)assert.deepEqual(Object.keys(event).sort(),['id','kind'],'No personal content in events');
-    admin=true;const beforeOwner=events.length;
+    dashboardAccess='verify-email';await page.reload();
+    await expect(page.getByText('Private usage dashboard',{exact:true})).toBeVisible();
+    await expect(page.getByText(/Your owner email needs verification/)).toBeVisible();
+    await expect(page.getByRole('button',{name:'Refresh usage report'})).toHaveCount(0);
+    await expect(page.getByRole('link',{name:'Open sign-in to reset password'})).toHaveAttribute('href','/?auth=login');
+    admin=true;dashboardAccess='available';await page.getByRole('button',{name:'Check dashboard access'}).click();
+    await expect(page.getByText(/Your owner email needs verification/)).toHaveCount(0);
+    const beforeOwner=events.length;
     await page.reload();await expect(page.getByText('Private usage dashboard',{exact:true})).toBeVisible();
     await page.clock.fastForward(60000);assert.equal(events.length,beforeOwner,'Owner activity is excluded');
     await page.goto('https://usage.test/guest');await page.clock.fastForward(60000);assert.equal(events.length,beforeOwner,'Guests are excluded');

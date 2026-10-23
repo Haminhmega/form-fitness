@@ -34,7 +34,9 @@ export async function usage(request:Request,env:Env):Promise<Response|null>{
   }
   if(path==='/api/usage/consent'&&request.method==='GET'){
     const row=await env.DB.prepare("SELECT COALESCE((SELECT enabled FROM form_analytics_consent WHERE user_id=?),1) AS enabled, EXISTS(SELECT 1 FROM form_accounts WHERE user_id=? AND document='null') AS deleted").bind(user.id,user.id).first();
-    return json({enabled:row.enabled===1&&row.deleted!==1,admin:await isAdmin(env,user)});
+    const admin=await isAdmin(env,user);
+    const owner=!!env.ANALYTICS_ADMIN_EMAIL&&user.email.toLowerCase()===env.ANALYTICS_ADMIN_EMAIL.toLowerCase();
+    return json({enabled:row.enabled===1&&row.deleted!==1,admin,dashboardAccess:admin?'available':owner?'verify-email':'private'});
   }
   if(!['/api/usage/consent','/api/usage/event'].includes(path))return json({error:'Not found'},404);
   if(request.method!=='POST')return json({error:'Method not allowed'},405);
